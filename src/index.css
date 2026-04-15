@@ -1,0 +1,58 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+/* shadcn/ui CSS variables (Tailwind v4 compatible) */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 262 83% 96%;
+    --accent-foreground: 262 83% 40%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 262 83% 58%;
+    --radius: 0.5rem;
+  }
+}
+
+/* MEMOVIA brand tokens */
+:root {
+  --bg-primary: #F8F8FC;
+  --bg-secondary: #FFFFFF;
+  --bg-sidebar: #0F0F1A;
+  --border-color: #E8E8F0;
+  --text-primary: #0F0F1A;
+  --text-secondary: #6B6B80;
+  --text-muted: #9999AA;
+  --memovia-violet: #7C3AED;
+  --memovia-cyan: #00E5CC;
+  --memovia-violet-light: #EDE9FF;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
