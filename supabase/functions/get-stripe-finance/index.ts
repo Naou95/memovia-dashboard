@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     // 3. 4 appels Stripe en parallèle
     const [activeSubs, paidInvoices, recentCharges, churnEvents] = await Promise.all([
       stripe.subscriptions.list(
-        { status: 'active', limit: 100, expand: ['data.customer'] },
+        { status: 'active', limit: 100, expand: ['data.customer', 'data.items.data.price.product'] },
         { timeout: 8000 }
       ),
       stripe.invoices.list(
@@ -128,10 +128,15 @@ Deno.serve(async (req) => {
           : ''
 
       const plan = sub.items.data[0]?.plan
+      // product.name via expand: ['data.items.data.price.product']
+      const price = sub.items.data[0]?.price as (Stripe.Price & { product?: Stripe.Product }) | undefined
+      const productName = typeof price?.product === 'object' && price.product !== null
+        ? (price.product as Stripe.Product).name
+        : undefined
       return {
         id: sub.id,
         customerEmail: email,
-        planName: plan?.nickname ?? plan?.id ?? 'Plan inconnu',
+        planName: productName ?? plan?.nickname ?? 'Plan inconnu',
         amount: plan
           ? normalizePlanAmount({ amount: plan.amount ?? 0, interval: plan.interval })
           : 0,

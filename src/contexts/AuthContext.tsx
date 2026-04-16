@@ -13,7 +13,7 @@ import { DEFAULT_ROLE, getRoleFromSession } from '@/types/auth'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GET_SESSION_TIMEOUT_MS = 5000
-const PROFILE_QUERY_TIMEOUT_MS = 4000
+const PROFILE_QUERY_TIMEOUT_MS = 12000
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -31,40 +31,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     isMountedRef.current = true
 
-    // ── Bootstrap: restore session from localStorage ───────────────────────
-    let didRespond = false
-
+    // ── Safety timeout: if onAuthStateChange never fires (network issue) ──
     const timeoutId = setTimeout(() => {
       if (!isMountedRef.current) return
-      if (!didRespond) {
-        setIsLoading(false)
-        toast.error('Impossible de restaurer la session. Vérifiez votre connexion.')
-      }
+      setIsLoading(false)
+      toast.error('Impossible de restaurer la session. Vérifiez votre connexion.')
     }, GET_SESSION_TIMEOUT_MS)
 
-    supabase.auth.getSession().then(async ({ data, error: sessionError }) => {
-      didRespond = true
-      clearTimeout(timeoutId)
-
-      if (!isMountedRef.current) return
-
-      if (sessionError) {
-        setError(sessionError.message)
-        setIsLoading(false)
-        return
-      }
-
-      if (data.session) {
-        await loadUserProfile(data.session)
-      } else {
-        setIsLoading(false)
-      }
-    })
-
-    // ── Real-time auth state listener ──────────────────────────────────────
+    // ── Single auth listener — handles INITIAL_SESSION + future changes ────
+    // onAuthStateChange fires AFTER the SDK has applied the session internally,
+    // so DB queries inside loadUserProfile have the correct auth headers.
+    // Using getSession().then() in parallel caused a race where the query ran
+    // before auth headers were set, returning null → synthesizeProfile fallback.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
         if (!isMountedRef.current) return
+        clearTimeout(timeoutId)
 
         if (newSession) {
           await loadUserProfile(newSession)
@@ -128,7 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       )
     }
 
-    const effectiveRole = jwtRole ?? profile?.role ?? DEFAULT_ROLE
+    // DB profile is source of truth for role; JWT is fallback only
+    const effectiveRole = profile?.role ?? jwtRole ?? DEFAULT_ROLE
     const effectiveProfile: DashboardProfile = profile ?? synthesizeProfile(currentSession, effectiveRole)
 
     setSession(currentSession)
