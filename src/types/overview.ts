@@ -1,10 +1,10 @@
 export interface StripeMetrics {
   /** MRR en euros, ex : 360 */
   mrr: number
-  /** Taux de churn en %, ex : 3.3 */
-  churnRate: number
-  /** Nombre d'abonnements actifs, ex : 30 */
+  /** Abonnements payants actifs (cancel_at_period_end=false), ex : 28 */
   activeSubscribers: number
+  /** Abonnements payants qui ne se renouvelleront pas (cancel_at_period_end=true), ex : 2 */
+  cancelingAtPeriodEnd: number
   fetchedAt: string
 }
 

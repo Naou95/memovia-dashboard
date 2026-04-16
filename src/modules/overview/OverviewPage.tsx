@@ -1,4 +1,4 @@
-import { DollarSign, Users, Landmark, TrendingDown, AlertCircle } from 'lucide-react'
+import { DollarSign, Users, Landmark, UserMinus, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOverviewKpis } from '@/hooks/useOverviewKpis'
 
@@ -7,9 +7,6 @@ import { useOverviewKpis } from '@/hooks/useOverviewKpis'
 /** "12 430" (séparateur de milliers français, pas de décimales) */
 const formatEur = (val: number) =>
   new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(val)
-
-/** "3,3" (virgule française) */
-const formatPct = (val: number) => val.toFixed(1).replace('.', ',')
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
@@ -63,11 +60,10 @@ export default function OverviewPage() {
           error={qontoError}
         />
         <KpiCard
-          label="Churn ce mois"
-          value={stripe ? formatPct(stripe.churnRate) : null}
-          unit="%"
+          label="Annulations en cours"
+          value={stripe ? String(stripe.cancelingAtPeriodEnd) : null}
           accent="red"
-          icon={TrendingDown}
+          icon={UserMinus}
           isLoading={isLoading}
           error={stripeError}
         />

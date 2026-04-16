@@ -48,52 +48,43 @@ Deno.serve(async (req) => {
   try {
     const stripe = new Stripe(secretKey)
 
-    // 3. Abonnements actifs → MRR + count
+    // 3. Abonnements status='active' uniquement.
+    // past_due, canceled, trialing, etc. sont exclus par ce filtre.
     const activeSubs = await stripe.subscriptions.list(
       { status: 'active', limit: 100 },
       { timeout: 8000 }
     )
 
+    // MRR : plans payants uniquement, plans annuels normalisés en mensuel
     const mrr = activeSubs.data.reduce((sum, sub) => {
       const plan = sub.items.data[0]?.plan
       if (!plan?.amount) return sum
-      // Normaliser les plans annuels en mensuel
       const monthlyAmount = plan.interval === 'year'
         ? plan.amount / 12
         : plan.amount
       return sum + monthlyAmount / 100 // cents → euros
     }, 0)
 
-    // Abonnés payants uniquement (exclure les plans à 0€)
+    // Plans payants uniquement (exclure les plans à 0€)
     const paidSubs = activeSubs.data.filter(
       (sub) => (sub.items.data[0]?.plan?.amount ?? 0) > 0
     )
-    const activeCount = paidSubs.length
 
-    // 4. Annulations ce mois → churn rate
-    const startOfMonth = new Date()
-    startOfMonth.setDate(1)
-    startOfMonth.setHours(0, 0, 0, 0)
-    const startOfMonthTs = Math.floor(startOfMonth.getTime() / 1000)
+    // Abonnés actifs = payants ET ne se désabonnent PAS en fin de période
+    const activeSubscribers = paidSubs.filter(
+      (sub) => !sub.cancel_at_period_end
+    ).length
 
-    const canceledSubs = await stripe.subscriptions.list(
-      { status: 'canceled', limit: 100 },
-      { timeout: 8000 }
-    )
-    const canceledThisMonth = canceledSubs.data.filter(
-      (sub) => sub.canceled_at !== null && sub.canceled_at >= startOfMonthTs
-    )
-
-    // Dénominateur = actifs + annulés ce mois (approximation saine pour faible volume)
-    const denominator = activeCount + canceledThisMonth.length
-    const churnRate = denominator > 0
-      ? Math.round((canceledThisMonth.length / denominator) * 100 * 10) / 10
-      : 0
+    // Annulations en cours = payants ET cancel_at_period_end=true
+    // (l'accès reste actif jusqu'à la fin de la période, mais ne se renouvellera pas)
+    const cancelingAtPeriodEnd = paidSubs.filter(
+      (sub) => sub.cancel_at_period_end
+    ).length
 
     return Response.json({
       mrr: Math.round(mrr * 100) / 100,
-      churnRate,
-      activeSubscribers: activeCount,
+      activeSubscribers,
+      cancelingAtPeriodEnd,
       fetchedAt: new Date().toISOString(),
     }, { headers: corsHeaders })
 
