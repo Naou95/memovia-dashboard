@@ -68,7 +68,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Stripe & Finance',
         path: '/stripe',
         icon: CreditCard,
-        status: 'soon',
+        status: 'active',
         allowedRoles: [],
       },
       {

@@ -52,3 +52,29 @@ Deferred work captured by `/plan-eng-review` and other skills. Each entry stays 
 **Source:** /plan-eng-review on 2026-04-15, Module 1.
 
 ---
+
+## Stripe & Finance
+
+### [TODO-S1] Migration vers React Query
+
+**What:** Remplacer le cache module-level Map dans `useStripeFinance` (et potentiellement `useOverviewKpis`) par React Query (`@tanstack/react-query`).
+
+**Why:** Le cache manuel (module-level Map, TTL 5min) fonctionne pour 2-3 modules mais devient douloureux à maintenir quand chaque module a son propre cache ad-hoc. React Query centralise le cache, gère l'invalidation, les retry, le stale-while-revalidate, et le devtools.
+
+**Pros:**
+- Cache centralisé, invalidation cross-modules.
+- Retry automatique + exponential backoff.
+- DevTools React Query pour debugger les fetches.
+- Pattern cohérent sur tous les modules futurs.
+
+**Cons:**
+- Nouvelle dépendance (~50KB). Sur-engineered pour un outil interne à 2 users en V1.
+- Nécessite de wrapper l'app dans `<QueryClientProvider>` et de migrer tous les hooks existants.
+
+**Context:** Identifié lors du /plan-eng-review Module 3 (2026-04-16). Pattern de cache simple (module-level Map) couvre Module 3 + 4. À reconsidérer à partir du Module 6 (CRM) quand les hooks prolifèrent.
+
+**Depends on / blocked by:** Aucun. Timing optimal : avant ou pendant Module 6.
+
+**Source:** /plan-eng-review on 2026-04-16, Module 3.
+
+---

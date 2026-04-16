@@ -57,9 +57,17 @@ describe('Sidebar', () => {
 
   it('"soon" items are not wrapped in links', () => {
     renderSidebar('admin_full')
-    // Stripe item is "soon" — should not have an <a> element
+    // Stripe est maintenant actif (Module 3). Qonto est encore "soon".
+    const qontoEl = screen.getByText('Qonto Trésorerie')
+    const anchor = qontoEl.closest('a')
+    expect(anchor).toBeNull()
+  })
+
+  it('stripe is now active and wrapped in a link', () => {
+    renderSidebar('admin_full')
     const stripeEl = screen.getByText('Stripe & Finance')
     const anchor = stripeEl.closest('a')
-    expect(anchor).toBeNull()
+    expect(anchor).not.toBeNull()
+    expect(anchor?.getAttribute('href')).toBe('/stripe')
   })
 })

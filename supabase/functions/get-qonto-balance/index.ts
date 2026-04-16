@@ -1,9 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
 
 interface QontoBankAccount {
   balance_cents: number
@@ -23,37 +18,14 @@ Deno.serve(async (req) => {
   }
 
   // 1. Valider l'auth
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
-  const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  )
-
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(
-    authHeader.replace('Bearer ', '')
-  )
-  if (authError || !user) {
-    return new Response(JSON.stringify({ error: 'unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
+  const authResult = await validateAuth(req)
+  if (authResult instanceof Response) return authResult
 
   // 2. Valider env vars
   const apiKey = Deno.env.get('QONTO_API_KEY')
   const orgSlug = Deno.env.get('QONTO_ORGANIZATION_SLUG')
   if (!apiKey || !orgSlug) {
-    return new Response(JSON.stringify({ error: 'qonto_not_configured' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return errorResponse('qonto_not_configured', 500)
   }
 
   try {
@@ -101,9 +73,6 @@ Deno.serve(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'qonto_error'
     const isTimeout = message.includes('abort') || message.includes('timeout')
-    return new Response(JSON.stringify({ error: message }), {
-      status: isTimeout ? 504 : 502,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return errorResponse(message, isTimeout ? 504 : 502)
   }
 })

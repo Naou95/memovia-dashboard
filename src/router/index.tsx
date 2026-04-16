@@ -6,6 +6,7 @@ import AppLayout from '@/components/layout/AppLayout'
 // ── Lazy-loaded pages ──────────────────────────────────────────────────────────
 const LoginPage = lazy(() => import('@/components/auth/LoginPage'))
 const OverviewPage = lazy(() => import('@/modules/overview/OverviewPage'))
+const StripePage = lazy(() => import('@/modules/stripe/StripePage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -47,6 +48,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <OverviewPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'stripe',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <StripePage />
           </Suspense>
         ),
       },
