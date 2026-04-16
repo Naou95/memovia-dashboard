@@ -1,11 +1,12 @@
 import { DollarSign, Users, Landmark, UserMinus } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOverviewKpis } from '@/hooks/useOverviewKpis'
+import { useStripeFinance } from '@/hooks/useStripeFinance'
 import { KpiCard } from '@/components/shared/KpiCard'
+import { RevenueBarChart } from '@/components/shared/RevenueBarChart'
 
 // ── Formatters ─────────────────────────────────────────────────────────────────
 
-/** "12 430" (séparateur de milliers français, pas de décimales) */
 const formatEur = (val: number) =>
   new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(val)
 
@@ -14,11 +15,14 @@ const formatEur = (val: number) =>
 export default function OverviewPage() {
   const { user } = useAuth()
   const { stripe, qonto, stripeError, qontoError, isLoading } = useOverviewKpis()
+  const { data: stripeFinance, isLoading: chartLoading } = useStripeFinance()
 
   const hour = new Date().getHours()
   const greeting =
     hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
   const firstName = user?.profile.full_name?.split(' ')[0] ?? 'admin'
+
+  const last6Months = stripeFinance?.revenueByMonth?.slice(-6) ?? []
 
   return (
     <div className="space-y-6">
@@ -68,6 +72,37 @@ export default function OverviewPage() {
           isLoading={isLoading}
           error={stripeError}
         />
+      </div>
+
+      {/* Revenue mini chart */}
+      <div className="rounded-2xl border border-[var(--border-color)] bg-white p-5">
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+              Revenus facturés
+            </h3>
+            <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+              6 derniers mois
+            </p>
+          </div>
+          {stripeFinance && (
+            <span className="text-[13px] font-semibold text-[#7C3AED]">
+              {new Intl.NumberFormat('fr-FR', {
+                style: 'currency',
+                currency: 'EUR',
+                maximumFractionDigits: 0,
+              }).format(
+                last6Months.reduce((s, m) => s + m.revenue, 0)
+              )}
+            </span>
+          )}
+        </div>
+
+        {chartLoading ? (
+          <div className="h-[160px] animate-pulse rounded-xl bg-[var(--bg-primary)]" />
+        ) : (
+          <RevenueBarChart data={last6Months} variant="mini" />
+        )}
       </div>
     </div>
   )
