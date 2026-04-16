@@ -13,6 +13,7 @@ import {
   Github,
   BarChart3,
   Bot,
+  UserCog,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { UserRole } from '@/types/auth'
@@ -35,6 +36,14 @@ export interface NavSection {
   items: NavItem[]
 }
 
+/**
+ * Sidebar structure — follows the MEMOVIA dashboard plan:
+ * - PRINCIPAL      → Overview
+ * - FINANCE        → Stripe & Finance, Qonto Trésorerie, Contrats B2B
+ * - OPÉRATIONS     → Prospection CRM, Tâches IA, Calendrier, Email Hostinger, GitHub
+ * - PLATEFORME     → Utilisateurs MEMOVIA, Realtime, Roadmap & Feedback
+ * - GROWTH & IA    → SEO & Blog, Copilote IA
+ */
 export const NAV_SECTIONS: NavSection[] = [
   {
     id: 'main',
@@ -56,7 +65,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       {
         id: 'stripe',
-        label: 'Stripe & Revenus',
+        label: 'Stripe & Finance',
         path: '/stripe',
         icon: CreditCard,
         status: 'soon',
@@ -81,8 +90,8 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    id: 'growth',
-    label: 'Croissance',
+    id: 'ops',
+    label: 'Opérations',
     items: [
       {
         id: 'crm',
@@ -92,20 +101,6 @@ export const NAV_SECTIONS: NavSection[] = [
         status: 'soon',
         allowedRoles: [],
       },
-      {
-        id: 'seo',
-        label: 'SEO & Blog',
-        path: '/seo',
-        icon: BarChart3,
-        status: 'soon',
-        allowedRoles: [],
-      },
-    ],
-  },
-  {
-    id: 'ops',
-    label: 'Opérations',
-    items: [
       {
         id: 'tasks',
         label: 'Tâches IA',
@@ -124,7 +119,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         id: 'email',
-        label: 'Email',
+        label: 'Email Hostinger',
         path: '/email',
         icon: Mail,
         status: 'soon',
@@ -146,7 +141,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       {
         id: 'users',
-        label: 'Utilisateurs',
+        label: 'Utilisateurs MEMOVIA',
         path: '/users',
         icon: UsersRound,
         status: 'soon',
@@ -162,7 +157,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         id: 'roadmap',
-        label: 'Roadmap',
+        label: 'Roadmap & Feedback',
         path: '/roadmap',
         icon: Map,
         status: 'soon',
@@ -172,16 +167,29 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     id: 'admin',
-    label: 'Admin',
+    label: 'Administration',
     items: [
       {
         id: 'admin-users',
         label: 'Gestion admins',
         path: '/admin/users',
-        icon: UsersRound,
+        icon: UserCog,
         status: 'soon',
-        // Only admin_full can see admin section
         allowedRoles: ['admin_full'],
+      },
+    ],
+  },
+  {
+    id: 'growth',
+    label: 'Growth & IA',
+    items: [
+      {
+        id: 'seo',
+        label: 'SEO & Blog',
+        path: '/seo',
+        icon: BarChart3,
+        status: 'soon',
+        allowedRoles: [],
       },
       {
         id: 'copilot',
@@ -189,7 +197,7 @@ export const NAV_SECTIONS: NavSection[] = [
         path: '/copilot',
         icon: Bot,
         status: 'soon',
-        allowedRoles: ['admin_full'],
+        allowedRoles: [],
       },
     ],
   },
