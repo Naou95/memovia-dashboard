@@ -64,7 +64,11 @@ Deno.serve(async (req) => {
       return sum + monthlyAmount / 100 // cents → euros
     }, 0)
 
-    const activeCount = activeSubs.data.length
+    // Abonnés payants uniquement (exclure les plans à 0€)
+    const paidSubs = activeSubs.data.filter(
+      (sub) => (sub.items.data[0]?.plan?.amount ?? 0) > 0
+    )
+    const activeCount = paidSubs.length
 
     // 4. Annulations ce mois → churn rate
     const startOfMonth = new Date()
