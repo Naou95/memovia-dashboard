@@ -76,8 +76,8 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Qonto Trésorerie',
         path: '/qonto',
         icon: Landmark,
-        status: 'soon',
-        allowedRoles: [],
+        status: 'active',
+        allowedRoles: ['admin_full', 'admin_bizdev'],
       },
       {
         id: 'contracts',

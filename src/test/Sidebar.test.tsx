@@ -55,11 +55,11 @@ describe('Sidebar', () => {
     expect(overviewEl).not.toBeNull()
   })
 
-  it('"soon" items are not wrapped in links', () => {
+  it('"soon" items (contracts) are not wrapped in links', () => {
     renderSidebar('admin_full')
-    // Stripe est maintenant actif (Module 3). Qonto est encore "soon".
-    const qontoEl = screen.getByText('Qonto Trésorerie')
-    const anchor = qontoEl.closest('a')
+    // Contrats B2B est encore "soon" — pas de lien
+    const contractsEl = screen.getByText('Contrats B2B')
+    const anchor = contractsEl.closest('a')
     expect(anchor).toBeNull()
   })
 
@@ -69,5 +69,13 @@ describe('Sidebar', () => {
     const anchor = stripeEl.closest('a')
     expect(anchor).not.toBeNull()
     expect(anchor?.getAttribute('href')).toBe('/stripe')
+  })
+
+  it('qonto is now active and wrapped in a link', () => {
+    renderSidebar('admin_full')
+    const qontoEl = screen.getByText('Qonto Trésorerie')
+    const anchor = qontoEl.closest('a')
+    expect(anchor).not.toBeNull()
+    expect(anchor?.getAttribute('href')).toBe('/qonto')
   })
 })

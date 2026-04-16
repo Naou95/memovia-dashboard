@@ -7,6 +7,7 @@ import AppLayout from '@/components/layout/AppLayout'
 const LoginPage = lazy(() => import('@/components/auth/LoginPage'))
 const OverviewPage = lazy(() => import('@/modules/overview/OverviewPage'))
 const StripePage = lazy(() => import('@/modules/stripe/StripePage'))
+const QontoPage = lazy(() => import('@/modules/qonto/QontoPage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -56,6 +57,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <StripePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'qonto',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <QontoPage />
           </Suspense>
         ),
       },

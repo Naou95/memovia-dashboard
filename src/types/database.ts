@@ -40,6 +40,23 @@ export interface Database {
           updated_at?: string
         }
       }
+      dashboard_settings: {
+        Row: {
+          key: string
+          value: string
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          value: string
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          value?: string
+          updated_at?: string
+        }
+      }
     }
     Views: Record<string, never>
     Functions: {

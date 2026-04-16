@@ -85,20 +85,36 @@ describe('getNavForRole', () => {
 
 // ─── "soon" items ─────────────────────────────────────────────────────────────
 describe('Nav item status', () => {
-  it('overview and stripe are active items', () => {
+  it('overview, stripe and qonto are active items', () => {
     const sections = getNavForRole('admin_full')
     const activeItems = sections.flatMap((s) => s.items).filter((i) => i.status === 'active')
     const activeIds = activeItems.map((i) => i.id)
     expect(activeIds).toContain('overview')
     expect(activeIds).toContain('stripe')
+    expect(activeIds).toContain('qonto')
   })
 
-  it('qonto and contracts are still "soon"', () => {
+  it('qonto is accessible to admin_full and admin_bizdev', () => {
+    const sectionsAdmin = getNavForRole('admin_full')
+    const sectionsBizdev = getNavForRole('admin_bizdev')
+    const findQonto = (sections: ReturnType<typeof getNavForRole>) =>
+      sections.flatMap((s) => s.items).find((i) => i.id === 'qonto')
+
+    const qontoAdmin = findQonto(sectionsAdmin)
+    const qontoBizdev = findQonto(sectionsBizdev)
+
+    expect(qontoAdmin).toBeDefined()
+    expect(qontoAdmin?.status).toBe('active')
+    expect(qontoBizdev).toBeDefined()
+    expect(qontoBizdev?.status).toBe('active')
+  })
+
+  it('contracts is still "soon"', () => {
     const sections = getNavForRole('admin_full')
     const soonItems = sections.flatMap((s) => s.items).filter((i) => i.status === 'soon')
     const soonIds = soonItems.map((i) => i.id)
-    expect(soonIds).toContain('qonto')
     expect(soonIds).toContain('contracts')
+    expect(soonIds).not.toContain('qonto')
   })
 })
 
