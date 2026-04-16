@@ -1,63 +1,62 @@
-import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getNavForRole } from '@/config/navigation'
 import type { NavItem } from '@/config/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 interface SidebarProps {
   className?: string
 }
 
+/**
+ * Light sidebar for the MEMOVIA dashboard.
+ * - White background, subtle right border
+ * - MEMOVIA logo at top (violet mark + wordmark)
+ * - Grouped navigation (PRINCIPAL / FINANCE / OPÉRATIONS / PLATEFORME / GROWTH & IA)
+ * - Active item: light lavender pill + violet icon
+ * - Bottom: user card (avatar + name + role) — no utility items, no upgrade CTA
+ */
 export function Sidebar({ className }: SidebarProps) {
   const { user } = useAuth()
   const location = useLocation()
-  const [collapsed, setCollapsed] = useState(false)
 
   const role = user?.role ?? 'admin_bizdev'
   const sections = getNavForRole(role)
+  const initials = getInitials(user?.profile.full_name ?? '')
 
   return (
     <aside
       className={cn(
-        'relative flex flex-col bg-[var(--bg-sidebar)] transition-all duration-200',
-        collapsed ? 'w-[60px]' : 'w-[220px]',
+        'flex w-[240px] flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)]',
         className
       )}
       data-testid="sidebar"
     >
-      {/* Logo area */}
-      <div className={cn(
-        'flex h-16 items-center border-b border-white/10 px-4',
-        collapsed ? 'justify-center' : 'justify-between'
-      )}>
-        {!collapsed && (
-          <span className="text-base font-semibold tracking-tight text-white">
-            MEMOVIA
-          </span>
-        )}
-        {collapsed && (
-          <span className="text-sm font-bold text-[var(--memovia-violet)]">M</span>
-        )}
+      {/* Logo */}
+      <div className="flex h-16 items-center gap-2.5 px-5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--memovia-violet)]">
+          <Sparkles className="h-4 w-4 text-white" strokeWidth={2.5} />
+        </div>
+        <span className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
+          MEMOVIA
+        </span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4" aria-label="Navigation principale">
+      <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Navigation principale">
         {sections.map((section) => (
-          <div key={section.id} className="mb-4">
-            {!collapsed && (
-              <div className="mb-1 px-4 text-[10px] font-semibold uppercase tracking-widest text-white/30">
-                {section.label}
-              </div>
-            )}
+          <div key={section.id} className="mb-5">
+            <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-label)]">
+              {section.label}
+            </div>
             <ul className="space-y-0.5">
               {section.items.map((item) => (
                 <SidebarNavItem
                   key={item.id}
                   item={item}
                   isActive={location.pathname === item.path}
-                  collapsed={collapsed}
                 />
               ))}
             </ul>
@@ -65,23 +64,28 @@ export function Sidebar({ className }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Collapse toggle */}
-      <button
-        type="button"
-        onClick={() => setCollapsed((v) => !v)}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className={cn(
-          'absolute -right-3 top-[72px] flex h-6 w-6 items-center justify-center',
-          'rounded-full border border-white/20 bg-[var(--bg-sidebar)] text-white/60',
-          'hover:border-white/40 hover:text-white transition-colors z-10'
-        )}
-      >
-        {collapsed ? (
-          <ChevronRight className="h-3 w-3" />
-        ) : (
-          <ChevronLeft className="h-3 w-3" />
-        )}
-      </button>
+      {/* User card (minimal — avatar + name + role only) */}
+      <div className="border-t border-[var(--border-color)] p-3">
+        <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+          <Avatar className="h-8 w-8">
+            <AvatarImage
+              src={user?.profile.avatar_url ?? undefined}
+              alt={user?.profile.full_name ?? ''}
+            />
+            <AvatarFallback className="bg-[var(--memovia-violet-light)] text-[var(--memovia-violet)] text-[11px] font-semibold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-medium text-[var(--text-primary)]">
+              {user?.profile.full_name ?? user?.profile.email ?? ''}
+            </div>
+            <div className="truncate text-[11px] text-[var(--text-muted)]">
+              {formatRole(role)}
+            </div>
+          </div>
+        </div>
+      </div>
     </aside>
   )
 }
@@ -90,71 +94,68 @@ export function Sidebar({ className }: SidebarProps) {
 interface SidebarNavItemProps {
   item: NavItem
   isActive: boolean
-  collapsed: boolean
 }
 
-function SidebarNavItem({ item, isActive, collapsed }: SidebarNavItemProps) {
+function SidebarNavItem({ item, isActive }: SidebarNavItemProps) {
   const Icon = item.icon
   const isSoon = item.status === 'soon'
 
   const content = (
     <span
       className={cn(
-        'group flex h-9 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
-        // Active state: violet bg + 3px left border + violet text
-        isActive && 'relative bg-[var(--memovia-violet-light)] text-[var(--memovia-violet)]',
-        isActive && 'before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-r before:bg-[var(--memovia-violet)]',
-        // Default state
-        !isActive && !isSoon && 'text-white/70 hover:bg-white/5 hover:text-white',
-        // Soon state
-        isSoon && !isActive && 'cursor-default text-white/30',
-        // Collapsed: center the icon
-        collapsed && 'justify-center px-0'
+        'flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-colors',
+        isActive && 'bg-[var(--memovia-violet-light)] text-[var(--text-primary)]',
+        !isActive && !isSoon && 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]',
+        isSoon && !isActive && 'cursor-default text-[var(--text-muted)]',
       )}
       aria-current={isActive ? 'page' : undefined}
     >
       <Icon
         className={cn(
-          'h-4 w-4 shrink-0',
-          isActive ? 'text-[var(--memovia-violet)]' : '',
-          isSoon && !isActive ? 'opacity-40' : ''
+          'h-[17px] w-[17px] shrink-0',
+          isActive && 'text-[var(--memovia-violet)]',
+          !isActive && !isSoon && 'text-[var(--text-muted)]',
+          isSoon && !isActive && 'text-[var(--text-muted)] opacity-60'
         )}
+        strokeWidth={2}
       />
-      {!collapsed && (
-        <>
-          <span className="flex-1 truncate">{item.label}</span>
-          {isSoon && (
-            <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/30">
-              bientôt
-            </span>
-          )}
-        </>
+      <span className="flex-1 truncate">{item.label}</span>
+      {isSoon && (
+        <span className="rounded-md bg-[var(--bg-primary)] px-1.5 py-px text-[9px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          Bientôt
+        </span>
       )}
     </span>
   )
 
-  // "Soon" items are not clickable
   if (isSoon) {
     return (
       <li>
-        <div
-          role="presentation"
-          title={collapsed ? item.label : undefined}
-        >
-          {content}
-        </div>
+        <div role="presentation">{content}</div>
       </li>
     )
   }
 
   return (
     <li>
-      <Link
-        to={item.path}
-        title={collapsed ? item.label : undefined}
-      >
-        {content}
-      </Link>
+      <Link to={item.path}>{content}</Link>
     </li>
   )
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase() || 'NA'
+}
+
+function formatRole(role: string): string {
+  const map: Record<string, string> = {
+    admin_full: 'Admin',
+    admin_bizdev: 'Bizdev',
+  }
+  return map[role] ?? 'Admin'
 }

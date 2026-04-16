@@ -1,9 +1,9 @@
 /**
  * Sidebar component tests.
- * Covers: RBAC filtering, active state, "soon" items not navigable, collapse.
+ * Covers: RBAC filtering, active state, "soon" items not navigable.
  */
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { Sidebar } from '@/components/layout/Sidebar'
 
@@ -58,16 +58,8 @@ describe('Sidebar', () => {
   it('"soon" items are not wrapped in links', () => {
     renderSidebar('admin_full')
     // Stripe item is "soon" — should not have an <a> element
-    const stripeEl = screen.getByText('Stripe & Revenus')
+    const stripeEl = screen.getByText('Stripe & Finance')
     const anchor = stripeEl.closest('a')
     expect(anchor).toBeNull()
-  })
-
-  it('collapse button toggles icon-only mode', () => {
-    renderSidebar('admin_full')
-    const collapseBtn = screen.getByRole('button', { name: /collapse sidebar/i })
-    fireEvent.click(collapseBtn)
-    // After collapse, label text should no longer be visible
-    expect(screen.queryByText('Principal')).not.toBeInTheDocument()
   })
 })

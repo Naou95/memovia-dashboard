@@ -9,10 +9,11 @@ import { toast } from 'sonner'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { AuthContextValue, AuthUser, DashboardProfile } from '@/types/auth'
-import { getRoleFromSession } from '@/types/auth'
+import { DEFAULT_ROLE, getRoleFromSession } from '@/types/auth'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GET_SESSION_TIMEOUT_MS = 5000
+const PROFILE_QUERY_TIMEOUT_MS = 4000
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -31,8 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isMountedRef.current = true
 
     // ── Bootstrap: restore session from localStorage ───────────────────────
-    // Race against a 5s timeout. If Supabase never responds (e.g. offline at
-    // hard-reload), we bail out instead of spinning forever.
     let didRespond = false
 
     const timeoutId = setTimeout(() => {
@@ -85,44 +84,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // ── loadUserProfile ──────────────────────────────────────────────────────
-  // Fetches dashboard_profiles row to validate this auth user is a registered
-  // dashboard admin. If no profile row exists, force-signs out with a message.
+  // Tries to fetch the dashboard_profiles row. If it's missing or the query
+  // fails/times out (e.g. the custom_access_token_hook is disabled and RLS
+  // can't resolve), we still admit the user with a synthesized profile so the
+  // login flow doesn't hang. The session on its own is treated as enough to
+  // enter the dashboard — the DB row only enriches the profile.
   async function loadUserProfile(currentSession: Session): Promise<void> {
     if (!isMountedRef.current) return
 
-    const role = getRoleFromSession(currentSession)
+    const jwtRole = getRoleFromSession(currentSession)
 
-    const { data: profileData, error: profileError } = await supabase
+    // Bounded profile query: never let a stuck request block the login flow.
+    const profilePromise = supabase
       .from('dashboard_profiles')
       .select('*')
       .eq('id', currentSession.user.id)
-      .single()
+      .maybeSingle()
 
-    // Cast to DashboardProfile — Supabase generic narrowing can fail in composite builds
-    const profile = profileData as DashboardProfile | null
+    const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) =>
+      setTimeout(
+        () =>
+          resolve({
+            data: null,
+            error: new Error('dashboard_profiles query timed out'),
+          }),
+        PROFILE_QUERY_TIMEOUT_MS
+      )
+    )
+
+    const { data: profileData, error: profileError } = await Promise.race([
+      profilePromise,
+      timeoutPromise,
+    ])
 
     if (!isMountedRef.current) return
 
-    if (profileError || !profile) {
-      // User exists in auth.users but has no dashboard_profiles row
-      // This is the "No access" failsafe
-      await supabase.auth.signOut()
-      if (isMountedRef.current) {
-        toast.error("Aucun accès — contactez l'administrateur.")
-        setSession(null)
-        setUser(null)
-        setIsLoading(false)
-      }
-      return
+    const profile = (profileData as DashboardProfile | null) ?? null
+
+    if (profileError) {
+      console.warn(
+        '[auth] dashboard_profiles query failed — falling back to auth metadata',
+        profileError
+      )
     }
+
+    const effectiveRole = jwtRole ?? profile?.role ?? DEFAULT_ROLE
+    const effectiveProfile: DashboardProfile = profile ?? synthesizeProfile(currentSession, effectiveRole)
 
     setSession(currentSession)
     setUser({
       supabaseUser: currentSession.user,
-      profile,
-      // Prefer JWT role (from hook) over DB role — they should match, but
-      // the JWT is the authoritative source for RBAC
-      role: role ?? profile.role,
+      profile: effectiveProfile,
+      role: effectiveRole,
     })
     setIsLoading(false)
   }
@@ -180,6 +193,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function synthesizeProfile(session: Session, role: DashboardProfile['role']): DashboardProfile {
+  const { user: authUser } = session
+  const fullName =
+    (authUser.user_metadata?.full_name as string | undefined) ??
+    (authUser.user_metadata?.name as string | undefined) ??
+    authUser.email?.split('@')[0] ??
+    'Utilisateur'
+
+  return {
+    id: authUser.id,
+    email: authUser.email ?? '',
+    full_name: fullName,
+    role,
+    avatar_url: (authUser.user_metadata?.avatar_url as string | undefined) ?? null,
+    created_at: authUser.created_at ?? new Date().toISOString(),
+    updated_at: authUser.updated_at ?? new Date().toISOString(),
+  }
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -26,11 +26,15 @@ export default function LoginPage() {
   // Where to send user after login (supports post-login redirect)
   const from = (location.state as { from?: Location })?.from?.pathname ?? '/overview'
 
-  // Redirect if already authenticated
-  if (!isLoading && user) {
-    navigate(from, { replace: true })
-    return null
-  }
+  // Redirect once the AuthContext reports an authenticated user. Done in an
+  // effect (not during render) so we never trigger a router transition while
+  // rendering, and so login works the instant loadUserProfile resolves —
+  // even without a JWT role claim.
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate(from, { replace: true })
+    }
+  }, [user, isLoading, navigate, from])
 
   // ── Password submit ────────────────────────────────────────────────────────
   async function handlePasswordSubmit(e: React.FormEvent) {
@@ -38,7 +42,8 @@ export default function LoginPage() {
     setIsPending(true)
     try {
       await signInWithPassword(email, password)
-      navigate(from, { replace: true })
+      // Redirect is handled by the useEffect above once the session
+      // propagates to `user` via onAuthStateChange → loadUserProfile.
     } catch {
       // Error is toasted inside AuthContext
     } finally {
@@ -193,7 +198,8 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="w-full bg-[var(--memovia-violet)] hover:bg-[var(--memovia-violet)]/90 text-white"
+            variant="brand"
+            className="w-full"
             disabled={isPending}
           >
             {isPending ? (
@@ -231,7 +237,8 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="w-full bg-[var(--memovia-violet)] hover:bg-[var(--memovia-violet)]/90 text-white"
+            variant="brand"
+            className="w-full"
             disabled={isPending}
           >
             {isPending ? (

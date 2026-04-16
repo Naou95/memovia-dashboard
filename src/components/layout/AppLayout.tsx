@@ -3,11 +3,13 @@ import { Toaster } from '@/components/ui/sonner'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { MobileNav } from './MobileNav'
+import { CopilotBubble } from '@/components/copilot/CopilotBubble'
 
 /**
  * Root layout for authenticated pages.
- * - Desktop (≥768px): persistent sidebar + content area
- * - Mobile (<768px): hamburger menu in TopBar + Sheet drawer
+ * - Desktop (≥768px): light sidebar + content area
+ * - Mobile (<768px): hamburger menu in header + Sheet drawer
+ * - Floating AI copilot in the bottom-right corner on every page
  */
 export default function AppLayout() {
   return (
@@ -18,15 +20,12 @@ export default function AppLayout() {
       {/* Main content column */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-16 items-center gap-2 border-b border-[var(--border-color)] bg-white px-4">
-          {/* Mobile hamburger — hidden on md+ (sidebar takes over) */}
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-[var(--border-color)] bg-[var(--bg-sidebar)] px-5">
+          {/* Mobile hamburger */}
           <div className="md:hidden">
             <MobileNav />
           </div>
-          {/* TopBar stretches to fill remaining space */}
-          <div className="flex flex-1 items-center justify-between">
-            <TopBar />
-          </div>
+          <TopBar />
         </header>
 
         {/* Page content */}
@@ -37,6 +36,9 @@ export default function AppLayout() {
 
       {/* Toast notifications */}
       <Toaster position="top-right" richColors />
+
+      {/* Floating AI copilot */}
+      <CopilotBubble />
     </div>
   )
 }
