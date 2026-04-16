@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     // 3. 4 appels Stripe en parallèle
     const [activeSubs, paidInvoices, recentCharges, churnEvents] = await Promise.all([
       stripe.subscriptions.list(
-        { status: 'active', limit: 100, expand: ['data.customer', 'data.items.data.price.product'] },
+        { status: 'active', limit: 100, expand: ['data.customer'] },
         { timeout: 8000 }
       ),
       stripe.invoices.list(
@@ -116,7 +116,33 @@ Deno.serve(async (req) => {
       return sum + normalizePlanAmount({ amount: plan.amount, interval: plan.interval })
     }, 0)
 
-    // 6. Abonnements actifs → SubscriptionRow[]
+    // 6. Récupérer les noms de produits Stripe (prices.retrieve par ID unique)
+    // Stripe ne supporte pas expand data.items.data.price.product sur une list
+    const uniquePriceIds = [
+      ...new Set(
+        paidSubs
+          .map((sub) => sub.items.data[0]?.price?.id)
+          .filter((id): id is string => typeof id === 'string')
+      ),
+    ]
+    const priceResults = await Promise.all(
+      uniquePriceIds.map((id) =>
+        stripe.prices.retrieve(id, { expand: ['product'] }, { timeout: 5000 }).catch(() => null)
+      )
+    )
+    const priceToProductName = new Map<string, string>()
+    for (const price of priceResults) {
+      if (!price) continue
+      if (
+        typeof price.product === 'object' &&
+        price.product !== null &&
+        !('deleted' in price.product)
+      ) {
+        priceToProductName.set(price.id, (price.product as Stripe.Product).name)
+      }
+    }
+
+    // 7. Abonnements actifs → SubscriptionRow[]
     const subscriptions: SubscriptionRow[] = paidSubs.map((sub) => {
       const customer = sub.customer
       // Guard critique : customer peut être une string (ID) si deleted ou non-expandé
@@ -128,11 +154,9 @@ Deno.serve(async (req) => {
           : ''
 
       const plan = sub.items.data[0]?.plan
-      // product.name via expand: ['data.items.data.price.product']
-      const price = sub.items.data[0]?.price as (Stripe.Price & { product?: Stripe.Product }) | undefined
-      const productName = typeof price?.product === 'object' && price.product !== null
-        ? (price.product as Stripe.Product).name
-        : undefined
+      const priceId = sub.items.data[0]?.price?.id
+      const productName = priceId ? priceToProductName.get(priceId) : undefined
+
       return {
         id: sub.id,
         customerEmail: email,
