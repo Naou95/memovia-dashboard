@@ -24,3 +24,5 @@ supabase/.temp/
 
 # claude session files
 .claude/
+.gitignoreatopen
+.impeccable.md
