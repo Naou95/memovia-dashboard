@@ -110,8 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       )
     }
 
-    // DB profile is source of truth for role; JWT is fallback only
-    const effectiveRole = profile?.role ?? jwtRole ?? DEFAULT_ROLE
+    // DB profile is source of truth for role; JWT then user_metadata as fallback
+    const metaRole = currentSession.user?.user_metadata?.role as DashboardProfile['role'] | undefined
+    const effectiveRole = profile?.role ?? jwtRole ?? metaRole ?? DEFAULT_ROLE
     const effectiveProfile: DashboardProfile = profile ?? synthesizeProfile(currentSession, effectiveRole)
 
     setSession(currentSession)

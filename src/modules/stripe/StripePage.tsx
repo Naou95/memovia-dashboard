@@ -117,11 +117,18 @@ export default function StripePage() {
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
             Abonnements actifs
           </h3>
-          {data && (
-            <span className="text-[13px] text-[var(--text-muted)]">
-              {data.subscriptions.length} abonné{data.subscriptions.length > 1 ? 's' : ''}
-            </span>
-          )}
+          {data && (() => {
+            const activeCount = data.subscriptions.filter(s => !s.cancelAtPeriodEnd).length
+            const cancelingCount = data.subscriptions.filter(s => s.cancelAtPeriodEnd).length
+            return (
+              <span className="text-[13px] text-[var(--text-muted)]">
+                {activeCount} actifs
+                {cancelingCount > 0 && (
+                  <span className="text-[var(--color-red-500)]"> · {cancelingCount} annulation{cancelingCount > 1 ? 's' : ''} en cours</span>
+                )}
+              </span>
+            )
+          })()}
         </div>
         {isLoading ? (
           <SkeletonTable rows={4} />
