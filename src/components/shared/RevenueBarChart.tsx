@@ -9,9 +9,6 @@ import {
 } from 'recharts'
 import type { MonthlyRevenue } from '@/types/stripe'
 
-// ── Constants ──────────────────────────────────────────────────────────────────
-const GRADIENT_ID = 'revenueBarGradient'
-
 const formatEur = (val: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val)
 
@@ -44,18 +41,6 @@ function CustomTooltip({
         {formatEur(Number(payload[0]?.value ?? 0))}
       </p>
     </div>
-  )
-}
-
-// ── Gradient defs (SVG) ────────────────────────────────────────────────────────
-function GradientDefs() {
-  return (
-    <defs>
-      <linearGradient id={GRADIENT_ID} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#7C3AED" stopOpacity={1} />
-        <stop offset="100%" stopColor="#C4B5FD" stopOpacity={0.45} />
-      </linearGradient>
-    </defs>
   )
 }
 
@@ -93,8 +78,6 @@ export function RevenueBarChart({ data, variant = 'full' }: RevenueBarChartProps
           margin={{ top: 4, right: 4, bottom: 0, left: isMini ? -20 : 0 }}
           barCategoryGap="35%"
         >
-          <GradientDefs />
-
           <CartesianGrid
             vertical={false}
             stroke="#EDEDF0"
@@ -127,7 +110,7 @@ export function RevenueBarChart({ data, variant = 'full' }: RevenueBarChartProps
 
           <Bar
             dataKey="revenue"
-            fill={`url(#${GRADIENT_ID})`}
+            fill="#7C3AED"
             radius={barRadius}
             maxBarSize={maxBarSize}
           />
