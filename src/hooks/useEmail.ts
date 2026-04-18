@@ -46,9 +46,13 @@ export function useEmail(): UseEmailResult {
     setIsLoading(true)
     setError(null)
 
+    const timeoutId = setTimeout(() => setIsLoading(false), 5000)
+
     const { data, error: err } = await supabase.functions.invoke<EmailListResponse>('email-list', {
       body: { folder, page },
     })
+
+    clearTimeout(timeoutId)
 
     if (err || !data) {
       setError('Impossible de charger les emails')

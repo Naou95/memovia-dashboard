@@ -347,7 +347,7 @@ export default function OverviewPage() {
           </div>
         ) : myDayItems.length === 0 ? (
           <p className="text-[13px] text-[var(--text-muted)]">
-            Tout est à jour — belle journée !
+            Rien de prévu aujourd'hui.
           </p>
         ) : (
           <div className="divide-y divide-[var(--border-color)]">

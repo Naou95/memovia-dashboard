@@ -36,13 +36,15 @@ export function useTasks(): UseTasksResult {
   useEffect(() => {
     fetchAll()
 
-    // Realtime sync — both admins see changes instantly
+    const timeoutId = setTimeout(() => setIsLoading(false), 5000)
+
     const channel = supabase
       .channel('tasks-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, fetchAll)
       .subscribe()
 
     return () => {
+      clearTimeout(timeoutId)
       supabase.removeChannel(channel)
     }
   }, [fetchAll])

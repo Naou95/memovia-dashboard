@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type {
   CalendarEventsResponse,
@@ -25,6 +25,7 @@ export function useCalendar(currentDate = new Date()): UseCalendarResult {
   const [data, setData] = useState<CalendarEventsResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const currentDateRef = useRef(currentDate)
 
   const fetchEvents = useCallback(async (start?: Date, end?: Date) => {
     setIsLoading(true)
@@ -32,7 +33,7 @@ export function useCalendar(currentDate = new Date()): UseCalendarResult {
 
     const range = start && end
       ? { start, end }
-      : dateRangeForView(currentDate)
+      : dateRangeForView(currentDateRef.current)
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
@@ -68,10 +69,12 @@ export function useCalendar(currentDate = new Date()): UseCalendarResult {
     } finally {
       setIsLoading(false)
     }
-  }, [currentDate])
+  }, [])
 
   useEffect(() => {
     fetchEvents()
+    const timer = setTimeout(() => setIsLoading(false), 5000)
+    return () => clearTimeout(timer)
   }, [fetchEvents])
 
   const createMeet = useCallback(async (payload: CreateMeetPayload): Promise<CreateMeetResponse> => {

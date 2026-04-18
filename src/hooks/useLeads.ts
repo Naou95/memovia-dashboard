@@ -36,12 +36,15 @@ export function useLeads(): UseLeadsResult {
   useEffect(() => {
     fetchAll()
 
+    const timeoutId = setTimeout(() => setIsLoading(false), 5000)
+
     const channel = supabase
       .channel('leads-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, fetchAll)
       .subscribe()
 
     return () => {
+      clearTimeout(timeoutId)
       supabase.removeChannel(channel)
     }
   }, [fetchAll])
