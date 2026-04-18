@@ -86,16 +86,17 @@ function ProfileModal({ profile, onClose, onSaved }: ModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">
+          <h2 id="profile-modal-title" className="text-base font-semibold text-[var(--text-primary)]">
             {isEdit ? 'Modifier le collaborateur' : 'Inviter un collaborateur'}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-[var(--text-muted)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]"
+            aria-label="Fermer"
+            className="rounded-lg p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -109,7 +110,7 @@ function ProfileModal({ profile, onClose, onSaved }: ModalProps) {
               onChange={(e) => setFullName(e.target.value)}
               required
               placeholder="Prénom Nom"
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--memovia-violet)]/40"
+              className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--memovia-violet)]/40"
             />
           </div>
 
@@ -122,7 +123,7 @@ function ProfileModal({ profile, onClose, onSaved }: ModalProps) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="prenom@memovia.io"
-                className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--memovia-violet)]/40"
+                className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--memovia-violet)]/40"
               />
             </div>
           )}
@@ -132,7 +133,7 @@ function ProfileModal({ profile, onClose, onSaved }: ModalProps) {
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--memovia-violet)]/40"
+              className="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--memovia-violet)]/40"
             >
               <option value="admin_bizdev">Bizdev</option>
               <option value="admin_full">Admin complet</option>
@@ -185,9 +186,9 @@ function DeleteConfirm({ profile, onClose, onDeleted }: DeleteConfirmProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-6 shadow-xl">
-        <h2 className="mb-2 text-base font-semibold text-[var(--text-primary)]">Supprimer ce collaborateur ?</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
+      <div className="w-full max-w-sm rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
+        <h2 id="delete-confirm-title" className="mb-2 text-base font-semibold text-[var(--text-primary)]">Supprimer ce collaborateur ?</h2>
         <p className="mb-5 text-sm text-[var(--text-muted)]">
           <strong>{profile.full_name}</strong> ({profile.email}) sera retiré du dashboard. Cette action est irréversible.
         </p>
@@ -239,20 +240,15 @@ export default function AdminPage() {
       <div className="flex h-full flex-col gap-6 p-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--memovia-violet-light)]">
-              <UserCog className="h-5 w-5 text-[var(--memovia-violet)]" />
-            </div>
-            <div>
-              <h1 className="text-base font-semibold text-[var(--text-primary)]">Gestion admins</h1>
-              <p className="text-xs text-[var(--text-muted)]">
-                {profiles.length} collaborateur{profiles.length !== 1 ? 's' : ''}
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Gestion admins</h1>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              {profiles.length} collaborateur{profiles.length !== 1 ? 's' : ''}
+            </p>
           </div>
           <button
             onClick={() => setModal('add')}
-            className="flex items-center gap-2 rounded-xl bg-[var(--memovia-violet)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--memovia-violet)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
           >
             <Plus className="h-4 w-4" />
             Ajouter un collaborateur
@@ -260,7 +256,7 @@ export default function AdminPage() {
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] overflow-hidden">
+        <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] overflow-hidden">
           {loading ? (
             <div className="flex h-40 items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin text-[var(--memovia-violet)]" />
@@ -271,17 +267,17 @@ export default function AdminPage() {
               <p className="text-sm">Aucun collaborateur</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" aria-label="Liste des collaborateurs admins">
               <thead>
-                <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">Collaborateur</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">Rôle</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">Membre depuis</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">Màj</th>
-                  <th className="px-4 py-3" />
+                <tr className="border-b border-[var(--border-color)] bg-[var(--bg-primary)]">
+                  <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">Collaborateur</th>
+                  <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">Rôle</th>
+                  <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">Membre depuis</th>
+                  <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">Màj</th>
+                  <th scope="col" className="px-4 py-3"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
+              <tbody className="divide-y divide-[var(--border-color)]">
                 {profiles.map((p) => (
                   <tr key={p.id} className="group hover:bg-[var(--bg-primary)]/60 transition-colors">
                     <td className="px-4 py-3">
@@ -310,21 +306,21 @@ export default function AdminPage() {
                         {ROLE_LABELS[p.role]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[var(--text-secondary)]">{formatDate(p.created_at)}</td>
-                    <td className="px-4 py-3 text-[var(--text-muted)]">{formatDate(p.updated_at)}</td>
+                    <td className="px-4 py-3 tabular-nums text-[var(--text-secondary)]">{formatDate(p.created_at)}</td>
+                    <td className="px-4 py-3 tabular-nums text-[var(--text-muted)]">{formatDate(p.updated_at)}</td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                         <button
                           onClick={() => setModal(p)}
-                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
-                          title="Modifier"
+                          aria-label={`Modifier ${p.full_name}`}
+                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => setToDelete(p)}
-                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-red-50 hover:text-red-500"
-                          title="Supprimer"
+                          aria-label={`Supprimer ${p.full_name}`}
+                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
