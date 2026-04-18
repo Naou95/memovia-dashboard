@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { UserCog, Plus, Pencil, Trash2, X, Check, Loader2 } from 'lucide-react'
+import { UserCog, Plus, Pencil, Trash2, X, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
