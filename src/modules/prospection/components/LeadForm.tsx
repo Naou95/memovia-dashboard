@@ -94,16 +94,15 @@ export function LeadForm({ open, onClose, lead, onSubmit }: LeadFormProps) {
         assigned_to: (form.assigned_to || null) as LeadInsert['assigned_to'],
         notes: form.notes.trim() || null,
         created_by: null,
-        // Email auto fields — set to null on manual creation
-        contact_email: null,
-        contact_name: null,
-        contact_role: null,
-        source: null,
-        // Maturity fields
-        maturity: null,
-        relance_count: 0,
-        last_contact_date: null,
-        timeline: null,
+        // Preserve AI-managed fields — carry through existing values on edit, null on create
+        contact_email: lead?.contact_email ?? null,
+        contact_name: lead?.contact_name ?? null,
+        contact_role: lead?.contact_role ?? null,
+        source: lead?.source ?? null,
+        maturity: lead?.maturity ?? null,
+        relance_count: lead?.relance_count ?? 0,
+        last_contact_date: lead?.last_contact_date ?? null,
+        timeline: lead?.timeline ?? null,
       }
       await onSubmit(payload)
     } finally {
