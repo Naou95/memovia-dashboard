@@ -173,8 +173,8 @@ export default function CalendarPage() {
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <motion.div variants={staggerItem} className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-semibold text-[var(--text-primary)]">Calendrier</h1>
-          <p className="text-[13px] text-[var(--text-secondary)]">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Calendrier</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Agenda de Naoufel (Google) et Emir (Outlook)
           </p>
         </div>
@@ -184,8 +184,8 @@ export default function CalendarPage() {
           <button
             onClick={() => refetch()}
             disabled={isLoading}
-            className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border-color)] bg-white px-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] disabled:opacity-60 transition-colors"
-            title="Actualiser"
+            className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border-color)] bg-white px-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+            aria-label="Actualiser le calendrier"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
@@ -277,13 +277,14 @@ export default function CalendarPage() {
                   else d.setDate(d.getDate() - 7)
                   handleNavigate(d)
                 }}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-colors"
+                aria-label={view === 'month' ? 'Mois précédent' : 'Semaine précédente'}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleNavigate(new Date())}
-                className="h-8 rounded-lg px-3 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-colors"
+                className="h-8 rounded-lg px-3 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
               >
                 Aujourd'hui
               </button>
@@ -294,7 +295,8 @@ export default function CalendarPage() {
                   else d.setDate(d.getDate() + 7)
                   handleNavigate(d)
                 }}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-colors"
+                aria-label={view === 'month' ? 'Mois suivant' : 'Semaine suivante'}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -319,7 +321,9 @@ export default function CalendarPage() {
                   <button
                     key={v}
                     onClick={() => handleViewChange(v)}
-                    className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                    aria-pressed={view === v}
+                    aria-label={`Vue ${v === 'month' ? 'mensuelle' : 'hebdomadaire'}`}
+                    className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 ${
                       view === v
                         ? 'bg-white text-[var(--text-primary)] shadow-sm'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
