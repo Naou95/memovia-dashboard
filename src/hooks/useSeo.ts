@@ -20,7 +20,7 @@ interface UseSeoResult {
   // Generation flow
   generationStep: GenerationStep
   generateResult: SeoGenerateResponse | null
-  generate: (keyword: string) => Promise<void>
+  generate: (keyword: string, theme: string) => Promise<void>
   resetGeneration: () => void
 
   // CRUD
@@ -69,7 +69,7 @@ export function useSeo(): UseSeoResult {
     fetchArticles()
   }, [fetchArticles])
 
-  const generate = useCallback(async (keyword: string) => {
+  const generate = useCallback(async (keyword: string, theme: string) => {
     setGenerationStep('fetching_serp')
     setGenerateResult(null)
 
@@ -79,7 +79,7 @@ export function useSeo(): UseSeoResult {
 
       const { data, error } = await supabase.functions.invoke<SeoGenerateResponse>(
         'seo-generate',
-        { body: { keyword } },
+        { body: { keyword, theme } },
       )
 
       if (error) throw new Error(error.message)

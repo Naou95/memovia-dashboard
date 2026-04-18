@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Search, Loader2 } from 'lucide-react'
+import { Search, Loader2, Lightbulb } from 'lucide-react'
 import type { GenerationStep } from '@/types/seo'
 
 interface KeywordInputProps {
   step: GenerationStep
-  onGenerate: (keyword: string) => void
+  onGenerate: (keyword: string, theme: string) => void
 }
 
 const STEP_LABELS: Record<GenerationStep, string> = {
@@ -17,12 +17,13 @@ const STEP_LABELS: Record<GenerationStep, string> = {
 
 export function KeywordInput({ step, onGenerate }: KeywordInputProps) {
   const [keyword, setKeyword] = useState('')
+  const [theme, setTheme] = useState('')
   const isLoading = step === 'fetching_serp' || step === 'generating_article'
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!keyword.trim() || isLoading) return
-    onGenerate(keyword.trim())
+    onGenerate(keyword.trim(), theme.trim())
   }
 
   return (
@@ -41,8 +42,9 @@ export function KeywordInput({ step, onGenerate }: KeywordInputProps) {
         l&apos;article optimisé.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <div className="relative flex-1">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        {/* Keyword */}
+        <div className="relative">
           <Search
             className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
             style={{ color: 'var(--text-muted)' }}
@@ -51,7 +53,7 @@ export function KeywordInput({ step, onGenerate }: KeywordInputProps) {
             type="text"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            placeholder="ex : logiciel de gestion pédagogique"
+            placeholder="Mot-clé cible · ex : logiciel de gestion pédagogique"
             disabled={isLoading}
             className="h-10 w-full rounded-xl border bg-transparent pl-9 pr-4 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)] disabled:opacity-50"
             style={{
@@ -60,10 +62,31 @@ export function KeywordInput({ step, onGenerate }: KeywordInputProps) {
             }}
           />
         </div>
+
+        {/* Theme / angle */}
+        <div className="relative">
+          <Lightbulb
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2"
+            style={{ color: 'var(--text-muted)' }}
+          />
+          <input
+            type="text"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+            placeholder="Thème / angle · ex : comparatif pour responsables pédagogiques (optionnel)"
+            disabled={isLoading}
+            className="h-10 w-full rounded-xl border bg-transparent pl-9 pr-4 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)] disabled:opacity-50"
+            style={{
+              borderColor: 'var(--border-color)',
+              color: 'var(--text-primary)',
+            }}
+          />
+        </div>
+
         <button
           type="submit"
           disabled={!keyword.trim() || isLoading}
-          className="flex h-10 items-center gap-2 rounded-xl px-4 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
           style={{ backgroundColor: 'var(--memovia-violet)' }}
         >
           {isLoading ? (
@@ -71,7 +94,7 @@ export function KeywordInput({ step, onGenerate }: KeywordInputProps) {
           ) : (
             <Search className="h-4 w-4" />
           )}
-          Générer
+          Générer l&apos;article
         </button>
       </form>
 

@@ -89,6 +89,7 @@ async function fetchSerp(
 async function generateArticle(
   keyword: string,
   serp: SerpAnalysis,
+  theme: string,
 ): Promise<GeneratedArticle> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
   if (!apiKey) throw new Error('anthropic_not_configured')
@@ -98,20 +99,26 @@ async function generateArticle(
     .map((r) => `${r.position}. ${r.title}\n   ${r.url}\n   ${r.description}`)
     .join('\n\n')
 
-  const prompt = `Tu es un expert SEO et rédacteur web pour MEMOVIA, une EdTech SaaS française spécialisée dans les outils pédagogiques IA.
+  const themeSection = theme
+    ? `\nThème / angle éditorial : ${theme}\n`
+    : ''
+
+  const systemPrompt = `Tu es un rédacteur web expert SEO francophone. Rédige un article de blog naturel, humain et engageant. Règles strictes : jamais de tirets (-) en début de phrase ou de liste, utilise des phrases complètes et des paragraphes fluides, varie la structure des phrases, évite les formulations génériques типа "Dans cet article nous allons...", adopte un ton direct et expert. Le contenu doit être indiscernable d'un article écrit par un humain.`
+
+  const userPrompt = `Tu rédiges pour MEMOVIA, une EdTech SaaS française spécialisée dans les outils pédagogiques IA.
 
 Génère un article de blog SEO optimisé en français pour le mot-clé : "${keyword}"
-
+${themeSection}
 Contexte SERP — top résultats actuels :
 ${serpContext || 'Aucun résultat SERP disponible.'}
 
 Écris un article structuré en Markdown avec :
-- Titre H1 accrocheur contenant le mot-clé
-- Introduction engageante (2-3 paragraphes, inclure le mot-clé naturellement)
-- 4-6 sections H2 avec contenu substantiel et exemples concrets
-- Listes à puces ou tableaux quand c'est pertinent
-- Conclusion avec un CTA vers MEMOVIA (memovia.io)
-- Minimum 1 200 mots au total
+Titre H1 accrocheur contenant le mot-clé
+Introduction engageante (2-3 paragraphes, inclure le mot-clé naturellement)
+4-6 sections H2 avec contenu substantiel et exemples concrets
+Formulations variées et paragraphes fluides (aucune liste à puce commençant par un tiret)
+Conclusion avec un CTA vers MEMOVIA (memovia.io)
+Minimum 1 200 mots au total
 
 Réponds UNIQUEMENT avec un objet JSON valide, sans markdown autour, avec exactement cette structure :
 {
@@ -134,7 +141,8 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans markdown autour, avec exacte
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 8192,
-      messages: [{ role: 'user', content: prompt }],
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
     }),
   })
 
@@ -163,6 +171,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json()
     const keyword: string = (body.keyword ?? '').trim()
+    const theme: string = (body.theme ?? '').trim()
     const language: string = body.language ?? 'French'
     const location: string = body.location ?? 'France'
 
@@ -170,7 +179,7 @@ Deno.serve(async (req) => {
 
     // Sequential: SERP context is needed for article generation
     const serp = await fetchSerp(keyword, language, location)
-    const article = await generateArticle(keyword, serp)
+    const article = await generateArticle(keyword, serp, theme)
 
     return Response.json({ serp, article }, { headers: corsHeaders })
   } catch (err) {
