@@ -1,4 +1,5 @@
 // src/modules/prospection/components/LeadMaturityBadge.tsx
+import type { CSSProperties } from 'react'
 import type { LeadMaturity } from '@/types/leads'
 import { LEAD_MATURITY_LABELS } from '@/types/leads'
 
@@ -6,7 +7,7 @@ interface LeadMaturityBadgeProps {
   maturity: LeadMaturity
 }
 
-const MATURITY_STYLES: Record<LeadMaturity, React.CSSProperties> = {
+const MATURITY_STYLES: Record<LeadMaturity, CSSProperties> = {
   froid: {
     backgroundColor: 'var(--bg-secondary)',
     color: 'var(--text-label)',
@@ -18,9 +19,9 @@ const MATURITY_STYLES: Record<LeadMaturity, React.CSSProperties> = {
     border: '1px solid #fde68a',
   },
   chaud: {
-    backgroundColor: 'color-mix(in oklab, var(--success) 15%, white)',
+    backgroundColor: 'color-mix(in oklab, var(--success) 15%, var(--bg-primary))',
     color: 'var(--success)',
-    border: '1px solid color-mix(in oklab, var(--success) 30%, white)',
+    border: '1px solid color-mix(in oklab, var(--success) 30%, var(--bg-primary))',
   },
 }
 
