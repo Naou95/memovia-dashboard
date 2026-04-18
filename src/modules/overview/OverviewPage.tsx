@@ -303,7 +303,7 @@ export default function OverviewPage() {
 
   const plTotal = useMemo(() => {
     if (!qontoFinance) return null
-    return qontoFinance.monthlyCashFlow.reduce((sum, m) => sum + m.net, 0)
+    return (qontoFinance.monthlyCashFlow ?? []).reduce((sum, m) => sum + m.net, 0)
   }, [qontoFinance])
 
   return (
@@ -509,7 +509,7 @@ export default function OverviewPage() {
               Indisponible
             </div>
           ) : qontoFinance ? (
-            <ProfitLossChart data={qontoFinance.monthlyCashFlow} height={260} />
+            <ProfitLossChart data={qontoFinance.monthlyCashFlow ?? []} height={260} />
           ) : null}
         </motion.div>
       </div>
