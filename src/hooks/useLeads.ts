@@ -50,13 +50,15 @@ export function useLeads(): UseLeadsResult {
   }, [fetchAll])
 
   const createLead = async (data: LeadInsert): Promise<void> => {
-    const { error: sbError } = await supabase.from('leads').insert(data)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: sbError } = await supabase.from('leads').insert(data as any)
     if (sbError) throw sbError
     await fetchAll()
   }
 
   const updateLead = async (id: string, data: LeadUpdate): Promise<void> => {
-    const { error: sbError } = await supabase.from('leads').update(data).eq('id', id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: sbError } = await supabase.from('leads').update(data as any).eq('id', id)
     if (sbError) throw sbError
     await fetchAll()
   }

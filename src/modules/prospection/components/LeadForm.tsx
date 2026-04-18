@@ -94,6 +94,16 @@ export function LeadForm({ open, onClose, lead, onSubmit }: LeadFormProps) {
         assigned_to: (form.assigned_to || null) as LeadInsert['assigned_to'],
         notes: form.notes.trim() || null,
         created_by: null,
+        // Email auto fields — set to null on manual creation
+        contact_email: null,
+        contact_name: null,
+        contact_role: null,
+        source: null,
+        // Maturity fields
+        maturity: null,
+        relance_count: 0,
+        last_contact_date: null,
+        timeline: null,
       }
       await onSubmit(payload)
     } finally {
