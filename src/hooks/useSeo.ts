@@ -25,6 +25,7 @@ interface UseSeoResult {
 
   // CRUD
   saveArticle: (payload: ArticleCreatePayload) => Promise<BlogArticle | null>
+  updateArticle: (id: string, payload: Partial<ArticleCreatePayload>) => Promise<BlogArticle | null>
   publishArticle: (id: string) => Promise<void>
   archiveArticle: (id: string) => Promise<void>
   deleteArticle: (id: string) => Promise<void>
@@ -100,6 +101,22 @@ export function useSeo(): UseSeoResult {
     setGenerateResult(null)
   }, [])
 
+  const updateArticle = useCallback(async (id: string, payload: Partial<ArticleCreatePayload>): Promise<BlogArticle | null> => {
+    const { data, error } = await supabase.functions.invoke<{ article: BlogArticle }>(
+      'seo-articles',
+      { body: { action: 'update', data: { id, ...payload } } },
+    )
+
+    if (error || !data) {
+      toast.error("Impossible de mettre à jour l'article")
+      return null
+    }
+
+    toast.success('Article mis à jour')
+    await fetchArticles()
+    return data.article
+  }, [fetchArticles])
+
   const saveArticle = useCallback(async (payload: ArticleCreatePayload): Promise<BlogArticle | null> => {
     const { data, error } = await supabase.functions.invoke<{ article: BlogArticle }>(
       'seo-articles',
@@ -169,6 +186,7 @@ export function useSeo(): UseSeoResult {
     generate,
     resetGeneration,
     saveArticle,
+    updateArticle,
     publishArticle,
     archiveArticle,
     deleteArticle,

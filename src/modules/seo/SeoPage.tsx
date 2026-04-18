@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BarChart3, Layers } from 'lucide-react'
+import { BarChart3, Layers, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { useSeo } from '@/hooks/useSeo'
@@ -7,13 +7,26 @@ import { KeywordInput } from './components/KeywordInput'
 import { SerpResults } from './components/SerpResults'
 import { ArticleEditor } from './components/ArticleEditor'
 import { ArticlesList } from './components/ArticlesList'
-import type { ArticleCreatePayload } from '@/types/seo'
+import type { ArticleCreatePayload, BlogArticle } from '@/types/seo'
 
 type Tab = 'generator' | 'articles'
+
+function blogArticleToGenerated(a: BlogArticle) {
+  return {
+    title: a.title,
+    meta_title: a.meta_title ?? '',
+    meta_description: a.meta_description ?? '',
+    excerpt: a.excerpt ?? '',
+    content: a.content,
+    reading_time: a.reading_time ?? 5,
+    suggested_slug: a.slug,
+  }
+}
 
 export default function SeoPage() {
   const [activeTab, setActiveTab] = useState<Tab>('generator')
   const [isSaving, setIsSaving] = useState(false)
+  const [editingArticle, setEditingArticle] = useState<BlogArticle | null>(null)
 
   const {
     articles,
@@ -24,6 +37,7 @@ export default function SeoPage() {
     generate,
     resetGeneration,
     saveArticle,
+    updateArticle,
     publishArticle,
     archiveArticle,
     deleteArticle,
@@ -46,6 +60,25 @@ export default function SeoPage() {
     }
     setIsSaving(false)
     setActiveTab('articles')
+    resetGeneration()
+  }
+
+  async function handleUpdate(id: string, payload: Partial<ArticleCreatePayload>) {
+    setIsSaving(true)
+    await updateArticle(id, payload)
+    setIsSaving(false)
+    setEditingArticle(null)
+    setActiveTab('articles')
+  }
+
+  function handleEdit(article: BlogArticle) {
+    setEditingArticle(article)
+    setActiveTab('generator')
+    resetGeneration()
+  }
+
+  function cancelEdit() {
+    setEditingArticle(null)
     resetGeneration()
   }
 
@@ -127,34 +160,61 @@ export default function SeoPage() {
       {/* ── Generator tab ──────────────────────────────────────────────────── */}
       {activeTab === 'generator' && (
         <motion.div variants={staggerItem} className="flex flex-col gap-4">
-          <KeywordInput step={generationStep} onGenerate={generate} />
-
-          {generationStep === 'done' && generateResult && (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_2fr]">
-              <SerpResults serp={generateResult.serp} />
+          {/* Edit mode */}
+          {editingArticle ? (
+            <>
+              <button
+                onClick={cancelEdit}
+                className="flex w-fit items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Retour aux articles
+              </button>
               <ArticleEditor
-                article={generateResult.article}
-                keyword={generateResult.serp.keyword}
+                article={blogArticleToGenerated(editingArticle)}
+                keyword={editingArticle.keyword ?? ''}
                 categories={categories}
+                articleId={editingArticle.id}
+                initialCategoryId={editingArticle.category_id ?? undefined}
                 onSave={handleSave}
                 onPublish={handlePublish}
+                onUpdate={handleUpdate}
                 isSaving={isSaving}
               />
-            </div>
-          )}
+            </>
+          ) : (
+            <>
+              <KeywordInput step={generationStep} onGenerate={generate} />
 
-          {generationStep === 'error' && (
-            <div
-              className="rounded-2xl border px-5 py-4 text-[13px]"
-              style={{
-                borderColor: '#fca5a5',
-                backgroundColor: '#fef2f2',
-                color: '#991b1b',
-              }}
-            >
-              Une erreur est survenue lors de la génération. Vérifiez les clés DATAFORSEO et
-              ANTHROPIC_API_KEY dans les secrets Supabase.
-            </div>
+              {generationStep === 'done' && generateResult && (
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_2fr]">
+                  <SerpResults serp={generateResult.serp} />
+                  <ArticleEditor
+                    article={generateResult.article}
+                    keyword={generateResult.serp.keyword}
+                    categories={categories}
+                    onSave={handleSave}
+                    onPublish={handlePublish}
+                    isSaving={isSaving}
+                  />
+                </div>
+              )}
+
+              {generationStep === 'error' && (
+                <div
+                  className="rounded-2xl border px-5 py-4 text-[13px]"
+                  style={{
+                    borderColor: '#fca5a5',
+                    backgroundColor: '#fef2f2',
+                    color: '#991b1b',
+                  }}
+                >
+                  Une erreur est survenue lors de la génération. Vérifiez les clés DATAFORSEO et
+                  ANTHROPIC_API_KEY dans les secrets Supabase.
+                </div>
+              )}
+            </>
           )}
         </motion.div>
       )}
@@ -165,6 +225,7 @@ export default function SeoPage() {
           <ArticlesList
             articles={articles}
             isLoading={isLoading}
+            onEdit={handleEdit}
             onPublish={publishArticle}
             onArchive={archiveArticle}
             onDelete={deleteArticle}

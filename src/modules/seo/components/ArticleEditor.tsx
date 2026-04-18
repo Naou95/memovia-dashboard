@@ -6,8 +6,11 @@ interface ArticleEditorProps {
   article: GeneratedArticle
   keyword: string
   categories: BlogCategory[]
+  articleId?: string
+  initialCategoryId?: string
   onSave: (payload: ArticleCreatePayload) => Promise<void>
   onPublish: (payload: ArticleCreatePayload) => Promise<void>
+  onUpdate?: (id: string, payload: Partial<ArticleCreatePayload>) => Promise<void>
   isSaving: boolean
 }
 
@@ -17,17 +20,21 @@ export function ArticleEditor({
   article,
   keyword,
   categories,
+  articleId,
+  initialCategoryId,
   onSave,
   onPublish,
+  onUpdate,
   isSaving,
 }: ArticleEditorProps) {
+  const isEditMode = Boolean(articleId)
   const [title, setTitle] = useState(article.title)
   const [slug, setSlug] = useState(article.suggested_slug)
   const [content, setContent] = useState(article.content)
   const [metaTitle, setMetaTitle] = useState(article.meta_title)
   const [metaDescription, setMetaDescription] = useState(article.meta_description)
   const [excerpt, setExcerpt] = useState(article.excerpt)
-  const [categoryId, setCategoryId] = useState('')
+  const [categoryId, setCategoryId] = useState(initialCategoryId ?? '')
   const [previewTab, setPreviewTab] = useState<PreviewTab>('edit')
 
   function buildPayload(status: 'draft' | 'published'): ArticleCreatePayload {
@@ -42,6 +49,18 @@ export function ArticleEditor({
       meta_title: metaTitle,
       meta_description: metaDescription,
       reading_time: article.reading_time,
+    }
+  }
+
+  function buildUpdatePayload(): Partial<ArticleCreatePayload> {
+    return {
+      title,
+      slug,
+      content,
+      excerpt,
+      category_id: categoryId || undefined,
+      meta_title: metaTitle,
+      meta_description: metaDescription,
     }
   }
 
@@ -195,16 +214,28 @@ export function ArticleEditor({
           <Save className="h-3.5 w-3.5" />
           Brouillon
         </button>
-        <button
-          onClick={() => onPublish(buildPayload('published'))}
-          disabled={isSaving || !title || !slug || !categoryId}
-          title={!categoryId ? 'Sélectionnez une catégorie pour publier' : undefined}
-          className="flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: 'var(--memovia-violet)' }}
-        >
-          <Globe className="h-3.5 w-3.5" />
-          Publier sur memovia.io
-        </button>
+        {isEditMode ? (
+          <button
+            onClick={() => onUpdate?.(articleId!, buildUpdatePayload())}
+            disabled={isSaving || !title || !slug}
+            className="flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
+            style={{ backgroundColor: 'var(--memovia-violet)' }}
+          >
+            <Save className="h-3.5 w-3.5" />
+            Mettre à jour
+          </button>
+        ) : (
+          <button
+            onClick={() => onPublish(buildPayload('published'))}
+            disabled={isSaving || !title || !slug || !categoryId}
+            title={!categoryId ? 'Sélectionnez une catégorie pour publier' : undefined}
+            className="flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
+            style={{ backgroundColor: 'var(--memovia-violet)' }}
+          >
+            <Globe className="h-3.5 w-3.5" />
+            Publier sur memovia.io
+          </button>
+        )}
       </div>
     </div>
   )
