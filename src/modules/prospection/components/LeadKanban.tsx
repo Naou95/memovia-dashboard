@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Pencil, CalendarClock } from 'lucide-react'
+import { LeadMaturityBadge } from './LeadMaturityBadge'
 import type { Lead, LeadStatus } from '@/types/leads'
 import {
   LEAD_STATUS_LABELS,
@@ -110,6 +111,20 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
             {lead.assigned_to && (
               <span className="rounded-full bg-[var(--accent-purple-bg)] px-2 py-0.5 text-[11px] text-[var(--memovia-violet)]">
                 {LEAD_ASSIGNEE_LABELS[lead.assigned_to]}
+              </span>
+            )}
+            {lead.maturity && <LeadMaturityBadge maturity={lead.maturity} />}
+          </div>
+
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            {lead.relance_count > 0 && (
+              <span className="text-[11px] text-[var(--text-muted)]">
+                {lead.relance_count} relance{lead.relance_count > 1 ? 's' : ''}
+              </span>
+            )}
+            {lead.last_contact_date && (
+              <span className="text-[11px] text-[var(--text-muted)]">
+                Contact : {formatDate(lead.last_contact_date)}
               </span>
             )}
           </div>
