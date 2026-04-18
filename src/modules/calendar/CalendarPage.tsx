@@ -10,8 +10,8 @@ import { staggerContainer, staggerItem } from '@/lib/motion'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 import { useCalendar } from '@/hooks/useCalendar'
+import { useAuth } from '@/contexts/AuthContext'
 import { CalendarEmptyState } from './components/CalendarEmptyState'
-import { MicrosoftBanner } from './components/MicrosoftBanner'
 import { CreateMeetModal } from './components/CreateMeetModal'
 import type { RBCEvent, CalendarEvent } from '@/types/calendar'
 
@@ -27,7 +27,6 @@ const localizer = dateFnsLocalizer({
   locales,
 })
 
-// Messages français pour react-big-calendar
 const messages = {
   allDay: 'Journée',
   previous: 'Précédent',
@@ -44,21 +43,6 @@ const messages = {
   showMore: (total: number) => `+${total} de plus`,
 }
 
-// ── Couleurs par provider ──────────────────────────────────────────────────────
-
-const PROVIDER_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  google: {
-    bg: 'rgba(124, 58, 237, 0.12)',
-    border: '#7C3AED',
-    text: '#5B21B6',
-  },
-  microsoft: {
-    bg: 'rgba(234, 88, 12, 0.12)',
-    border: '#EA580C',
-    text: '#9A3412',
-  },
-}
-
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function toRBCEvents(events: CalendarEvent[]): RBCEvent[] {
@@ -72,14 +56,12 @@ function toRBCEvents(events: CalendarEvent[]): RBCEvent[] {
   }))
 }
 
-function eventStyleGetter(event: RBCEvent) {
-  const provider = event.resource.provider
-  const colors = PROVIDER_COLORS[provider] ?? PROVIDER_COLORS.google
+function eventStyleGetter(_event: RBCEvent) {
   return {
     style: {
-      backgroundColor: colors.bg,
-      borderLeft: `3px solid ${colors.border}`,
-      color: colors.text,
+      backgroundColor: 'rgba(124, 58, 237, 0.12)',
+      borderLeft: '3px solid #7C3AED',
+      color: '#5B21B6',
       borderRadius: '6px',
       fontSize: '12px',
       fontWeight: 500,
@@ -99,25 +81,23 @@ export default function CalendarPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const { data, isLoading, error, refetch, createMeet, startOAuth } = useCalendar(currentDate)
+  const { user } = useAuth()
+  const isEmir = user?.role === 'admin_bizdev'
 
-  // Gérer les retours OAuth (?connected=google|microsoft ou ?error=...)
+  // Gérer les retours OAuth (?connected=google ou ?error=...)
   useEffect(() => {
     const connected = searchParams.get('connected')
     const oauthError = searchParams.get('error')
 
-    if (connected) {
-      toast.success(
-        connected === 'google'
-          ? 'Google Calendar connecté !'
-          : 'Outlook connecté !',
-      )
+    if (connected === 'google') {
+      toast.success('Google Calendar connecté !')
       refetch()
       setSearchParams({})
     }
     if (oauthError) {
       const desc = searchParams.get('error_description') ?? oauthError
       if (oauthError === 'access_denied') {
-        toast.error("Connexion annulée ou refusée par l'administrateur IT.")
+        toast.error('Connexion annulée.')
       } else {
         toast.error(`Erreur de connexion : ${desc}`)
       }
@@ -157,15 +137,13 @@ export default function CalendarPage() {
   }, [])
 
   const googleNotConfigured = data ? !data.google_configured : false
-  const microsoftNotConfigured = data ? !data.microsoft_configured : false
   const nothingConfigured = googleNotConfigured && data !== null
 
-  // Titre de la vue courante
   const viewTitle = useMemo(() => {
     if (view === 'month') {
       return format(currentDate, 'MMMM yyyy', { locale: fr })
     }
-    return format(currentDate, "d MMMM yyyy", { locale: fr })
+    return format(currentDate, 'd MMMM yyyy', { locale: fr })
   }, [currentDate, view])
 
   return (
@@ -175,7 +153,7 @@ export default function CalendarPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Calendrier</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Agenda de Naoufel (Google) et Emir (Outlook)
+            Google Calendar de Naoufel
           </p>
         </div>
 
@@ -190,37 +168,23 @@ export default function CalendarPage() {
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
-          {/* Nouvelle réunion Meet */}
+          {/* Bouton Meet — Emir (lecture seule + génération Meet) ou Naoufel (accès complet) */}
           {data?.google_configured && (
             <button
               onClick={() => { setSelectedSlot(null); setModalOpen(true) }}
               className="flex h-9 items-center gap-2 rounded-lg bg-[var(--memovia-violet)] px-4 text-[13px] font-medium text-white hover:bg-[var(--memovia-violet-hover)] transition-colors"
             >
               <Video className="h-4 w-4" />
-              Nouvelle réunion
+              {isEmir ? 'Générer un Meet' : 'Nouvelle réunion'}
             </button>
           )}
         </div>
       </motion.div>
 
-      {/* ── Microsoft not connected banner ───────────────────────────────────── */}
-      {data && data.google_configured && microsoftNotConfigured && (
-        <motion.div variants={staggerItem}>
-          <MicrosoftBanner
-            onConnect={() => startOAuth('microsoft', 'emir')}
-          />
-        </motion.div>
-      )}
-
-      {/* ── Google/Microsoft API errors ──────────────────────────────────────── */}
+      {/* ── Google error ─────────────────────────────────────────────────────── */}
       {data?.google_error && (
         <motion.div variants={staggerItem} className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
           <span className="font-semibold">Erreur Google Calendar :</span> {data.google_error}
-        </motion.div>
-      )}
-      {data?.microsoft_error && (
-        <motion.div variants={staggerItem} className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-700">
-          <span className="font-semibold">Erreur Outlook :</span> {data.microsoft_error}
         </motion.div>
       )}
 
@@ -252,12 +216,12 @@ export default function CalendarPage() {
         </motion.div>
       )}
 
-      {/* ── Empty state : aucun provider configuré ───────────────────────────── */}
+      {/* ── Empty state : Google non configuré ──────────────────────────────── */}
       {nothingConfigured && !isLoading && (
         <motion.div variants={staggerItem}>
           <CalendarEmptyState
-            googleConfigured={data?.google_configured ?? false}
-            microsoftConfigured={data?.microsoft_configured ?? false}
+            googleConfigured={false}
+            canConnect={!isEmir}
             onConnect={startOAuth}
           />
         </motion.div>
@@ -307,32 +271,23 @@ export default function CalendarPage() {
               {viewTitle}
             </span>
 
-            {/* View switcher + Legend */}
-            <div className="flex items-center gap-3">
-              {/* Legend */}
-              <div className="hidden items-center gap-3 sm:flex">
-                <LegendDot color="#7C3AED" label="Naoufel" />
-                {data.microsoft_configured && <LegendDot color="#EA580C" label="Emir" />}
-              </div>
-
-              {/* View toggle */}
-              <div className="flex rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-0.5">
-                {(['month', 'week'] as View[]).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => handleViewChange(v)}
-                    aria-pressed={view === v}
-                    aria-label={`Vue ${v === 'month' ? 'mensuelle' : 'hebdomadaire'}`}
-                    className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 ${
-                      view === v
-                        ? 'bg-white text-[var(--text-primary)] shadow-sm'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    {v === 'month' ? 'Mois' : 'Semaine'}
-                  </button>
-                ))}
-              </div>
+            {/* View switcher */}
+            <div className="flex rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-0.5">
+              {(['month', 'week'] as View[]).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => handleViewChange(v)}
+                  aria-pressed={view === v}
+                  aria-label={`Vue ${v === 'month' ? 'mensuelle' : 'hebdomadaire'}`}
+                  className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 ${
+                    view === v
+                      ? 'bg-white text-[var(--text-primary)] shadow-sm'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {v === 'month' ? 'Mois' : 'Semaine'}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -351,13 +306,22 @@ export default function CalendarPage() {
               culture="fr"
               style={{ height: 580 }}
               eventPropGetter={eventStyleGetter}
-              onSelectSlot={handleSelectSlot}
+              onSelectSlot={isEmir ? undefined : handleSelectSlot}
               onSelectEvent={handleSelectEvent}
-              selectable
+              selectable={!isEmir}
               popup
-              toolbar={false}   // On utilise notre toolbar custom
+              toolbar={false}
             />
           </div>
+
+          {/* Indication lecture seule pour Emir */}
+          {isEmir && (
+            <div className="border-t border-[var(--border-color)] px-5 py-2.5">
+              <p className="text-[12px] text-[var(--text-muted)]">
+                Vue en lecture seule — utilisez "Générer un Meet" pour créer une réunion.
+              </p>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -368,19 +332,8 @@ export default function CalendarPage() {
         defaultEnd={selectedSlot?.end}
         onClose={() => { setModalOpen(false); setSelectedSlot(null) }}
         onCreateMeet={createMeet}
+        inviteNaoufel={isEmir}
       />
     </motion.div>
-  )
-}
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div
-        className="h-2.5 w-2.5 rounded-full"
-        style={{ backgroundColor: color }}
-      />
-      <span className="text-[12px] text-[var(--text-secondary)]">{label}</span>
-    </div>
   )
 }

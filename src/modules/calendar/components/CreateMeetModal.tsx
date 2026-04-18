@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Video, Copy, ExternalLink, Loader2, Calendar } from 'lucide-react'
+import { X, Video, Copy, ExternalLink, Loader2, Calendar, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import type { CreateMeetPayload, CreateMeetResponse } from '@/types/calendar'
 
@@ -9,6 +9,7 @@ interface Props {
   defaultEnd?: Date
   onClose: () => void
   onCreateMeet: (payload: CreateMeetPayload) => Promise<CreateMeetResponse>
+  inviteNaoufel?: boolean
 }
 
 function formatDatetimeLocal(date: Date): string {
@@ -20,7 +21,7 @@ function parseDatetimeLocal(s: string): Date {
   return new Date(s)
 }
 
-export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onCreateMeet }: Props) {
+export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onCreateMeet, inviteNaoufel = false }: Props) {
   const now = new Date()
   const in30 = new Date(now.getTime() + 30 * 60 * 1000)
   const in60 = new Date(now.getTime() + 60 * 60 * 1000)
@@ -52,6 +53,7 @@ export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onC
         end: parseDatetimeLocal(endStr).toISOString(),
         description: description.trim() || undefined,
         timezone: 'Europe/Paris',
+        inviteAdminFull: inviteNaoufel,
       })
       setResult(response)
       toast.success('Réunion créée avec succès !')
@@ -73,13 +75,11 @@ export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onC
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={handleClose}
       />
 
-      {/* Modal */}
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--border-color)] bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-4">
@@ -110,6 +110,7 @@ export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onC
                 <p className="text-[15px] font-semibold text-[var(--text-primary)]">{result.title}</p>
                 <p className="text-[13px] text-[var(--text-secondary)]">
                   Événement créé dans Google Calendar
+                  {inviteNaoufel && ' · Naoufel invité'}
                 </p>
               </div>
             </div>
@@ -169,6 +170,16 @@ export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onC
         ) : (
           /* Form */
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
+            {/* Naoufel invite notice */}
+            {inviteNaoufel && (
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--memovia-violet)] bg-[var(--memovia-violet-light)] px-3 py-2">
+                <UserCheck className="h-4 w-4 shrink-0 text-[var(--memovia-violet)]" />
+                <p className="text-[12px] text-[var(--memovia-violet)] font-medium">
+                  Naoufel sera automatiquement invité à cette réunion.
+                </p>
+              </div>
+            )}
+
             {/* Title */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[12px] font-medium text-[var(--text-secondary)]">

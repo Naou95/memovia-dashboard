@@ -12,11 +12,10 @@ export interface UseCalendarResult {
   error: string | null
   refetch: (start?: Date, end?: Date) => Promise<void>
   createMeet: (payload: CreateMeetPayload) => Promise<CreateMeetResponse>
-  startOAuth: (provider: 'google' | 'microsoft', owner: 'naoufel' | 'emir') => Promise<void>
+  startOAuth: () => Promise<void>
 }
 
 function dateRangeForView(date: Date): { start: Date; end: Date } {
-  // Plage large : 6 semaines centrées sur le mois pour couvrir les vues mois et semaine
   const start = new Date(date.getFullYear(), date.getMonth() - 1, 1)
   const end = new Date(date.getFullYear(), date.getMonth() + 2, 0, 23, 59, 59)
   return { start, end }
@@ -99,16 +98,12 @@ export function useCalendar(currentDate = new Date()): UseCalendarResult {
     return res.json()
   }, [])
 
-  const startOAuth = useCallback(async (
-    provider: 'google' | 'microsoft',
-    owner: 'naoufel' | 'emir',
-  ): Promise<void> => {
+  const startOAuth = useCallback(async (): Promise<void> => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error('Non authentifié')
 
-    const params = new URLSearchParams({ provider, owner })
     const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calendar-oauth-start?${params}`,
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calendar-oauth-start`,
       {
         headers: { Authorization: `Bearer ${session.access_token}` },
       },

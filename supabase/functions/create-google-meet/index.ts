@@ -5,20 +5,21 @@
  * Utilise conferenceData.createRequest pour générer le Meet automatiquement.
  *
  * Body JSON :
- *   title       : string (requis)
- *   start       : string ISO 8601 (requis)
- *   end         : string ISO 8601 (requis)
- *   description : string (optionnel)
- *   timezone    : string (défaut : Europe/Paris)
+ *   title            : string (requis)
+ *   start            : string ISO 8601 (requis)
+ *   end              : string ISO 8601 (requis)
+ *   description      : string (optionnel)
+ *   timezone         : string (défaut : Europe/Paris)
+ *   inviteAdminFull  : boolean (optionnel) — ajoute l'utilisateur admin_full comme participant
  *
  * Retourne :
- *   { eventId, htmlLink, meetLink }
+ *   { eventId, htmlLink, meetLink, title, start, end }
  */
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
 
-// ── Token refresh (même logique que get-calendar-events) ───────────────────────
+// ── Token refresh ──────────────────────────────────────────────────────────────
 
 async function getValidGoogleToken(supabase: ReturnType<typeof createClient>): Promise<string | null> {
   const { data: row } = await supabase
@@ -70,8 +71,6 @@ async function getValidGoogleToken(supabase: ReturnType<typeof createClient>): P
 
 // ── Idempotency key ────────────────────────────────────────────────────────────
 
-/** Génère un requestId déterministe pour l'idempotence de conferenceData.
- *  Même title+start → même requestId → Google ne crée pas deux fois le Meet. */
 async function makeRequestId(title: string, start: string): Promise<string> {
   const input = `${title}::${start}`
   const encoded = new TextEncoder().encode(input)
@@ -94,15 +93,21 @@ Deno.serve(async (req) => {
   const authResult = await validateAuth(req)
   if (authResult instanceof Response) return authResult
 
-  // Parse body
-  let body: { title?: string; start?: string; end?: string; description?: string; timezone?: string }
+  let body: {
+    title?: string
+    start?: string
+    end?: string
+    description?: string
+    timezone?: string
+    inviteAdminFull?: boolean
+  }
   try {
     body = await req.json()
   } catch {
     return errorResponse('invalid_json', 400)
   }
 
-  const { title, start, end, description, timezone = 'Europe/Paris' } = body
+  const { title, start, end, description, timezone = 'Europe/Paris', inviteAdminFull = false } = body
 
   if (!title || !start || !end) {
     return errorResponse('missing_required_fields', 400)
@@ -118,9 +123,23 @@ Deno.serve(async (req) => {
     return errorResponse('google_not_configured', 503)
   }
 
+  // Récupérer l'email de l'admin_full (Naoufel) si on doit l'inviter
+  let attendees: Array<{ email: string }> = []
+  if (inviteAdminFull) {
+    const { data: adminProfile } = await supabase
+      .from('dashboard_profiles')
+      .select('email')
+      .eq('role', 'admin_full')
+      .maybeSingle()
+
+    if (adminProfile?.email) {
+      attendees = [{ email: adminProfile.email }]
+    }
+  }
+
   const requestId = await makeRequestId(title, start)
 
-  const eventBody = {
+  const eventBody: Record<string, unknown> = {
     summary: title,
     description: description ?? '',
     start: { dateTime: start, timeZone: timezone },
@@ -131,6 +150,10 @@ Deno.serve(async (req) => {
         conferenceSolutionKey: { type: 'hangoutsMeet' },
       },
     },
+  }
+
+  if (attendees.length > 0) {
+    eventBody.attendees = attendees
   }
 
   const res = await fetch(
@@ -154,7 +177,6 @@ Deno.serve(async (req) => {
 
   const event = await res.json()
 
-  // Extraire le lien Meet depuis conferenceData
   const entryPoints = event.conferenceData?.entryPoints ?? []
   const videoEntry = entryPoints.find(
     (ep: Record<string, string>) => ep.entryPointType === 'video',

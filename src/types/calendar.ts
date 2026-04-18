@@ -1,4 +1,4 @@
-export type CalendarProvider = 'google' | 'microsoft'
+export type CalendarProvider = 'google'
 
 export interface CalendarEvent {
   id: string
@@ -20,15 +20,13 @@ export interface RBCEvent {
   start: Date
   end: Date
   allDay: boolean
-  resource: CalendarEvent   // données brutes accessibles dans les handlers
+  resource: CalendarEvent
 }
 
 export interface CalendarEventsResponse {
   events: CalendarEvent[]
   google_configured: boolean
-  microsoft_configured: boolean
   google_error: string | null
-  microsoft_error: string | null
   fetched_at: string
 }
 
@@ -38,6 +36,7 @@ export interface CreateMeetPayload {
   end: string      // ISO 8601
   description?: string
   timezone?: string
+  inviteAdminFull?: boolean
 }
 
 export interface CreateMeetResponse {
