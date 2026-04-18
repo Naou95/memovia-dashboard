@@ -60,6 +60,7 @@ const TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
+        lead_id: { type: 'string', description: 'ID exact du lead si connu (prioritaire sur lead_name)' },
         lead_name: { type: 'string', description: 'Nom de l\'organisation ou du lead (recherche partielle acceptée)' },
         new_status: {
           type: 'string',
@@ -202,7 +203,7 @@ async function executeTool(
       created_by: userId,
     }).select('id').single()
 
-    if (error) throw new Error(`create_task failed: ${error.message}`)
+    if (error) throw new Error('Impossible de créer la tâche. Vérifie les paramètres et réessaie.')
 
     const payload = {
       id: data.id,
@@ -219,14 +220,13 @@ async function executeTool(
   }
 
   if (name === 'update_lead_status') {
-    const { data: leads, error: findError } = await supabaseUser
-      .from('leads')
-      .select('id, name, status, type')
-      .ilike('name', `%${String(input.lead_name)}%`)
-      .limit(1)
+    const leadQuery = supabaseUser.from('leads').select('id, name, status, type')
+    const { data: leads, error: findError } = input.lead_id
+      ? await leadQuery.eq('id', String(input.lead_id)).limit(1)
+      : await leadQuery.ilike('name', `%${String(input.lead_name)}%`).limit(1)
 
     if (findError || !leads?.[0]) {
-      throw new Error(`Lead "${input.lead_name}" introuvable`)
+      throw new Error(`Lead "${String(input.lead_name)}" introuvable dans le CRM.`)
     }
 
     const lead = leads[0] as { id: string; name: string; status: string; type: string }
@@ -235,7 +235,7 @@ async function executeTool(
       .update({ status: String(input.new_status) })
       .eq('id', lead.id)
 
-    if (updateError) throw new Error(`update_lead_status failed: ${updateError.message}`)
+    if (updateError) throw new Error('Impossible de mettre à jour le statut du lead.')
 
     const payload = {
       id: lead.id,
@@ -261,7 +261,7 @@ async function executeTool(
       created_by: userId,
     }).select('id').single()
 
-    if (error) throw new Error(`create_contract failed: ${error.message}`)
+    if (error) throw new Error('Impossible de créer le contrat. Vérifie les paramètres et réessaie.')
 
     const payload = {
       id: data.id,
@@ -276,7 +276,7 @@ async function executeTool(
     }
   }
 
-  throw new Error(`Outil inconnu : ${name}`)
+  throw new Error("Une action inconnue a été demandée.")
 }
 
 // ── Handler ────────────────────────────────────────────────────────────────────
@@ -291,7 +291,9 @@ Deno.serve(async (req) => {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
   if (!apiKey) return errorResponse('anthropic_not_configured', 500)
 
-  const token = req.headers.get('Authorization')!.replace('Bearer ', '')
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  if (!token) return errorResponse('unauthorized', 401)
 
   try {
     const body: RequestBody = await req.json()
@@ -403,10 +405,14 @@ Deno.serve(async (req) => {
           }
 
           const reader = phase2Resp.body.getReader()
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            controller.enqueue(value)
+          try {
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              controller.enqueue(value)
+            }
+          } finally {
+            reader.releaseLock()
           }
           controller.close()
         } catch (err) {
