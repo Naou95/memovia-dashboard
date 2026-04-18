@@ -54,15 +54,15 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Navigation — staggered mount + sliding active pill via LayoutGroup */}
       <LayoutGroup>
         <motion.nav
-          className="flex-1 overflow-y-auto px-3 pb-4"
+          className="flex-1 overflow-y-auto px-3 pb-2"
           aria-label="Navigation principale"
           variants={sidebarContainer}
           initial="hidden"
           animate="show"
         >
           {sections.map((section) => (
-            <div key={section.id} className="mb-5">
-              <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-label)]">
+            <div key={section.id} className="mb-3">
+              <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-label)]">
                 {section.label}
               </div>
               <ul className="space-y-0.5">
@@ -126,7 +126,7 @@ function SidebarNavItem({ item, isActive }: SidebarNavItemProps) {
   const content = (
     <span
       className={cn(
-        'relative flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium',
+        'relative flex h-8 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium',
         isActive
           ? 'text-[var(--text-primary)]'
           : !isSoon

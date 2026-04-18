@@ -63,6 +63,7 @@ public/
 - Emil Kowalski : animations et motion
 - Impeccable : /polish pour nettoyer l'UI après chaque module
 - Taste Skill : références visuelles réelles
+- UI/UX Pro Max : `/ui-ux-pro-max` — 67 styles UI, 161 palettes, 57 font pairings, 99 guidelines UX, 25 types de charts (React/Next.js/Tailwind/shadcn)
 
 ## Workflow obligatoire
 Avant de coder un nouveau module :
@@ -92,3 +93,5 @@ Key routing rules:
 - Architecture review → invoke plan-eng-review
 - Save progress, checkpoint, resume → invoke checkpoint
 - Code quality, health check → invoke health
+- UI styles, color palettes, font pairings, charts, UX guidelines → invoke ui-ux-pro-max
+- Design new page/component, choose color scheme, review UI code → invoke ui-ux-pro-max
