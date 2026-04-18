@@ -1,0 +1,28 @@
+# env
+.env.local
+.env.*.local
+
+# deps
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+
+# playwright
+playwright-report/
+test-results/
+
+# vite cache
+.vite/
+
+# DS Store
+.DS_Store
+
+# supabase temp
+supabase/.temp/
+
+# claude session files
+.claude/
+.gitignoreatopen
+.impeccable.md

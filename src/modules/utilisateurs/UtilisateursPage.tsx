@@ -1,0 +1,170 @@
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { staggerContainer, staggerItem } from '@/lib/motion'
+import { useMemoviaUsers } from '@/hooks/useMemoviaUsers'
+import { UserStats } from './components/UserStats'
+import { UserTable } from './components/UserTable'
+import type { MemoviaTypeFilter } from '@/types/users'
+import { TYPE_FILTER_LABELS, matchesTypeFilter } from '@/types/users'
+
+type DateRange = 7 | 30 | 90 | null
+
+const TYPE_FILTERS: { label: string; value: MemoviaTypeFilter | null }[] = [
+  { label: 'Tous', value: null },
+  { label: TYPE_FILTER_LABELS.student, value: 'student' },
+  { label: TYPE_FILTER_LABELS.teacher, value: 'teacher' },
+  { label: TYPE_FILTER_LABELS.school_admin, value: 'school_admin' },
+]
+
+const DATE_FILTERS: { label: string; value: DateRange }[] = [
+  { label: 'Toutes dates', value: null },
+  { label: '7 jours', value: 7 },
+  { label: '30 jours', value: 30 },
+  { label: '90 jours', value: 90 },
+]
+
+export default function UtilisateursPage() {
+  const [filterType, setFilterType] = useState<MemoviaTypeFilter | null>(null)
+  const [filterDate, setFilterDate] = useState<DateRange>(null)
+
+  const { users, total, isLoading, error } = useMemoviaUsers(filterDate)
+
+  const filteredUsers = filterType != null
+    ? users.filter((u) => matchesTypeFilter(u.account_type, filterType))
+    : users
+
+  const hasActiveFilter = filterType != null || filterDate != null
+
+  return (
+    <motion.div className="space-y-6" variants={staggerContainer} initial="hidden" animate="show">
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      <motion.header variants={staggerItem} className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-semibold tracking-tighter text-[var(--text-primary)]">
+              Utilisateurs MEMOVIA
+            </h2>
+            {!isLoading && (
+              <span className="rounded-full bg-[var(--accent-purple-bg)] px-2.5 py-0.5 text-[12px] font-semibold text-[var(--memovia-violet)]">
+                {total} inscrits
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            Lecture seule — données en direct depuis app.memovia.io.
+          </p>
+        </div>
+      </motion.header>
+
+      {/* ── Error banner ─────────────────────────────────────────────────────── */}
+      {error && !isLoading && (
+        <motion.div variants={staggerItem} className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </motion.div>
+      )}
+
+      {/* ── KPI Stats ────────────────────────────────────────────────────────── */}
+      <motion.div variants={staggerItem}>
+        <UserStats users={filteredUsers} total={total} isLoading={isLoading} error={error} />
+      </motion.div>
+
+      {/* ── Filters ──────────────────────────────────────────────────────────── */}
+      <motion.div
+        variants={staggerItem}
+        className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl px-4 py-3"
+        style={{
+          border: '1px solid var(--border-color)',
+          backgroundColor: 'var(--bg-secondary)',
+        }}
+      >
+        {/* Type */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+            Type
+          </span>
+          {TYPE_FILTERS.map((pill) => {
+            const isActive = filterType === pill.value
+            return (
+              <button
+                key={pill.label}
+                onClick={() => setFilterType(pill.value)}
+                className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
+                style={
+                  isActive
+                    ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
+                    : {
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-secondary)',
+                        border: '1px solid var(--border-color)',
+                      }
+                }
+              >
+                {pill.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Divider */}
+        <div className="hidden h-5 w-px sm:block" style={{ backgroundColor: 'var(--border-color)' }} />
+
+        {/* Date inscription */}
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+            Inscrits
+          </span>
+          {DATE_FILTERS.map((pill) => {
+            const isActive = filterDate === pill.value
+            return (
+              <button
+                key={pill.label}
+                onClick={() => setFilterDate(pill.value)}
+                className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
+                style={
+                  isActive
+                    ? {
+                        backgroundColor: 'color-mix(in oklab, var(--memovia-violet) 14%, var(--bg-primary))',
+                        color: 'var(--memovia-violet)',
+                        border: '1px solid var(--memovia-violet)',
+                      }
+                    : {
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-secondary)',
+                        border: '1px solid var(--border-color)',
+                      }
+                }
+              >
+                {pill.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Reset */}
+        {hasActiveFilter && (
+          <button
+            onClick={() => { setFilterType(null); setFilterDate(null) }}
+            className="ml-auto text-[12px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-secondary)] hover:underline"
+          >
+            Réinitialiser
+          </button>
+        )}
+      </motion.div>
+
+      {/* ── Table ────────────────────────────────────────────────────────────── */}
+      <motion.div variants={staggerItem}>
+        <UserTable users={filteredUsers} isLoading={isLoading} />
+      </motion.div>
+
+      {/* ── Footer count ─────────────────────────────────────────────────────── */}
+      {!isLoading && filteredUsers.length > 0 && (
+        <motion.p variants={staggerItem} className="text-center text-[12px] text-[var(--text-muted)]">
+          {filteredUsers.length === total
+            ? `${total} utilisateur${total > 1 ? 's' : ''} au total`
+            : `${filteredUsers.length} sur ${total} utilisateur${total > 1 ? 's' : ''}`}
+          {total >= 500 && ' · affichage limité aux 500 plus récents'}
+        </motion.p>
+      )}
+    </motion.div>
+  )
+}

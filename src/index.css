@@ -1,0 +1,313 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+/* shadcn/ui CSS variables (Tailwind v4 compatible) */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 262 83% 96%;
+    --accent-foreground: 262 83% 40%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 262 83% 58%;
+    --radius: 0.5rem;
+  }
+}
+
+/* MEMOVIA brand tokens — Nexus-inspired light palette */
+:root {
+  /* Surfaces (light theme, everywhere) */
+  --bg-primary: #F5F5F8;
+  --bg-secondary: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+
+  /* Borders */
+  --border-color: #EDEDF0;
+  --border-strong: #E0E0E5;
+
+  /* Text */
+  --text-primary: #0F0F1A;
+  --text-secondary: #6B6B7A;
+  --text-muted: #9E9EAB;
+  --text-label: #8E8EA0;
+
+  /* Brand (primary violet from Nexus) */
+  --memovia-violet: #7C3AED;
+  --memovia-violet-light: #F3F0FE;
+  --memovia-violet-hover: #6D28D9;
+  --memovia-cyan: #00E5CC;
+
+  /* Trend badges (pill with bg + text) */
+  --trend-up-bg: #E8F7EE;
+  --trend-up-text: #059669;
+  --trend-down-bg: #FDE8E8;
+  --trend-down-text: #DC2626;
+
+  /* KPI card accent circles */
+  --accent-blue: #3B82F6;
+  --accent-blue-bg: #DBEAFE;
+  --accent-mint: #10B981;
+  --accent-mint-bg: #D1FAE5;
+  --accent-purple: #7C3AED;
+  --accent-purple-bg: #EDE9FE;
+
+  /* Chart purple scale (stacked bars) */
+  --chart-purple-100: #DDD6FE;
+  --chart-purple-200: #C4B5FD;
+  --chart-purple-300: #A78BFA;
+  --chart-purple-400: #8B5CF6;
+  --chart-purple-500: #7C3AED;
+  --chart-purple-600: #6D28D9;
+
+  /* CTA dark button (Export) */
+  --cta-dark-bg: #0F0F1A;
+  --cta-dark-text: #FFFFFF;
+  --cta-dark-hover: #1F1F2E;
+
+  /* Semantic */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #3B82F6;
+}
+
+/* ── Animation foundation ─────────────────────────────────────────────────── */
+
+:root {
+  /* Custom easing curves — replaces built-in CSS easings everywhere */
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Shimmer skeleton — replaces plain animate-pulse */
+@keyframes shimmer {
+  to { background-position: 200% center; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--border-color) 0%,
+    color-mix(in srgb, white 85%, var(--border-color)) 48%,
+    var(--border-color) 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer 1.5s var(--ease-in-out) infinite;
+}
+
+/* ── Typographic tokens ───────────────────────────────────────────────────── */
+
+/* Monospace companion for numbers in tables and KPI values */
+.font-mono,
+.tabular-nums {
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Base resets ─────────────────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Global interaction states ───────────────────────────────────────────── */
+
+/* Tactile press feedback on all non-disabled buttons (emil-design-eng) */
+@media (prefers-reduced-motion: no-preference) {
+  button:not([disabled]),
+  [role="button"]:not([aria-disabled="true"]) {
+    transition-property: transform, background-color, color, opacity, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  button:not([disabled]):active,
+  [role="button"]:not([aria-disabled="true"]):active {
+    transform: scale(0.97);
+    transition-duration: 100ms;
+  }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--border-color);
+  }
+}
+
+/* ── react-big-calendar overrides (MEMOVIA design system) ────────────────── */
+.calendar-wrapper .rbc-calendar {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--text-primary);
+}
+
+/* Month grid */
+.calendar-wrapper .rbc-month-view,
+.calendar-wrapper .rbc-time-view {
+  border: none;
+  border-radius: 0;
+}
+
+.calendar-wrapper .rbc-month-row {
+  border-color: var(--border-color);
+}
+
+.calendar-wrapper .rbc-month-row + .rbc-month-row {
+  border-color: var(--border-color);
+}
+
+.calendar-wrapper .rbc-day-bg + .rbc-day-bg {
+  border-color: var(--border-color);
+}
+
+/* Headers (Mon, Tue…) */
+.calendar-wrapper .rbc-header {
+  border-bottom: 1px solid var(--border-color);
+  border-left: none;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-label);
+}
+
+.calendar-wrapper .rbc-header + .rbc-header {
+  border-left: 1px solid var(--border-color);
+}
+
+/* Today highlight */
+.calendar-wrapper .rbc-today {
+  background-color: var(--memovia-violet-light);
+}
+
+/* Date cells */
+.calendar-wrapper .rbc-date-cell {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.calendar-wrapper .rbc-date-cell.rbc-now button {
+  background-color: var(--memovia-violet);
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+/* Off-range days (prev/next month) */
+.calendar-wrapper .rbc-off-range {
+  color: var(--text-muted);
+}
+
+.calendar-wrapper .rbc-off-range-bg {
+  background: #FAFAFA;
+}
+
+/* Events */
+.calendar-wrapper .rbc-event {
+  border: none !important;
+  box-shadow: none;
+  outline: none;
+}
+
+.calendar-wrapper .rbc-event:focus {
+  outline: 2px solid var(--memovia-violet);
+  outline-offset: 1px;
+}
+
+.calendar-wrapper .rbc-event-label {
+  font-size: 11px;
+}
+
+/* "Show more" button */
+.calendar-wrapper .rbc-show-more {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--memovia-violet);
+  background: none;
+  padding: 0 8px;
+}
+
+/* Week view time gutter */
+.calendar-wrapper .rbc-time-gutter .rbc-timeslot-group {
+  border-color: var(--border-color);
+}
+
+.calendar-wrapper .rbc-time-header-content {
+  border-color: var(--border-color);
+}
+
+.calendar-wrapper .rbc-time-content {
+  border-color: var(--border-color);
+}
+
+.calendar-wrapper .rbc-timeslot-group {
+  border-bottom-color: var(--border-color);
+}
+
+.calendar-wrapper .rbc-time-slot {
+  border-top-color: transparent;
+}
+
+.calendar-wrapper .rbc-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 0 6px;
+}
+
+/* Selected slot */
+.calendar-wrapper .rbc-slot-selection {
+  background-color: rgba(124, 58, 237, 0.12);
+  border: 1px solid var(--memovia-violet);
+  border-radius: 4px;
+}
+
+/* Popup (overflow events) */
+.calendar-wrapper .rbc-overlay {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  background: white;
+  padding: 8px;
+}
+
+.calendar-wrapper .rbc-overlay-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+}
