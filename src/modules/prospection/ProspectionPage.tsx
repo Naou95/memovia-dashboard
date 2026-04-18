@@ -98,9 +98,9 @@ export default function ProspectionPage() {
       <motion.header variants={staggerItem} className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-semibold tracking-tighter text-[var(--text-primary)]">
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
               Prospection CRM
-            </h2>
+            </h1>
             {!isLoading && (
               <span className="rounded-full bg-[var(--accent-purple-bg)] px-2.5 py-0.5 text-[12px] font-semibold text-[var(--memovia-violet)]">
                 {activeCount} actifs
@@ -126,7 +126,9 @@ export default function ProspectionPage() {
                 <button
                   key={mode}
                   onClick={() => setView(mode)}
-                  className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all"
+                  aria-pressed={view === mode}
+                  aria-label={`Vue ${label}`}
+                  className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
                   style={
                     view === mode
                       ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
@@ -179,7 +181,8 @@ export default function ProspectionPage() {
               <button
                 key={pill.label}
                 onClick={() => setFilterStatus(pill.value)}
-                className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
+                aria-pressed={isActive}
+                className="rounded-full px-3 py-1 text-[12px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
                 style={
                   isActive
                     ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }

@@ -54,14 +54,15 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm" aria-label="Liste des leads commerciaux">
         <thead>
           <tr className="border-b border-[var(--border-color)]">
             {['Lead', 'Type', 'Canal', 'Statut', 'Assigné', 'Prochaine action', 'Relance', 'Actions'].map(
               (h, i) => (
                 <th
                   key={h}
-                  className={`px-4 py-3 text-[12px] font-semibold uppercase tracking-wider text-[var(--text-label)] ${
+                  scope="col"
+                  className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] ${
                     i === 7 ? 'text-right' : 'text-left'
                   }`}
                 >
