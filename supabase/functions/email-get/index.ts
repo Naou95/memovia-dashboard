@@ -1,6 +1,7 @@
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
 import { ImapFlow } from 'npm:imapflow'
 import { simpleParser } from 'npm:mailparser'
+import { Buffer } from 'node:buffer'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
