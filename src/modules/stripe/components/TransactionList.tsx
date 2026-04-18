@@ -34,19 +34,19 @@ export function TransactionList({ transactions }: TransactionListProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm" aria-label="Liste des transactions Stripe récentes">
         <thead>
           <tr className="border-b border-[var(--border-color)]">
-            <th className="pb-3 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+            <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Date
             </th>
-            <th className="pb-3 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+            <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Description
             </th>
-            <th className="pb-3 text-right text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+            <th scope="col" className="pb-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Montant
             </th>
-            <th className="pb-3 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)] pl-6">
+            <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] pl-6">
               Statut
             </th>
           </tr>
@@ -56,11 +56,11 @@ export function TransactionList({ transactions }: TransactionListProps) {
             <tr
               key={tx.id}
               className={
-                'border-b border-[var(--border-color)] transition-colors hover:bg-[var(--accent-purple-bg)]' +
-                (i % 2 === 0 ? '' : ' bg-[#FAFAFA]')
+                'border-b border-[var(--border-color)] transition-colors hover:bg-[var(--memovia-violet-light)]/60' +
+                (i % 2 === 0 ? '' : ' bg-[var(--bg-primary)]')
               }
             >
-              <td className="py-3 pr-4 text-[13px] text-[var(--text-secondary)] whitespace-nowrap">
+              <td className="py-3 pr-4 text-[13px] tabular-nums text-[var(--text-secondary)] whitespace-nowrap">
                 {formatDate(tx.date)}
               </td>
               <td className="py-3 pr-4 text-[13px] text-[var(--text-primary)] max-w-[260px] truncate">

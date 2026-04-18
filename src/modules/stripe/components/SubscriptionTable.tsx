@@ -28,22 +28,22 @@ export function SubscriptionTable({ subscriptions }: SubscriptionTableProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm" aria-label="Liste des abonnements Stripe actifs">
         <thead>
           <tr className="border-b border-[var(--border-color)]">
-            <th className="pb-3 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+            <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Email
             </th>
-            <th className="pb-3 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+            <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Plan
             </th>
-            <th className="pb-3 text-right text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+            <th scope="col" className="pb-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Montant / mois
             </th>
-            <th className="pb-3 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)] pl-6">
+            <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] pl-6">
               Depuis
             </th>
-            <th className="pb-3 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+            <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Statut
             </th>
           </tr>
@@ -53,8 +53,8 @@ export function SubscriptionTable({ subscriptions }: SubscriptionTableProps) {
             <tr
               key={sub.id}
               className={
-                'border-b border-[var(--border-color)] transition-colors hover:bg-[var(--accent-purple-bg)]' +
-                (i % 2 === 0 ? '' : ' bg-[#FAFAFA]')
+                'border-b border-[var(--border-color)] transition-colors hover:bg-[var(--memovia-violet-light)]/60' +
+                (i % 2 === 0 ? '' : ' bg-[var(--bg-primary)]')
               }
             >
               <td className="py-3 pr-4 font-mono text-[13px] text-[var(--text-primary)]">
@@ -71,7 +71,7 @@ export function SubscriptionTable({ subscriptions }: SubscriptionTableProps) {
               <td className="py-3 text-right tabular-nums text-[13px] font-medium text-[var(--text-primary)]">
                 {formatEur(sub.amount)}
               </td>
-              <td className="py-3 pl-6 text-[13px] text-[var(--text-secondary)]">
+              <td className="py-3 pl-6 text-[13px] tabular-nums text-[var(--text-secondary)]">
                 {formatDate(sub.startDate)}
               </td>
               <td className="py-3">
