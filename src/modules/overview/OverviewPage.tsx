@@ -1,6 +1,10 @@
-import { useMemo } from 'react'
-import { DollarSign, Users, Landmark, UserMinus, Bot, AlertTriangle, Activity } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
+import {
+  DollarSign, Users, Landmark, UserMinus, Bot, AlertTriangle, Activity,
+  Calendar, Mail, CheckSquare, Phone, UserPlus, CreditCard, Sun, ArrowRight,
+} from 'lucide-react'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOverviewKpis } from '@/hooks/useOverviewKpis'
 import { useStripeFinance } from '@/hooks/useStripeFinance'
@@ -9,6 +13,9 @@ import { useTasks } from '@/hooks/useTasks'
 import { useLeads } from '@/hooks/useLeads'
 import { useContracts } from '@/hooks/useContracts'
 import { useIaBriefing } from '@/hooks/useIaBriefing'
+import { useCalendar } from '@/hooks/useCalendar'
+import { useEmail } from '@/hooks/useEmail'
+import { useMemoviaUsers } from '@/hooks/useMemoviaUsers'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { RevenueBarChart } from '@/components/shared/RevenueBarChart'
 import { ProfitLossChart } from '@/components/shared/ProfitLossChart'
@@ -27,6 +34,11 @@ function relativeTime(isoDate: string): string {
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `il y a ${hours}h`
   return `il y a ${Math.floor(hours / 24)}j`
+}
+
+function toLocalDate(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // ── Status labels ───────────────────────────────────────────────────────────────
@@ -52,10 +64,32 @@ const CONTRACT_STATUS: Record<string, string> = {
   resilie: 'Résilié',
 }
 
+const PLAN_LABEL: Record<string, string> = { free: 'Free', pro: 'Pro', b2b: 'B2B' }
+const PLAN_COLOR: Record<string, string> = {
+  free: 'bg-gray-50 text-gray-600 border-gray-200',
+  pro: 'bg-violet-50 text-violet-700 border-violet-200',
+  b2b: 'bg-blue-50 text-blue-700 border-blue-200',
+}
+
+// ── Day item shape ──────────────────────────────────────────────────────────────
+
+interface DayItem {
+  key: string
+  Icon: React.ElementType
+  iconBg: string
+  iconColor: string
+  label: string
+  badge?: string
+  badgeClass?: string
+  href: string
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function OverviewPage() {
   const { user } = useAuth()
+
+  // ── Existing data hooks ──
   const { stripe, stripeError, isLoading: stripeKpiLoading } = useOverviewKpis()
   const { data: stripeFinance, isLoading: stripeFinanceLoading } = useStripeFinance()
   const { data: qontoFinance, isLoading: qontoFinanceLoading, error: qontoError } = useQontoFinance()
@@ -63,6 +97,18 @@ export default function OverviewPage() {
   const { leads, isLoading: leadsLoading } = useLeads()
   const { contracts, isLoading: contractsLoading } = useContracts()
 
+  // ── New data hooks ──
+  const { data: calendarData, isLoading: calendarLoading } = useCalendar()
+  const { alerts: emailAlerts, isLoading: emailLoading, loadEmails } = useEmail()
+
+  const since24h = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), [])
+  const { users: newUsers24h, isLoading: newUsersLoading } = useMemoviaUsers(since24h)
+
+  useEffect(() => {
+    loadEmails()
+  }, [loadEmails])
+
+  // ── Greeting ──
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
   const firstName = user?.profile.full_name?.split(' ')[0] ?? 'admin'
@@ -75,6 +121,16 @@ export default function OverviewPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }, [])
 
+  // ── Derive which assignee key maps to the current user ──
+  const myAssignee = useMemo(() => {
+    const name = (user?.profile.full_name ?? '').toLowerCase()
+    const email = (user?.profile.email ?? '').toLowerCase()
+    if (name.includes('naoufel') || email.includes('naoufel')) return 'naoufel'
+    if (name.includes('emir') || email.includes('emir')) return 'emir'
+    return null
+  }, [user])
+
+  // ── Existing derived data ──
   const overdueTasks = useMemo(
     () => tasks.filter((t) => t.status !== 'done' && t.due_date && t.due_date < today),
     [tasks, today],
@@ -119,6 +175,114 @@ export default function OverviewPage() {
     return items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5)
   }, [tasks, leads, contracts])
 
+  // ── "Votre journée" — items aggregated per user ──
+  const myTodayTasks = useMemo(
+    () =>
+      tasks.filter(
+        (t) =>
+          t.status !== 'done' &&
+          t.due_date != null &&
+          t.due_date <= today &&
+          (myAssignee === null || t.assigned_to === myAssignee),
+      ),
+    [tasks, today, myAssignee],
+  )
+
+  const myTodayLeads = useMemo(
+    () =>
+      leads.filter(
+        (l) =>
+          l.follow_up_date === today &&
+          l.status !== 'gagne' &&
+          l.status !== 'perdu' &&
+          (myAssignee === null || l.assigned_to === myAssignee),
+      ),
+    [leads, today, myAssignee],
+  )
+
+  const todayCalendarEvents = useMemo(() => {
+    if (!calendarData?.events) return []
+    return calendarData.events
+      .filter((e) => toLocalDate(e.start) === today)
+      .sort((a, b) => a.start.localeCompare(b.start))
+  }, [calendarData, today])
+
+  const myDayItems = useMemo<DayItem[]>(() => {
+    const items: DayItem[] = []
+
+    for (const t of myTodayTasks) {
+      const overdue = t.due_date! < today
+      items.push({
+        key: `task-${t.id}`,
+        Icon: CheckSquare,
+        iconBg: 'bg-violet-50',
+        iconColor: 'text-violet-600',
+        label: t.title,
+        badge: overdue ? 'En retard' : "Aujourd'hui",
+        badgeClass: overdue
+          ? 'bg-red-50 text-red-700 border border-red-200'
+          : 'bg-orange-50 text-orange-700 border border-orange-200',
+        href: '/taches',
+      })
+    }
+
+    for (const l of myTodayLeads) {
+      items.push({
+        key: `lead-${l.id}`,
+        Icon: Phone,
+        iconBg: 'bg-cyan-50',
+        iconColor: 'text-cyan-600',
+        label: l.name,
+        badge: 'Relance',
+        badgeClass: 'bg-cyan-50 text-cyan-700 border border-cyan-200',
+        href: '/prospection',
+      })
+    }
+
+    for (const e of todayCalendarEvents) {
+      const startTime = e.allDay
+        ? 'Toute la journée'
+        : new Date(e.start).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      items.push({
+        key: `cal-${e.id}`,
+        Icon: Calendar,
+        iconBg: 'bg-blue-50',
+        iconColor: 'text-blue-600',
+        label: e.title,
+        badge: startTime,
+        badgeClass: 'bg-blue-50 text-blue-700 border border-blue-200',
+        href: '/calendrier',
+      })
+    }
+
+    for (const a of emailAlerts) {
+      items.push({
+        key: `email-${a.uid}`,
+        Icon: Mail,
+        iconBg: 'bg-amber-50',
+        iconColor: 'text-amber-600',
+        label: a.subject || `De : ${a.from.name ?? a.from.address}`,
+        badge: `+${Math.round(a.hoursUnread)}h`,
+        badgeClass: 'bg-amber-50 text-amber-700 border border-amber-200',
+        href: '/email-drafter',
+      })
+    }
+
+    return items
+  }, [myTodayTasks, myTodayLeads, todayCalendarEvents, emailAlerts, today])
+
+  const dayLoading = tasksLoading || leadsLoading || calendarLoading || emailLoading
+
+  // ── "Actus MEMOVIA 24h" — new signups + Stripe ──
+  const newStripe24h = useMemo(() => {
+    if (!stripeFinance?.subscriptions) return []
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+    return stripeFinance.subscriptions.filter(
+      (s) => new Date(s.startDate).getTime() >= cutoff,
+    )
+  }, [stripeFinance])
+
+  // ── IA Briefing ──
   const briefingEnabled = !stripeKpiLoading && !tasksLoading && !leadsLoading
   const { briefing, isLoading: briefingLoading, isStreaming: briefingStreaming } = useIaBriefing({
     enabled: briefingEnabled,
@@ -157,6 +321,61 @@ export default function OverviewPage() {
           Voici un aperçu de MEMOVIA AI aujourd'hui.
         </p>
       </motion.header>
+
+      {/* ── Votre journée ── */}
+      <motion.div
+        variants={staggerItem}
+        className="rounded-2xl border border-[var(--border-color)] bg-white p-5"
+      >
+        <div className="mb-4 flex items-center gap-2">
+          <Sun size={15} className="text-amber-500" />
+          <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Votre journée</h3>
+          {myDayItems.length > 0 && (
+            <span className="rounded-full bg-[var(--memovia-violet)] px-2 py-0.5 text-[11px] font-semibold text-white">
+              {myDayItems.length}
+            </span>
+          )}
+        </div>
+
+        {dayLoading ? (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="skeleton h-9 rounded-xl" />
+            ))}
+          </div>
+        ) : myDayItems.length === 0 ? (
+          <p className="text-[13px] text-[var(--text-muted)]">
+            Tout est à jour — belle journée !
+          </p>
+        ) : (
+          <div className="divide-y divide-[var(--border-color)]">
+            {myDayItems.map((item) => (
+              <Link
+                key={item.key}
+                to={item.href}
+                className="-mx-5 flex items-center justify-between px-5 py-2.5 transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className={`shrink-0 rounded-lg p-1.5 ${item.iconBg}`}>
+                    <item.Icon size={13} className={item.iconColor} />
+                  </span>
+                  <span className="truncate text-[13px] text-[var(--text-primary)]">
+                    {item.label}
+                  </span>
+                </div>
+                <div className="ml-4 flex shrink-0 items-center gap-2">
+                  {item.badge && (
+                    <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${item.badgeClass}`}>
+                      {item.badge}
+                    </span>
+                  )}
+                  <ArrowRight size={12} className="text-[var(--text-muted)]" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </motion.div>
 
       {/* ── Briefing IA du jour ── */}
       <motion.div
@@ -423,6 +642,111 @@ export default function OverviewPage() {
             ))}
           </div>
         )}
+      </motion.div>
+
+      {/* ── Actus MEMOVIA du matin — 24h ── */}
+      <motion.div
+        variants={staggerItem}
+        className="rounded-2xl border border-[var(--border-color)] bg-white p-5"
+      >
+        <div className="mb-4 flex items-center gap-2">
+          <UserPlus size={15} className="text-[var(--text-secondary)]" />
+          <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
+            Activité MEMOVIA — 24h
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {/* Nouvelles inscriptions */}
+          <div>
+            <p className="mb-3 flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)]">
+              <UserPlus size={12} />
+              Nouvelles inscriptions
+            </p>
+            {newUsersLoading ? (
+              <div className="space-y-2">
+                <div className="skeleton h-8 rounded-xl" />
+                <div className="skeleton h-8 rounded-xl" />
+              </div>
+            ) : newUsers24h.length === 0 ? (
+              <p className="text-[13px] text-[var(--text-muted)]">Aucune inscription.</p>
+            ) : (
+              <div className="space-y-2">
+                {newUsers24h.slice(0, 6).map((u) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between rounded-xl bg-[var(--surface-subtle,#f8f8f8)] px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-medium text-[var(--text-primary)]">
+                        {u.first_name || u.last_name
+                          ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim()
+                          : u.email}
+                      </p>
+                      <p className="truncate text-[11px] text-[var(--text-muted)]">{u.email}</p>
+                    </div>
+                    <span
+                      className={`ml-3 shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium ${PLAN_COLOR[u.plan] ?? PLAN_COLOR.free}`}
+                    >
+                      {PLAN_LABEL[u.plan] ?? u.plan}
+                    </span>
+                  </div>
+                ))}
+                {newUsers24h.length > 6 && (
+                  <Link
+                    to="/utilisateurs"
+                    className="block text-center text-[12px] text-[var(--memovia-violet)] hover:underline"
+                  >
+                    +{newUsers24h.length - 6} autres → Utilisateurs
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Nouveaux abonnés Stripe */}
+          <div>
+            <p className="mb-3 flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)]">
+              <CreditCard size={12} />
+              Nouveaux abonnés Stripe
+            </p>
+            {stripeFinanceLoading ? (
+              <div className="space-y-2">
+                <div className="skeleton h-8 rounded-xl" />
+                <div className="skeleton h-8 rounded-xl" />
+              </div>
+            ) : newStripe24h.length === 0 ? (
+              <p className="text-[13px] text-[var(--text-muted)]">Aucun abonnement.</p>
+            ) : (
+              <div className="space-y-2">
+                {newStripe24h.slice(0, 6).map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between rounded-xl bg-[var(--surface-subtle,#f8f8f8)] px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-medium text-[var(--text-primary)]">
+                        {s.customerEmail}
+                      </p>
+                      <p className="truncate text-[11px] text-[var(--text-muted)]">{s.planName}</p>
+                    </div>
+                    <span className="ml-3 shrink-0 rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+                      {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(s.amount)}/mois
+                    </span>
+                  </div>
+                ))}
+                {newStripe24h.length > 6 && (
+                  <Link
+                    to="/stripe"
+                    className="block text-center text-[12px] text-[var(--memovia-violet)] hover:underline"
+                  >
+                    +{newStripe24h.length - 6} autres → Stripe
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </motion.div>
     </motion.div>
   )
