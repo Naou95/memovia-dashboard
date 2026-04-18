@@ -49,7 +49,7 @@ const COLUMN_DOT: Record<TaskStatus, string> = {
 
 const PRIORITY_BADGE: Record<TaskPriority, { bg: string; color: string }> = {
   haute: { bg: '#fee2e2', color: '#dc2626' },
-  normale: { bg: '#f3f4f6', color: '#6b7280' },
+  normale: { bg: '#e5e7eb', color: '#4b5563' },
   basse: { bg: '#dbeafe', color: '#2563eb' },
 }
 
@@ -74,14 +74,14 @@ function CardContent({ task, onEdit, isOverlay, isPlaceholder }: CardContentProp
   return (
     <div
       className={[
-        'group rounded-lg bg-[var(--bg-primary)] transition-all',
+        'group rounded-lg bg-white transition-all',
         isPlaceholder
           ? 'border border-dashed border-[var(--memovia-violet)] opacity-30 pointer-events-none'
           : isOverlay
           ? 'border border-[var(--memovia-violet)] shadow-[0_12px_32px_rgba(0,0,0,0.18)]'
-          : 'border border-[var(--border-color)] hover:shadow-sm',
+          : 'border border-[#E8E8F0] shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.12)]',
       ].join(' ')}
-      style={{ borderWidth: isOverlay ? 1 : 0.5, ...(isOverlay ? { transform: 'rotate(1.5deg)' } : {}) }}
+      style={isOverlay ? { transform: 'rotate(1.5deg)' } : undefined}
     >
       <div className="p-3 space-y-2">
         {/* Row 1: priority badge + ··· */}
@@ -203,7 +203,7 @@ function DraggableCard({ task, onEdit }: { task: Task; onEdit: (t: Task) => void
 
 function SkeletonCard() {
   return (
-    <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 space-y-2">
+    <div className="rounded-lg border border-[#E8E8F0] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-3 space-y-2">
       <div className="h-3 w-10 animate-pulse rounded bg-[var(--border-color)]" />
       <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
       <div className="h-3 w-3/4 animate-pulse rounded bg-[var(--border-color)]" />
@@ -231,8 +231,8 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, onNewTask, activeTa
   const dot = COLUMN_DOT[status]
 
   return (
-    <div className="flex w-[260px] shrink-0 flex-col">
-      {/* Column header — flat row, no border box */}
+    <div className="flex w-[260px] shrink-0 flex-col rounded-[10px] bg-[#F4F4F8] p-2.5">
+      {/* Column header — transparent, inside grey column */}
       <div className="mb-2 flex items-center justify-between px-0.5">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: dot }} />
@@ -265,12 +265,10 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, onNewTask, activeTa
       {/* Drop zone */}
       <div
         ref={setNodeRef}
-        className="flex flex-col gap-2 rounded-xl p-1 transition-colors"
+        className="flex flex-col gap-2 rounded-lg transition-colors"
         style={{
           minHeight: 80,
-          backgroundColor: isOver
-            ? 'color-mix(in oklab, var(--memovia-violet) 5%, var(--bg-primary))'
-            : 'transparent',
+          backgroundColor: isOver ? 'color-mix(in oklab, var(--memovia-violet) 8%, #F4F4F8)' : 'transparent',
           outline: isOver ? '2px dashed var(--memovia-violet)' : '2px dashed transparent',
           outlineOffset: '-2px',
         }}
@@ -281,7 +279,7 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, onNewTask, activeTa
             <SkeletonCard />
           </>
         ) : tasks.length === 0 && !activeTaskId ? (
-          <div className="rounded-xl border border-dashed border-[var(--border-color)] px-3 py-8 text-center">
+          <div className="rounded-lg border border-dashed border-[#D8D8E4] px-3 py-8 text-center">
             <p className="text-[11px] text-[var(--text-muted)]">Aucune tâche</p>
           </div>
         ) : (
