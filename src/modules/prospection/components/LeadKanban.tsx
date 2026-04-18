@@ -116,18 +116,20 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
             {lead.maturity && <LeadMaturityBadge maturity={lead.maturity} />}
           </div>
 
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            {lead.relance_count > 0 && (
-              <span className="text-[11px] text-[var(--text-muted)]">
-                {lead.relance_count} relance{lead.relance_count > 1 ? 's' : ''}
-              </span>
-            )}
-            {lead.last_contact_date && (
-              <span className="text-[11px] text-[var(--text-muted)]">
-                Contact : {formatDate(lead.last_contact_date)}
-              </span>
-            )}
-          </div>
+          {(lead.relance_count > 0 || lead.last_contact_date) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              {lead.relance_count > 0 && (
+                <span className="text-[11px] text-[var(--text-muted)]">
+                  {lead.relance_count} relance{lead.relance_count > 1 ? 's' : ''}
+                </span>
+              )}
+              {lead.last_contact_date && (
+                <span className="text-[11px] text-[var(--text-muted)]">
+                  Contact : {formatDate(lead.last_contact_date)}
+                </span>
+              )}
+            </div>
+          )}
 
           {lead.follow_up_date && (
             <div
