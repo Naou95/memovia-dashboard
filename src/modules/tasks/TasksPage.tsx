@@ -72,9 +72,9 @@ export default function TasksPage() {
     <motion.div className="space-y-4" variants={staggerContainer} initial="hidden" animate="show">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <motion.div variants={staggerItem} className="space-y-1.5">
-        <h2 className="text-2xl font-semibold tracking-tighter text-[var(--text-primary)]">
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
           Tâches
-        </h2>
+        </h1>
         <div className="flex items-center justify-between">
           <button className="flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
             <span>Tout</span>
