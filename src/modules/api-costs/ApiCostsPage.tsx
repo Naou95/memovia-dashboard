@@ -1,4 +1,4 @@
-import { RefreshCw, DollarSign, Brain, Mic, AlertCircle, ExternalLink, Database, TriangleAlert } from 'lucide-react'
+import { RefreshCw, DollarSign, Brain, Mic, AlertCircle, ExternalLink, TriangleAlert } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem, cardGridContainer, staggerCard } from '@/lib/motion'
 import { useApiCosts, invalidateApiCostsCache } from '@/hooks/useApiCosts'

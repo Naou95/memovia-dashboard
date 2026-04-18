@@ -48,6 +48,7 @@ export interface Database {
           updated_at?: string
           created_by?: string | null
         }
+        Relationships: []
       }
       dashboard_profiles: {
         Row: {
@@ -76,6 +77,7 @@ export interface Database {
           avatar_url?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       dashboard_settings: {
         Row: {
@@ -93,6 +95,7 @@ export interface Database {
           value?: string
           updated_at?: string
         }
+        Relationships: []
       }
       contract_documents: {
         Row: {
@@ -122,6 +125,7 @@ export interface Database {
           uploaded_by?: string | null
           created_at?: string
         }
+        Relationships: []
       }
       contracts: {
         Row: {
@@ -171,6 +175,7 @@ export interface Database {
           updated_at?: string
           created_by?: string | null
         }
+        Relationships: []
       }
       feedback_items: {
         Row: {
@@ -208,6 +213,7 @@ export interface Database {
           created_by?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       feedback_votes: {
         Row: {
@@ -228,6 +234,51 @@ export interface Database {
           user_id?: string
           created_at?: string
         }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          id: string
+          name: string
+          type: 'ecole' | 'cfa' | 'entreprise' | 'autre'
+          canal: 'linkedin' | 'email' | 'referral' | 'appel' | 'autre'
+          status: 'nouveau' | 'contacte' | 'en_discussion' | 'proposition' | 'gagne' | 'perdu'
+          next_action: string | null
+          follow_up_date: string | null
+          assigned_to: 'naoufel' | 'emir' | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          type: 'ecole' | 'cfa' | 'entreprise' | 'autre'
+          canal: 'linkedin' | 'email' | 'referral' | 'appel' | 'autre'
+          status?: 'nouveau' | 'contacte' | 'en_discussion' | 'proposition' | 'gagne' | 'perdu'
+          next_action?: string | null
+          follow_up_date?: string | null
+          assigned_to?: 'naoufel' | 'emir' | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          type?: 'ecole' | 'cfa' | 'entreprise' | 'autre'
+          canal?: 'linkedin' | 'email' | 'referral' | 'appel' | 'autre'
+          status?: 'nouveau' | 'contacte' | 'en_discussion' | 'proposition' | 'gagne' | 'perdu'
+          next_action?: string | null
+          follow_up_date?: string | null
+          assigned_to?: 'naoufel' | 'emir' | null
+          notes?: string | null
+          updated_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -248,6 +299,7 @@ export interface Database {
           created_at: string
           last_sign_in_at: string | null
         }
+        Relationships: []
       }
     }
     Functions: {
