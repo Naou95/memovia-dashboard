@@ -17,6 +17,7 @@ export default function SeoPage() {
 
   const {
     articles,
+    categories,
     isLoading,
     generationStep,
     generateResult,
@@ -134,6 +135,7 @@ export default function SeoPage() {
               <ArticleEditor
                 article={generateResult.article}
                 keyword={generateResult.serp.keyword}
+                categories={categories}
                 onSave={handleSave}
                 onPublish={handlePublish}
                 isSaving={isSaving}

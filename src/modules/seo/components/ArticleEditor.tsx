@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Save, Globe, FileText, Clock, Tag } from 'lucide-react'
-import type { GeneratedArticle, ArticleCreatePayload } from '@/types/seo'
+import { Save, Globe, FileText, Clock, Tag, Layers } from 'lucide-react'
+import type { GeneratedArticle, ArticleCreatePayload, BlogCategory } from '@/types/seo'
 
 interface ArticleEditorProps {
   article: GeneratedArticle
   keyword: string
+  categories: BlogCategory[]
   onSave: (payload: ArticleCreatePayload) => Promise<void>
   onPublish: (payload: ArticleCreatePayload) => Promise<void>
   isSaving: boolean
@@ -15,6 +16,7 @@ type PreviewTab = 'edit' | 'preview'
 export function ArticleEditor({
   article,
   keyword,
+  categories,
   onSave,
   onPublish,
   isSaving,
@@ -25,6 +27,7 @@ export function ArticleEditor({
   const [metaTitle, setMetaTitle] = useState(article.meta_title)
   const [metaDescription, setMetaDescription] = useState(article.meta_description)
   const [excerpt, setExcerpt] = useState(article.excerpt)
+  const [categoryId, setCategoryId] = useState('')
   const [previewTab, setPreviewTab] = useState<PreviewTab>('edit')
 
   function buildPayload(status: 'draft' | 'published'): ArticleCreatePayload {
@@ -35,6 +38,7 @@ export function ArticleEditor({
       excerpt,
       keyword,
       status,
+      category_id: categoryId || undefined,
       meta_title: metaTitle,
       meta_description: metaDescription,
       reading_time: article.reading_time,
@@ -103,6 +107,21 @@ export function ArticleEditor({
             className={inputClass}
             style={inputStyle}
           />
+        </Field>
+        <Field label="Catégorie" icon={<Layers className="h-3.5 w-3.5" />}>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className={inputClass}
+            style={inputStyle}
+          >
+            <option value="">— Aucune catégorie —</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
 
@@ -178,7 +197,8 @@ export function ArticleEditor({
         </button>
         <button
           onClick={() => onPublish(buildPayload('published'))}
-          disabled={isSaving || !title || !slug}
+          disabled={isSaving || !title || !slug || !categoryId}
+          title={!categoryId ? 'Sélectionnez une catégorie pour publier' : undefined}
           className="flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
           style={{ backgroundColor: 'var(--memovia-violet)' }}
         >
