@@ -29,7 +29,7 @@ export function ContractCard({ data }: { data: ContractCardData }) {
             </span>
             {data.mrr_eur !== null && (
               <span className="text-[10px] font-medium text-[var(--text-primary)]">
-                {data.mrr_eur.toLocaleString('fr-FR')} €/mois
+                {data.mrr_eur.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/mois
               </span>
             )}
             <span className="text-[10px] text-[var(--text-muted)]">

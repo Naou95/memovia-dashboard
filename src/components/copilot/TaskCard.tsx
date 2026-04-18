@@ -37,7 +37,7 @@ export function TaskCard({ data }: { data: TaskCardData }) {
               {PRIORITY_LABELS[data.priority] ?? data.priority}
             </span>
             <span className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold', ASSIGNEE_COLORS[data.assigned_to] ?? 'bg-[var(--bg-secondary)] text-[var(--text-muted)]')}>
-              {ASSIGNEE_INITIALS[data.assigned_to] ?? data.assigned_to[0]?.toUpperCase()}
+              {ASSIGNEE_INITIALS[data.assigned_to] ?? (data.assigned_to[0]?.toUpperCase() || '?')}
             </span>
             {data.due_date && (
               <span className="text-[10px] text-[var(--text-muted)]">
