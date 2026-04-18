@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LeadStatusBadge } from './LeadStatusBadge'
+import { LeadMaturityBadge } from './LeadMaturityBadge'
 import type { Lead } from '@/types/leads'
 import {
   LEAD_TYPE_LABELS,
@@ -29,7 +30,7 @@ function formatDate(dateStr: string | null): string {
 function SkeletonRow() {
   return (
     <tr>
-      {[...Array(8)].map((_, i) => (
+      {[...Array(10)].map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
         </td>
@@ -57,13 +58,13 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
       <table className="w-full text-sm" aria-label="Liste des leads commerciaux">
         <thead>
           <tr className="border-b border-[var(--border-color)]">
-            {['Lead', 'Type', 'Canal', 'Statut', 'Assigné', 'Prochaine action', 'Relance', 'Actions'].map(
+            {['Lead', 'Type', 'Canal', 'Statut', 'Maturité', 'Assigné', 'Prochaine action', 'Dernier contact', 'Relances', 'Actions'].map(
               (h, i) => (
                 <th
                   key={h}
                   scope="col"
                   className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] ${
-                    i === 7 ? 'text-right' : 'text-left'
+                    i === 9 ? 'text-right' : 'text-left'
                   }`}
                 >
                   {h}
@@ -81,7 +82,7 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
             </>
           ) : leads.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-4 py-12 text-center">
+              <td colSpan={10} className="px-4 py-12 text-center">
                 <p className="text-[15px] font-medium text-[var(--text-primary)]">
                   Aucun lead trouvé
                 </p>
@@ -116,6 +117,15 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
                   <LeadStatusBadge status={lead.status} />
                 </td>
 
+                {/* Maturité */}
+                <td className="px-4 py-3">
+                  {lead.maturity ? (
+                    <LeadMaturityBadge maturity={lead.maturity} />
+                  ) : (
+                    <span className="text-[var(--text-muted)]">—</span>
+                  )}
+                </td>
+
                 {/* Assigné */}
                 <td className="px-4 py-3 text-[var(--text-secondary)]">
                   {lead.assigned_to ? LEAD_ASSIGNEE_LABELS[lead.assigned_to] : '—'}
@@ -126,9 +136,14 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
                   <span className="line-clamp-1">{lead.next_action ?? '—'}</span>
                 </td>
 
-                {/* Date relance */}
+                {/* Dernier contact */}
                 <td className="px-4 py-3 text-[var(--text-secondary)]">
-                  {formatDate(lead.follow_up_date)}
+                  {formatDate(lead.last_contact_date)}
+                </td>
+
+                {/* Relances */}
+                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                  {lead.relance_count > 0 ? lead.relance_count : '—'}
                 </td>
 
                 {/* Actions */}
