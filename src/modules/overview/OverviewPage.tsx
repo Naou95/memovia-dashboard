@@ -150,9 +150,9 @@ export default function OverviewPage() {
     >
       {/* ── Greeting header ── */}
       <motion.header variants={staggerItem}>
-        <h2 className="text-2xl font-semibold tracking-tighter text-[var(--text-primary)]">
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
           {greeting}, {firstName}
-        </h2>
+        </h1>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Voici un aperçu de MEMOVIA AI aujourd'hui.
         </p>
@@ -161,13 +161,17 @@ export default function OverviewPage() {
       {/* ── Briefing IA du jour ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-2xl border border-violet-100 bg-violet-50/50 p-5"
+        className="rounded-2xl border border-[var(--memovia-violet-light)] bg-[var(--memovia-violet-light)]/60 p-5"
       >
         <div className="mb-3 flex items-center gap-2">
-          <Bot size={15} className="text-[#7C3AED]" />
-          <span className="text-[13px] font-semibold text-[#7C3AED]">Briefing IA du jour</span>
+          <Bot size={15} className="text-[var(--memovia-violet)]" />
+          <span className="text-[13px] font-semibold text-[var(--memovia-violet)]">Briefing IA du jour</span>
           {briefingStreaming && (
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#7C3AED]" />
+            <span
+              className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--memovia-violet)]"
+              role="status"
+              aria-label="Génération du briefing en cours"
+            />
           )}
         </div>
 
@@ -347,7 +351,7 @@ export default function OverviewPage() {
             <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">6 derniers mois</p>
           </div>
           {stripeFinance && (
-            <span className="text-[13px] font-semibold text-[#7C3AED]">
+            <span className="text-[13px] font-semibold tabular-nums text-[var(--memovia-violet)]">
               {new Intl.NumberFormat('fr-FR', {
                 style: 'currency',
                 currency: 'EUR',
@@ -408,10 +412,10 @@ export default function OverviewPage() {
                   </span>
                 </div>
                 <div className="ml-4 flex shrink-0 items-center gap-3">
-                  <span className="hidden text-[12px] text-[var(--text-muted)] sm:inline">
+                  <span className="hidden text-[13px] text-[var(--text-muted)] sm:inline">
                     {item.status}
                   </span>
-                  <span className="text-[12px] text-[var(--text-muted)]">
+                  <span className="text-[13px] tabular-nums text-[var(--text-muted)]">
                     {relativeTime(item.updatedAt)}
                   </span>
                 </div>
