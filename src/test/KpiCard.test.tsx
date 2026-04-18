@@ -28,9 +28,9 @@ describe('KpiCard', () => {
   it('affiche le skeleton quand isLoading=true', () => {
     render(<KpiCard {...baseProps} isLoading value={null} />)
     expect(screen.queryByText('360')).not.toBeInTheDocument()
-    // Le skeleton est un div avec animate-pulse
+    // Le skeleton utilise la classe .skeleton (shimmer CSS custom)
     const { container } = render(<KpiCard {...baseProps} isLoading value={null} />)
-    expect(container.querySelector('.animate-pulse')).toBeTruthy()
+    expect(container.querySelector('.skeleton')).toBeTruthy()
   })
 
   it('affiche "Indisponible" si error et pas de loading', () => {
@@ -51,5 +51,39 @@ describe('KpiCard', () => {
   it("n'affiche pas de delta si non fourni", () => {
     const { container } = render(<KpiCard {...baseProps} />)
     expect(container.querySelector('[data-testid="delta"]')).toBeFalsy()
+  })
+
+  // ── Sparkline (trend prop, added with Adminix redesign) ──────────────────────
+
+  it('renders a Sparkline when the trend prop has ≥2 values', () => {
+    const { container } = render(
+      <KpiCard {...baseProps} trend={[100, 200, 180, 250, 300, 280]} />,
+    )
+    expect(container.querySelector('[data-testid="kpi-sparkline"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="kpi-sparkline"] svg')).toBeTruthy()
+  })
+
+  it('does NOT render a Sparkline when the trend prop is omitted (regression guard)', () => {
+    const { container } = render(<KpiCard {...baseProps} />)
+    expect(container.querySelector('[data-testid="kpi-sparkline"]')).toBeFalsy()
+  })
+
+  it('does NOT render a Sparkline when trend is an empty array', () => {
+    const { container } = render(<KpiCard {...baseProps} trend={[]} />)
+    expect(container.querySelector('[data-testid="kpi-sparkline"]')).toBeFalsy()
+  })
+
+  it('does NOT render a Sparkline while isLoading=true', () => {
+    const { container } = render(
+      <KpiCard {...baseProps} isLoading value={null} trend={[1, 2, 3]} />,
+    )
+    expect(container.querySelector('[data-testid="kpi-sparkline"]')).toBeFalsy()
+  })
+
+  it('does NOT render a Sparkline when there is an error', () => {
+    const { container } = render(
+      <KpiCard {...baseProps} error="Erreur Stripe" value={null} trend={[1, 2, 3]} />,
+    )
+    expect(container.querySelector('[data-testid="kpi-sparkline"]')).toBeFalsy()
   })
 })

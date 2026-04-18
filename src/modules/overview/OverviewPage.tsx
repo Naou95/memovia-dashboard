@@ -4,12 +4,14 @@ import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOverviewKpis } from '@/hooks/useOverviewKpis'
 import { useStripeFinance } from '@/hooks/useStripeFinance'
+import { useQontoFinance } from '@/hooks/useQontoFinance'
 import { useTasks } from '@/hooks/useTasks'
 import { useLeads } from '@/hooks/useLeads'
 import { useContracts } from '@/hooks/useContracts'
 import { useIaBriefing } from '@/hooks/useIaBriefing'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { RevenueBarChart } from '@/components/shared/RevenueBarChart'
+import { ProfitLossChart } from '@/components/shared/ProfitLossChart'
 import { staggerContainer, staggerItem, cardGridContainer, staggerCard } from '@/lib/motion'
 
 // ── Formatters ─────────────────────────────────────────────────────────────────
@@ -54,8 +56,9 @@ const CONTRACT_STATUS: Record<string, string> = {
 
 export default function OverviewPage() {
   const { user } = useAuth()
-  const { stripe, qonto, stripeError, qontoError, isLoading } = useOverviewKpis()
-  const { data: stripeFinance, isLoading: chartLoading } = useStripeFinance()
+  const { stripe, stripeError, isLoading: stripeKpiLoading } = useOverviewKpis()
+  const { data: stripeFinance, isLoading: stripeFinanceLoading } = useStripeFinance()
+  const { data: qontoFinance, isLoading: qontoFinanceLoading, error: qontoError } = useQontoFinance()
   const { tasks, isLoading: tasksLoading } = useTasks()
   const { leads, isLoading: leadsLoading } = useLeads()
   const { contracts, isLoading: contractsLoading } = useContracts()
@@ -63,7 +66,9 @@ export default function OverviewPage() {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir'
   const firstName = user?.profile.full_name?.split(' ')[0] ?? 'admin'
-  const last6Months = stripeFinance?.revenueByMonth?.slice(-6) ?? []
+
+  const revenueLast6Months = stripeFinance?.revenueByMonth?.slice(-6) ?? []
+  const mrrTrend = revenueLast6Months.map((m) => m.revenue)
 
   const today = useMemo(() => {
     const d = new Date()
@@ -114,11 +119,11 @@ export default function OverviewPage() {
     return items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5)
   }, [tasks, leads, contracts])
 
-  const briefingEnabled = !isLoading && !tasksLoading && !leadsLoading
+  const briefingEnabled = !stripeKpiLoading && !tasksLoading && !leadsLoading
   const { briefing, isLoading: briefingLoading, isStreaming: briefingStreaming } = useIaBriefing({
     enabled: briefingEnabled,
     mrr: stripe?.mrr ?? null,
-    qontoBalance: qonto?.balance ?? null,
+    qontoBalance: qontoFinance?.balance ?? null,
     cancelingCount: stripe?.cancelingAtPeriodEnd ?? 0,
     overdueTasks: overdueTasks.length,
     overdueLeads: overdueLeads.length,
@@ -129,7 +134,12 @@ export default function OverviewPage() {
     overdueTasks.length > 0 ||
     overdueLeads.length > 0
 
-  const dataLoading = tasksLoading || leadsLoading || isLoading
+  const dataLoading = tasksLoading || leadsLoading || stripeKpiLoading
+
+  const plTotal = useMemo(() => {
+    if (!qontoFinance) return null
+    return qontoFinance.monthlyCashFlow.reduce((sum, m) => sum + m.net, 0)
+  }, [qontoFinance])
 
   return (
     <motion.div
@@ -174,60 +184,109 @@ export default function OverviewPage() {
         )}
       </motion.div>
 
-      {/* ── 4 KPI cards ── */}
-      <motion.div
-        variants={cardGridContainer}
-        className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        <motion.div variants={staggerCard}>
-          <KpiCard
-            label="MRR"
-            value={stripe ? formatEur(stripe.mrr) : null}
-            rawValue={stripe?.mrr}
-            formatter={formatEur}
-            unit="€"
-            accent="violet"
-            icon={DollarSign}
-            isLoading={isLoading}
-            error={stripeError}
-          />
+      {/* ── Bento : KPIs (2×2) à gauche + P&L chart à droite ── */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        {/* Colonne KPI : 4 cards en 2×2 */}
+        <motion.div
+          variants={cardGridContainer}
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:col-span-7"
+        >
+          <motion.div variants={staggerCard}>
+            <KpiCard
+              label="MRR"
+              value={stripe ? formatEur(stripe.mrr) : null}
+              rawValue={stripe?.mrr}
+              formatter={formatEur}
+              unit="€"
+              accent="violet"
+              icon={DollarSign}
+              isLoading={stripeKpiLoading}
+              error={stripeError}
+              trend={mrrTrend.length >= 2 ? mrrTrend : undefined}
+            />
+          </motion.div>
+          <motion.div variants={staggerCard}>
+            <KpiCard
+              label="Abonnés actifs"
+              value={stripe ? String(stripe.activeSubscribers) : null}
+              rawValue={stripe?.activeSubscribers}
+              accent="cyan"
+              icon={Users}
+              isLoading={stripeKpiLoading}
+              error={stripeError}
+            />
+          </motion.div>
+          <motion.div variants={staggerCard}>
+            <KpiCard
+              label="Solde Qonto"
+              value={qontoFinance ? formatEur(qontoFinance.balance) : null}
+              rawValue={qontoFinance?.balance}
+              formatter={formatEur}
+              unit="€"
+              accent="blue"
+              icon={Landmark}
+              isLoading={qontoFinanceLoading}
+              error={qontoError}
+            />
+          </motion.div>
+          <motion.div variants={staggerCard}>
+            <KpiCard
+              label="Annulations en cours"
+              value={stripe ? String(stripe.cancelingAtPeriodEnd) : null}
+              rawValue={stripe?.cancelingAtPeriodEnd}
+              accent="red"
+              icon={UserMinus}
+              isLoading={stripeKpiLoading}
+              error={stripeError}
+            />
+          </motion.div>
         </motion.div>
-        <motion.div variants={staggerCard}>
-          <KpiCard
-            label="Abonnés actifs"
-            value={stripe ? String(stripe.activeSubscribers) : null}
-            rawValue={stripe?.activeSubscribers}
-            accent="cyan"
-            icon={Users}
-            isLoading={isLoading}
-            error={stripeError}
-          />
+
+        {/* Colonne P&L chart : hauteur alignée sur 2×2 KPI */}
+        <motion.div
+          variants={staggerItem}
+          className="rounded-2xl border border-[var(--border-color)] bg-white p-5 xl:col-span-5"
+        >
+          <div className="mb-2 flex items-start justify-between">
+            <div>
+              <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
+                Flux financier
+              </h3>
+              <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+                Entrées vs sorties — 6 derniers mois
+              </p>
+            </div>
+            {plTotal !== null && (
+              <span
+                className="text-[13px] font-semibold tabular-nums"
+                style={{
+                  color: plTotal >= 0 ? 'var(--success)' : 'var(--danger)',
+                }}
+              >
+                {plTotal >= 0 ? '+' : ''}
+                {new Intl.NumberFormat('fr-FR', {
+                  style: 'currency',
+                  currency: 'EUR',
+                  maximumFractionDigits: 0,
+                }).format(plTotal)}
+              </span>
+            )}
+          </div>
+
+          {qontoFinanceLoading ? (
+            <div className="skeleton h-[260px] rounded-xl" />
+          ) : qontoError ? (
+            <div
+              className="flex items-center justify-center text-sm text-[var(--text-muted)]"
+              style={{ height: 260 }}
+            >
+              Indisponible
+            </div>
+          ) : qontoFinance ? (
+            <ProfitLossChart data={qontoFinance.monthlyCashFlow} height={260} />
+          ) : null}
         </motion.div>
-        <motion.div variants={staggerCard}>
-          <KpiCard
-            label="Solde Qonto"
-            value={qonto ? formatEur(qonto.balance) : null}
-            rawValue={qonto?.balance}
-            formatter={formatEur}
-            unit="€"
-            accent="blue"
-            icon={Landmark}
-            isLoading={isLoading}
-            error={qontoError}
-          />
-        </motion.div>
-        <motion.div variants={staggerCard}>
-          <KpiCard
-            label="Annulations en cours"
-            value={stripe ? String(stripe.cancelingAtPeriodEnd) : null}
-            rawValue={stripe?.cancelingAtPeriodEnd}
-            accent="red"
-            icon={UserMinus}
-            isLoading={isLoading}
-            error={stripeError}
-          />
-        </motion.div>
-      </motion.div>
+      </div>
 
       {/* ── Alertes prioritaires ── */}
       <motion.div
@@ -275,7 +334,7 @@ export default function OverviewPage() {
         )}
       </motion.div>
 
-      {/* ── Revenue mini chart ── */}
+      {/* ── Revenue chart (capsule bars, Adminix-style) ── */}
       <motion.div
         variants={staggerItem}
         className="rounded-2xl border border-[var(--border-color)] bg-white p-5"
@@ -293,15 +352,15 @@ export default function OverviewPage() {
                 style: 'currency',
                 currency: 'EUR',
                 maximumFractionDigits: 0,
-              }).format(last6Months.reduce((s, m) => s + m.revenue, 0))}
+              }).format(revenueLast6Months.reduce((s, m) => s + m.revenue, 0))}
             </span>
           )}
         </div>
 
-        {chartLoading ? (
+        {stripeFinanceLoading ? (
           <div className="skeleton h-[160px] rounded-xl" />
         ) : (
-          <RevenueBarChart data={last6Months} variant="mini" />
+          <RevenueBarChart data={revenueLast6Months} variant="mini" rounded="capsule" />
         )}
       </motion.div>
 

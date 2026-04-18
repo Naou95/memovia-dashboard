@@ -1,6 +1,7 @@
 import { AlertCircle, TrendingUp, TrendingDown } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { CountUp } from '@/components/motion/CountUp'
+import { Sparkline } from '@/components/shared/Sparkline'
 
 export type AccentKey = 'violet' | 'cyan' | 'blue' | 'red' | 'green'
 
@@ -19,6 +20,8 @@ export interface KpiCardProps {
   error: string | null
   /** Variation vs previous month, e.g. 12 = +12%, -5 = -5% */
   delta?: number
+  /** Optional time-series for a sparkline rendered below the value */
+  trend?: number[]
 }
 
 export const ACCENT_MAP: Record<AccentKey, { bg: string; fg: string }> = {
@@ -42,6 +45,7 @@ export function KpiCard({
   isLoading,
   error,
   delta,
+  trend,
 }: KpiCardProps) {
   const colors = ACCENT_MAP[accent]
   const hasPositiveDelta = delta !== undefined && delta > 0
@@ -112,6 +116,20 @@ export function KpiCard({
               {delta > 0 ? '+' : ''}{delta}%
             </span>
           )}
+        </div>
+      )}
+
+      {/* Sparkline — rendered only when trend series is provided (≥2 values) */}
+      {!isLoading && !error && trend && trend.length >= 2 && (
+        <div className="mt-3" data-testid="kpi-sparkline">
+          <Sparkline
+            data={trend}
+            width={120}
+            height={28}
+            color={colors.fg}
+            filled
+            className="w-full"
+          />
         </div>
       )}
     </motion.article>

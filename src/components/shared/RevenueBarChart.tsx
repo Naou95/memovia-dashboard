@@ -49,13 +49,20 @@ interface RevenueBarChartProps {
   data: MonthlyRevenue[]
   /** full = 12 mois avec YAxis (page /stripe) · mini = 6 mois sans YAxis (overview) */
   variant?: 'full' | 'mini'
+  /** top = radius sur le haut des barres (legacy) · capsule = barres arrondies complètes (Adminix-style) */
+  rounded?: 'top' | 'capsule'
 }
 
-export function RevenueBarChart({ data, variant = 'full' }: RevenueBarChartProps) {
+export function RevenueBarChart({
+  data,
+  variant = 'full',
+  rounded = 'top',
+}: RevenueBarChartProps) {
   const isMini = variant === 'mini'
   const height = isMini ? 160 : 236
   const maxBarSize = isMini ? 22 : 38
-  const barRadius: [number, number, number, number] = [6, 6, 0, 0]
+  const barRadius: [number, number, number, number] =
+    rounded === 'capsule' ? [999, 999, 999, 999] : [6, 6, 0, 0]
 
   const isEmpty = data.every((d) => d.revenue === 0)
 

@@ -130,3 +130,29 @@ https://mzjzwffpqubpruyaaxew.supabase.co/functions/v1/calendar-oauth-callback
 **Source:** Module 8 implémenté le 2026-04-16.
 
 ---
+
+## Overview / KPI
+
+### [TODO-O1] Historique KPI pour sparklines Adminix-style sur toutes les cards
+
+**What:** Nouvelle table `dashboard_kpi_snapshots` (columns : `captured_at`, `mrr`, `active_subscribers`, `qonto_balance`, `canceling_count`) + cron Supabase daily qui appelle les Edge Functions existantes et insère un snapshot. Backfill best-effort via Stripe events (subscription.created / deleted) pour reconstruire active_subscribers et canceling_count sur les 6 derniers mois. Pour qonto_balance : pas de backfill possible (pas d'API historique Qonto), on commence à 0 et on accumule.
+
+**Why:** Lors du redesign Overview Adminix-style (2026-04-18), on a dû limiter les sparklines à la card MRR parce que seul `stripeFinance.revenueByMonth` fournit une série temporelle. Les 3 autres cards (Abonnés actifs, Solde Qonto, Annulations en cours) restent sans courbe. Visuellement asymétrique vs référence Adminix.
+
+**Pros:**
+- Cohérence visuelle : sparkline sous chaque chiffre-clé.
+- Dérive : on peut aussi afficher variations `+X% vs semaine dernière / mois dernier` calculées depuis la table.
+- Base pour d'autres dashboards : évolution MRR vs churn, ratio acquisition/perte, etc.
+
+**Cons:**
+- ~2h CC à construire (table + migration + cron + Edge Function de snapshot + backfill script).
+- Nouvelle table = nouvelle surface d'échec (cron qui plante, snapshot corrompu, duplicates si cron run 2×).
+- Nécessite que Stripe + Qonto soient UP au moment du cron — fallback si fail ?
+
+**Context:** Décision 1B du `/plan-eng-review` du 2026-04-18. Le redesign Overview n'ajoute un sparkline QUE sur la card MRR (données `revenueByMonth` déjà disponibles via `get-stripe-finance`). Quand cette TODO sera déroulée, le composant `KpiCard` est déjà prêt (prop `trend?: number[]` ajoutée par le redesign) — il suffit de brancher `dashboard_kpi_snapshots` dessus. Composant `Sparkline.tsx` réutilisable immédiatement.
+
+**Depends on / blocked by:** Rien. Peut être bâti à tout moment. Timing optimal : après Module 15 (Copilote IA) quand l'app est stabilisée et qu'on veut peaufiner les dashboards.
+
+**Source:** /plan-eng-review on 2026-04-18, Overview redesign.
+
+---
