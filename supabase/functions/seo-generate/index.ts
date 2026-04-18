@@ -1,4 +1,12 @@
+import { marked } from 'https://esm.sh/marked@9'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+
+function mdToHtml(md: string): string {
+  if (!md) return ''
+  // Skip conversion if content is already HTML
+  if (md.trimStart().startsWith('<')) return md
+  return marked.parse(md) as string
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SerpResult {
@@ -158,7 +166,9 @@ Réponds UNIQUEMENT avec un objet JSON valide, sans markdown autour, avec exacte
   const jsonMatch = raw.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('invalid_claude_response')
 
-  return JSON.parse(jsonMatch[0]) as GeneratedArticle
+  const result = JSON.parse(jsonMatch[0]) as GeneratedArticle
+  result.content = mdToHtml(result.content)
+  return result
 }
 
 // ── Handler ────────────────────────────────────────────────────────────────────

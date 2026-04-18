@@ -1,5 +1,12 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { marked } from 'https://esm.sh/marked@9'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+
+function mdToHtml(md: string): string {
+  if (!md) return ''
+  if (md.trimStart().startsWith('<')) return md
+  return marked.parse(md) as string
+}
 
 type ArticleStatus = 'draft' | 'published' | 'archived'
 
@@ -76,7 +83,7 @@ Deno.serve(async (req) => {
           .insert({
             title: payload.title,
             slug: payload.slug,
-            content: payload.content ?? '',
+            content: mdToHtml(payload.content ?? ''),
             excerpt: payload.excerpt ?? null,
             keyword: payload.keyword ?? null,
             status: payload.status ?? 'draft',
@@ -100,6 +107,9 @@ Deno.serve(async (req) => {
         if (!payload?.id) return errorResponse('id_required', 400)
 
         const { id, ...fields } = payload
+        if (fields.content !== undefined) {
+          fields.content = mdToHtml(fields.content)
+        }
         const { data, error } = await supabase
           .from('blog_articles')
           .update(fields)
