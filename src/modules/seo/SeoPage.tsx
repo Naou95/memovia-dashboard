@@ -96,7 +96,9 @@ export default function SeoPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as Tab)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-medium transition-colors"
+            aria-pressed={activeTab === tab.id}
+            aria-label={`Onglet ${tab.label}`}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
             style={{
               backgroundColor:
                 activeTab === tab.id ? 'var(--memovia-violet-light)' : 'transparent',
