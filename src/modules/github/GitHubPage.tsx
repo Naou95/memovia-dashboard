@@ -84,7 +84,7 @@ export default function GitHubPage() {
         <div className="flex items-center gap-3">
           <div
             className="flex h-10 w-10 items-center justify-center rounded-xl"
-            style={{ backgroundColor: 'var(--accent-purple-bg)' }}
+            style={{ backgroundColor: 'var(--memovia-violet-light)' }}
           >
             <Github size={20} style={{ color: 'var(--memovia-violet)' }} />
           </div>
@@ -101,8 +101,8 @@ export default function GitHubPage() {
         <button
           onClick={handleRefresh}
           disabled={isLoading}
-          className="rounded-lg p-2 transition-colors hover:bg-black/5 disabled:opacity-50"
-          title="Rafraîchir"
+          className="rounded-lg p-2 transition-colors hover:bg-[var(--bg-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label="Rafraîchir les données GitHub"
         >
           <RefreshCw
             size={16}
@@ -116,12 +116,8 @@ export default function GitHubPage() {
       {error && !isLoading && (
         <motion.div
           variants={staggerItem}
-          className="shrink-0 rounded-xl border px-4 py-3 text-sm"
-          style={{
-            backgroundColor: 'rgba(239, 68, 68, 0.06)',
-            borderColor: 'rgba(239, 68, 68, 0.25)',
-            color: '#ef4444',
-          }}
+          role="alert"
+          className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           {error} — Vérifiez le secret Supabase GITHUB_TOKEN
         </motion.div>
@@ -186,7 +182,7 @@ export default function GitHubPage() {
 
       {/* Fetch time */}
       {data && (
-        <motion.p variants={staggerItem} className="shrink-0 pb-2 text-center text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        <motion.p variants={staggerItem} className="shrink-0 pb-2 text-center text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
           Données GitHub · mise à jour {new Date(data.fetchedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
         </motion.p>
       )}
