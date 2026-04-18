@@ -184,19 +184,23 @@ export function CopilotBubble() {
                     )}
                     style={{ whiteSpace: 'pre-wrap' }}
                   >
-                    {message.role === 'assistant'
-                      ? renderInlineMarkdown(message.content)
-                      : message.content}
-                    {message.streaming && (
-                      <span className="ml-1 inline-flex gap-0.5">
-                        {[0, 1, 2].map((i) => (
-                          <span
-                            key={i}
-                            className="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60 animate-bounce"
-                            style={{ animationDelay: `${i * 150}ms` }}
-                          />
-                        ))}
-                      </span>
+                    {'content' in message && (
+                      <>
+                        {message.role === 'assistant'
+                          ? renderInlineMarkdown(message.content)
+                          : message.content}
+                        {message.streaming && (
+                          <span className="ml-1 inline-flex gap-0.5">
+                            {[0, 1, 2].map((i) => (
+                              <span
+                                key={i}
+                                className="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60 animate-bounce"
+                                style={{ animationDelay: `${i * 150}ms` }}
+                              />
+                            ))}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
