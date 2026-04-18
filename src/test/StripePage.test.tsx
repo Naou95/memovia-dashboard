@@ -39,6 +39,7 @@ const mockData: StripeFinanceData = {
       interval: 'month',
       startDate: '2025-01-01T00:00:00Z',
       cancelAtPeriodEnd: false,
+      cancelAt: null,
     },
   ],
   revenueByMonth: Array.from({ length: 12 }, (_, i) => ({
@@ -53,6 +54,7 @@ const mockData: StripeFinanceData = {
       amount: 360,
       currency: 'EUR',
       status: 'succeeded',
+      customerEmail: 'client@exemple.com',
     },
   ],
   fetchedAt: new Date().toISOString(),
