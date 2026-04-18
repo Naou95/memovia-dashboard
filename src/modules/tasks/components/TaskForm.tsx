@@ -4,7 +4,7 @@ import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import type { Task, TaskInsert, TaskUpdate } from '@/types/tasks'
+import type { Task, TaskInsert, TaskStatus, TaskUpdate } from '@/types/tasks'
 
 interface TaskFormProps {
   open: boolean
@@ -13,6 +13,7 @@ interface TaskFormProps {
   onSubmit: (data: TaskInsert | TaskUpdate) => Promise<void>
   onDelete?: (id: string) => Promise<void>
   canDelete?: boolean
+  defaultStatus?: TaskStatus
 }
 
 interface FormState {
@@ -49,7 +50,7 @@ function taskToForm(task: Task): FormState {
 const selectClass =
   'w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--memovia-violet)] focus:ring-1 focus:ring-[var(--memovia-violet)]'
 
-export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete }: TaskFormProps) {
+export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete, defaultStatus }: TaskFormProps) {
   const isEdit = task != null
   const [form, setForm] = useState<FormState>(emptyForm())
   const [titleError, setTitleError] = useState<string | null>(null)
@@ -58,10 +59,10 @@ export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete }:
 
   useEffect(() => {
     if (open) {
-      setForm(task ? taskToForm(task) : emptyForm())
+      setForm(task ? taskToForm(task) : { ...emptyForm(), status: defaultStatus ?? 'todo' })
       setTitleError(null)
     }
-  }, [open, task])
+  }, [open, task, defaultStatus])
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>

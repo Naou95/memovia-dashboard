@@ -12,29 +12,25 @@ import {
 } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import {
-  GripVertical,
-  Pencil,
-  CalendarClock,
+  MoreHorizontal,
+  Plus,
+  Calendar,
+  Paperclip,
+  MessageSquare,
   AlertCircle,
-  ArrowUp,
-  ArrowRight,
-  ArrowDown,
 } from 'lucide-react'
-import type { Task, TaskStatus, TaskPriority } from '@/types/tasks'
-import {
-  TASK_STATUS_LABELS,
-  TASK_STATUS_ORDER,
-  TASK_ASSIGNEE_LABELS,
-} from '@/types/tasks'
+import type { Task, TaskStatus, TaskPriority, TaskAssignee } from '@/types/tasks'
+import { TASK_STATUS_LABELS, TASK_STATUS_ORDER } from '@/types/tasks'
 
 interface TaskKanbanProps {
   tasks: Task[]
   isLoading: boolean
   onEdit: (task: Task) => void
   onStatusChange: (taskId: string, newStatus: TaskStatus) => Promise<void>
+  onNewTask: (status: TaskStatus) => void
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return ''
@@ -42,146 +38,137 @@ function formatDate(dateStr: string | null): string {
 }
 
 function isOverdue(task: Task): boolean {
-  return (
-    task.due_date != null &&
-    task.status !== 'done' &&
-    new Date(task.due_date) < new Date()
-  )
+  return task.due_date != null && task.status !== 'done' && new Date(task.due_date) < new Date()
 }
 
-const COLUMN_ACCENT: Record<TaskStatus, string> = {
-  todo: 'var(--text-label)',
-  en_cours: 'var(--memovia-violet)',
-  done: 'var(--success)',
+const COLUMN_DOT: Record<TaskStatus, string> = {
+  todo: '#9ca3af',
+  en_cours: '#f59e0b',
+  done: '#10b981',
 }
 
-const PRIORITY_ICON: Record<TaskPriority, React.ReactNode> = {
-  haute: <ArrowUp className="h-3 w-3 text-[var(--danger)]" />,
-  normale: <ArrowRight className="h-3 w-3 text-[var(--text-muted)]" />,
-  basse: <ArrowDown className="h-3 w-3 text-[var(--accent-blue)]" />,
+const PRIORITY_BADGE: Record<TaskPriority, { bg: string; color: string }> = {
+  haute: { bg: '#fee2e2', color: '#dc2626' },
+  normale: { bg: '#f3f4f6', color: '#6b7280' },
+  basse: { bg: '#dbeafe', color: '#2563eb' },
 }
 
-const PRIORITY_COLOR: Record<TaskPriority, string> = {
-  haute: 'var(--danger)',
-  normale: 'var(--text-muted)',
-  basse: 'var(--accent-blue)',
+const ASSIGNEE_AVATAR: Record<TaskAssignee, { initials: string; bg: string; color: string }> = {
+  naoufel: { initials: 'N', bg: '#ede9fe', color: '#7c3aed' },
+  emir: { initials: 'E', bg: '#d1fae5', color: '#059669' },
 }
 
-// ── Card content ───────────────────────────────────────────────────────────────
+// ── Card content ─────────────────────────────────────────────────────────────────
 
 interface CardContentProps {
   task: Task
   onEdit?: (t: Task) => void
-  dragHandleProps?: Record<string, unknown>
   isOverlay?: boolean
   isPlaceholder?: boolean
 }
 
-function CardContent({ task, onEdit, dragHandleProps, isOverlay, isPlaceholder }: CardContentProps) {
+function CardContent({ task, onEdit, isOverlay, isPlaceholder }: CardContentProps) {
   const overdue = isOverdue(task)
+  const badge = PRIORITY_BADGE[task.priority]
 
   return (
     <div
       className={[
-        'group rounded-xl border bg-[var(--bg-primary)] transition-all',
+        'group rounded-lg bg-[var(--bg-primary)] transition-all',
         isPlaceholder
-          ? 'border-dashed border-[var(--memovia-violet)] opacity-30 pointer-events-none'
+          ? 'border border-dashed border-[var(--memovia-violet)] opacity-30 pointer-events-none'
           : isOverlay
-          ? 'border-[var(--memovia-violet)] shadow-[0_12px_32px_rgba(0,0,0,0.18)]'
-          : 'border-[var(--border-color)] hover:border-[var(--memovia-violet)] hover:shadow-sm cursor-default',
+          ? 'border border-[var(--memovia-violet)] shadow-[0_12px_32px_rgba(0,0,0,0.18)]'
+          : 'border border-[var(--border-color)] hover:shadow-sm',
       ].join(' ')}
-      style={isOverlay ? { transform: 'rotate(1.5deg)' } : undefined}
+      style={{ borderWidth: isOverlay ? 1 : 0.5, ...(isOverlay ? { transform: 'rotate(1.5deg)' } : {}) }}
     >
-      <div className="flex items-start gap-2 p-3">
-        {/* Drag handle */}
-        <div
-          {...(dragHandleProps ?? {})}
-          className={[
-            'mt-0.5 shrink-0 rounded p-0.5 transition-colors',
-            isOverlay || isPlaceholder
-              ? 'text-[var(--text-muted)]'
-              : 'cursor-grab text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)] active:cursor-grabbing',
-          ].join(' ')}
-          aria-label="Déplacer"
-        >
-          <GripVertical className="h-3.5 w-3.5" />
+      <div className="p-3 space-y-2">
+        {/* Row 1: priority badge + ··· */}
+        <div className="flex items-center justify-between min-h-[20px]">
+          <span
+            className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold leading-none"
+            style={{ backgroundColor: badge.bg, color: badge.color }}
+          >
+            P
+          </span>
+          {!isOverlay && !isPlaceholder && onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(task) }}
+              className="rounded p-0.5 text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"
+              aria-label="Options"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
-        {/* Card body */}
-        <div className="min-w-0 flex-1">
-          {/* Title row */}
-          <div className="flex items-start justify-between gap-2">
-            <span
-              className={[
-                'text-[13px] font-medium leading-tight',
-                task.status === 'done'
-                  ? 'line-through text-[var(--text-muted)]'
-                  : 'text-[var(--text-primary)]',
-              ].join(' ')}
-            >
-              {task.title}
-            </span>
-            {!isOverlay && !isPlaceholder && onEdit && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit(task) }}
-                className="shrink-0 rounded p-0.5 text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--memovia-violet)]"
-                aria-label="Modifier"
-              >
-                <Pencil className="h-3 w-3" />
-              </button>
-            )}
-          </div>
+        {/* Row 2: title */}
+        <p
+          className={[
+            'text-[13px] font-semibold leading-tight',
+            task.status === 'done'
+              ? 'line-through text-[var(--text-muted)]'
+              : 'text-[var(--text-primary)]',
+          ].join(' ')}
+        >
+          {task.title}
+        </p>
 
-          {/* Description */}
-          {task.description && (
-            <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
-              {task.description}
-            </p>
-          )}
+        {/* Row 3: description */}
+        {task.description && (
+          <p className="text-[12px] leading-relaxed text-[var(--text-muted)] line-clamp-2">
+            {task.description}
+          </p>
+        )}
 
-          {/* Chips row */}
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {/* Priority */}
+        {/* Footer */}
+        <div className="flex items-center gap-2 pt-0.5">
+          {task.due_date && (
             <span
-              className="flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium"
               style={{
-                backgroundColor: `color-mix(in oklab, ${PRIORITY_COLOR[task.priority]} 12%, var(--bg-secondary))`,
-                color: PRIORITY_COLOR[task.priority],
+                backgroundColor: overdue ? '#fee2e2' : 'var(--bg-secondary)',
+                color: overdue ? '#dc2626' : 'var(--text-muted)',
               }}
             >
-              {PRIORITY_ICON[task.priority]}
-              {task.priority === 'haute' ? 'Haute' : task.priority === 'normale' ? 'Normale' : 'Basse'}
-            </span>
-
-            {/* Assignee */}
-            {task.assigned_to && (
-              <span className="rounded-full bg-[var(--accent-purple-bg)] px-2 py-0.5 text-[11px] text-[var(--memovia-violet)]">
-                {TASK_ASSIGNEE_LABELS[task.assigned_to]}
-              </span>
-            )}
-          </div>
-
-          {/* Due date */}
-          {task.due_date && (
-            <div
-              className="mt-2 flex items-center gap-1 text-[11px]"
-              style={{ color: overdue ? 'var(--danger)' : 'var(--text-muted)' }}
-            >
               {overdue ? (
-                <AlertCircle className="h-3 w-3" />
+                <AlertCircle className="h-3 w-3 shrink-0" />
               ) : (
-                <CalendarClock className="h-3 w-3" />
+                <Calendar className="h-3 w-3 shrink-0" />
               )}
-              <span>{formatDate(task.due_date)}{overdue ? ' · En retard' : ''}</span>
-            </div>
+              {formatDate(task.due_date)}
+            </span>
           )}
+
+          <span className="flex items-center gap-0.5 text-[11px] text-[var(--text-muted)]">
+            <Paperclip className="h-3 w-3" />
+            <span>0</span>
+          </span>
+
+          <span className="flex items-center gap-0.5 text-[11px] text-[var(--text-muted)]">
+            <MessageSquare className="h-3 w-3" />
+            <span>0</span>
+          </span>
+
+          {task.assigned_to && (() => {
+            const av = ASSIGNEE_AVATAR[task.assigned_to]
+            return (
+              <span
+                className="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                style={{ backgroundColor: av.bg, color: av.color }}
+              >
+                {av.initials}
+              </span>
+            )
+          })()}
         </div>
       </div>
     </div>
   )
 }
 
-// ── Draggable card ─────────────────────────────────────────────────────────────
+// ── Draggable card ────────────────────────────────────────────────────────────────
 
 function DraggableCard({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -196,60 +183,82 @@ function DraggableCard({ task, onEdit }: { task: Task; onEdit: (t: Task) => void
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="cursor-grab active:cursor-grabbing focus:outline-none"
+    >
       {isDragging ? (
         <CardContent task={task} isPlaceholder />
       ) : (
-        <CardContent task={task} onEdit={onEdit} dragHandleProps={{ ...attributes, ...listeners }} />
+        <CardContent task={task} onEdit={onEdit} />
       )}
     </div>
   )
 }
 
-// ── Droppable column ───────────────────────────────────────────────────────────
+// ── Skeleton card ─────────────────────────────────────────────────────────────────
+
+function SkeletonCard() {
+  return (
+    <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 space-y-2">
+      <div className="h-3 w-10 animate-pulse rounded bg-[var(--border-color)]" />
+      <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
+      <div className="h-3 w-3/4 animate-pulse rounded bg-[var(--border-color)]" />
+      <div className="flex items-center gap-2 pt-1">
+        <div className="h-3 w-14 animate-pulse rounded bg-[var(--border-color)]" />
+        <div className="h-3 w-6 animate-pulse rounded bg-[var(--border-color)]" />
+      </div>
+    </div>
+  )
+}
+
+// ── Droppable column ──────────────────────────────────────────────────────────────
 
 interface DroppableColumnProps {
   status: TaskStatus
   tasks: Task[]
   isLoading: boolean
   onEdit: (task: Task) => void
+  onNewTask: (status: TaskStatus) => void
   activeTaskId: string | null
 }
 
-function SkeletonCard() {
-  return (
-    <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 space-y-2">
-      <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
-      <div className="h-3 w-3/4 animate-pulse rounded bg-[var(--border-color)]" />
-      <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--border-color)]" />
-    </div>
-  )
-}
-
-function DroppableColumn({ status, tasks, isLoading, onEdit, activeTaskId }: DroppableColumnProps) {
+function DroppableColumn({ status, tasks, isLoading, onEdit, onNewTask, activeTaskId }: DroppableColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
-  const accent = COLUMN_ACCENT[status]
+  const dot = COLUMN_DOT[status]
 
   return (
-    <div className="flex w-[260px] shrink-0 flex-col gap-2">
-      {/* Column header */}
-      <div
-        className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2.5 transition-colors"
-        style={{
-          borderTopWidth: 2,
-          borderTopColor: accent,
-          backgroundColor: isOver
-            ? 'color-mix(in oklab, var(--memovia-violet) 6%, var(--bg-secondary))'
-            : undefined,
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] font-semibold text-[var(--text-primary)]">
+    <div className="flex w-[260px] shrink-0 flex-col">
+      {/* Column header — flat row, no border box */}
+      <div className="mb-2 flex items-center justify-between px-0.5">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: dot }} />
+          <span className="text-[13px] font-semibold text-[var(--text-primary)]">
             {TASK_STATUS_LABELS[status]}
           </span>
-          <span className="rounded-full bg-[var(--bg-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-muted)]">
+          <span
+            className="rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--text-muted)]"
+          >
             {isLoading ? '—' : tasks.length}
           </span>
+        </div>
+        <div className="flex items-center">
+          <button
+            className="rounded p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"
+            aria-label="Options colonne"
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => onNewTask(status)}
+            className="rounded p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"
+            aria-label="Nouvelle tâche"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
@@ -262,7 +271,7 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, activeTaskId }: Dro
           backgroundColor: isOver
             ? 'color-mix(in oklab, var(--memovia-violet) 5%, var(--bg-primary))'
             : 'transparent',
-          outline: isOver ? `2px dashed ${accent}` : '2px dashed transparent',
+          outline: isOver ? '2px dashed var(--memovia-violet)' : '2px dashed transparent',
           outlineOffset: '-2px',
         }}
       >
@@ -272,7 +281,7 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, activeTaskId }: Dro
             <SkeletonCard />
           </>
         ) : tasks.length === 0 && !activeTaskId ? (
-          <div className="rounded-xl border border-dashed border-[var(--border-color)] px-3 py-6 text-center">
+          <div className="rounded-xl border border-dashed border-[var(--border-color)] px-3 py-8 text-center">
             <p className="text-[11px] text-[var(--text-muted)]">Aucune tâche</p>
           </div>
         ) : (
@@ -285,9 +294,9 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, activeTaskId }: Dro
   )
 }
 
-// ── Main Kanban ────────────────────────────────────────────────────────────────
+// ── Main Kanban ───────────────────────────────────────────────────────────────────
 
-export function TaskKanban({ tasks, isLoading, onEdit, onStatusChange }: TaskKanbanProps) {
+export function TaskKanban({ tasks, isLoading, onEdit, onStatusChange, onNewTask }: TaskKanbanProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
 
   const sensors = useSensors(
@@ -302,23 +311,17 @@ export function TaskKanban({ tasks, isLoading, onEdit, onStatusChange }: TaskKan
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     setActiveTask(null)
-
     if (!over) return
     const newStatus = over.id as TaskStatus
     const task = tasks.find((t) => t.id === active.id)
     if (!task || task.status === newStatus) return
-
     await onStatusChange(task.id, newStatus)
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="overflow-x-auto pb-4">
-        <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
+        <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
           {TASK_STATUS_ORDER.map((status) => (
             <DroppableColumn
               key={status}
@@ -326,6 +329,7 @@ export function TaskKanban({ tasks, isLoading, onEdit, onStatusChange }: TaskKan
               tasks={tasks.filter((t) => t.status === status)}
               isLoading={isLoading}
               onEdit={onEdit}
+              onNewTask={onNewTask}
               activeTaskId={activeTask?.id ?? null}
             />
           ))}
