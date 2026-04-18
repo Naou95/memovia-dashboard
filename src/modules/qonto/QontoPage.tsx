@@ -42,13 +42,13 @@ export default function QontoPage() {
       {/* Header */}
       <motion.header variants={staggerItem} className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tighter text-[var(--text-primary)]">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
             Qonto Trésorerie
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Solde, flux et transactions bancaires.
             {data?.fetchedAt && (
-              <span className="ml-2 text-[var(--text-muted)]">
+              <span className="ml-2 tabular-nums text-[var(--text-muted)]">
                 Mis à jour{' '}
                 {new Date(data.fetchedAt).toLocaleTimeString('fr-FR', {
                   hour: '2-digit',
@@ -60,9 +60,11 @@ export default function QontoPage() {
         </div>
         <button
           onClick={handleRefresh}
-          className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent-purple-bg)] hover:text-[var(--memovia-violet)]"
+          disabled={isLoading}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--memovia-violet-light)] hover:text-[var(--memovia-violet)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label="Rafraîchir les données Qonto"
         >
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           Rafraîchir
         </button>
       </motion.header>

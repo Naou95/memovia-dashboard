@@ -75,7 +75,8 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
         <select
           value={period}
           onChange={(e) => setPeriod(e.target.value as PeriodFilter)}
-          className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] text-[var(--text-primary)] outline-none transition-colors hover:border-[var(--border-strong)] focus:border-[var(--memovia-violet)]"
+          aria-label="Filtrer les transactions par période"
+          className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] text-[var(--text-primary)] outline-none transition-colors hover:border-[var(--border-strong)] focus-visible:border-[var(--memovia-violet)] focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
         >
           {PERIOD_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -85,7 +86,8 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] text-[var(--text-primary)] outline-none transition-colors hover:border-[var(--border-strong)] focus:border-[var(--memovia-violet)]"
+          aria-label="Filtrer les transactions par catégorie"
+          className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] text-[var(--text-primary)] outline-none transition-colors hover:border-[var(--border-strong)] focus-visible:border-[var(--memovia-violet)] focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
         >
           <option value="all">Toutes les catégories</option>
           {categories.map((c) => (
@@ -105,19 +107,19 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" aria-label="Liste des transactions bancaires Qonto">
             <thead>
               <tr className="border-b border-[var(--border-color)]">
-                <th className="pb-3 pr-4 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                <th scope="col" className="pb-3 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
                   Date
                 </th>
-                <th className="pb-3 pr-4 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                <th scope="col" className="pb-3 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
                   Libellé
                 </th>
-                <th className="hidden pb-3 pr-4 text-left text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)] sm:table-cell">
+                <th scope="col" className="hidden pb-3 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] sm:table-cell">
                   Catégorie
                 </th>
-                <th className="pb-3 text-right text-[12px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                <th scope="col" className="pb-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
                   Montant
                 </th>
               </tr>
@@ -127,11 +129,11 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
                 <tr
                   key={tx.id}
                   className={
-                    'border-b border-[var(--border-color)] transition-colors hover:bg-[var(--accent-purple-bg)]' +
-                    (i % 2 === 0 ? '' : ' bg-[#FAFAFA]')
+                    'border-b border-[var(--border-color)] transition-colors hover:bg-[var(--memovia-violet-light)]/60' +
+                    (i % 2 === 0 ? '' : ' bg-[var(--bg-primary)]')
                   }
                 >
-                  <td className="whitespace-nowrap py-3 pr-4 text-[13px] text-[var(--text-secondary)]">
+                  <td className="whitespace-nowrap py-3 pr-4 text-[13px] tabular-nums text-[var(--text-secondary)]">
                     {formatDate(tx.settledAt)}
                   </td>
                   <td className="max-w-[220px] truncate py-3 pr-4 text-[13px] text-[var(--text-primary)]">
