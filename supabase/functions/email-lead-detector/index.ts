@@ -325,7 +325,7 @@ async function upsertLead(
     .maybeSingle()
 
   if (existing) {
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('leads')
       .update({
         name: analysis.org_name?.trim() || analysis.contact_name?.trim() || contactEmail,
@@ -339,6 +339,7 @@ async function upsertLead(
         contact_role: analysis.contact_role || null,
       })
       .eq('id', existing.id)
+    if (updateError) throw new Error(`update_failed: ${updateError.message}`)
     return 'updated'
   }
 
@@ -347,7 +348,7 @@ async function upsertLead(
     analysis.contact_name?.trim() ||
     contactEmail
 
-  await supabaseAdmin.from('leads').insert({
+  const { error: insertError } = await supabaseAdmin.from('leads').insert({
     name,
     type: leadType,
     canal: 'email',
@@ -364,6 +365,7 @@ async function upsertLead(
     timeline: analysis.timeline || null,
     source: 'email_auto',
   })
+  if (insertError) throw new Error(`insert_failed: ${insertError.message}`)
   return 'inserted'
 }
 
