@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Mail, RefreshCw, Pencil, Inbox } from 'lucide-react'
+import { Mail, RefreshCw, Pencil, Inbox, Zap, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { EmailList } from './components/EmailList'
 import { EmailDetail } from './components/EmailDetail'
 import { EmailCompose } from './components/EmailCompose'
 import type { EmailMessageDetail } from '@/types/email'
+import { supabase } from '@/lib/supabase'
 
 type RightPanelMode = 'detail' | 'compose'
 
@@ -30,6 +31,8 @@ export default function EmailPage() {
   const [mode, setMode] = useState<RightPanelMode>('detail')
   const [replyTarget, setReplyTarget] = useState<EmailMessageDetail | null>(null)
   const [dismissedAlerts, setDismissedAlerts] = useState(false)
+  const [isDetecting, setIsDetecting] = useState(false)
+  const [detectionResult, setDetectionResult] = useState<{ inserted: number } | null>(null)
 
   useEffect(() => {
     loadEmails(folder, 1)
@@ -65,6 +68,21 @@ export default function EmailPage() {
   const handleCancelCompose = () => {
     setMode('detail')
     setReplyTarget(null)
+  }
+
+  const handleDetectLeads = async () => {
+    setIsDetecting(true)
+    setDetectionResult(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('email-lead-detector', { body: {} })
+      if (error) throw error
+      setDetectionResult({ inserted: data?.inserted ?? 0 })
+    } catch (err) {
+      console.error('Lead detection failed:', err)
+      setDetectionResult({ inserted: -1 })
+    } finally {
+      setIsDetecting(false)
+    }
   }
 
   const handleRefresh = () => {
@@ -108,6 +126,14 @@ export default function EmailPage() {
               className={isLoading ? 'animate-spin' : ''}
             />
           </button>
+          <Button variant="outline" size="sm" onClick={handleDetectLeads} disabled={isDetecting || isLoading}>
+            {isDetecting ? (
+              <RefreshCw size={14} className="mr-1.5 animate-spin" />
+            ) : (
+              <Zap size={14} className="mr-1.5" />
+            )}
+            {isDetecting ? 'Analyse en cours…' : 'Détecter les leads'}
+          </Button>
           <Button variant="brand" size="sm" onClick={handleCompose}>
             <Pencil size={14} className="mr-1.5" />
             Nouveau
@@ -123,6 +149,41 @@ export default function EmailPage() {
             onSelectEmail={handleAlertSelect}
             onDismiss={() => setDismissedAlerts(true)}
           />
+        </motion.div>
+      )}
+
+      {/* Detection result */}
+      {detectionResult !== null && (
+        <motion.div
+          variants={staggerItem}
+          className="shrink-0 flex items-center justify-between rounded-xl border px-4 py-3 text-sm"
+          style={
+            detectionResult.inserted > 0
+              ? { backgroundColor: '#dcfce7', borderColor: '#bbf7d0', color: '#166534' }
+              : detectionResult.inserted === 0
+              ? { backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-muted)' }
+              : { backgroundColor: '#fee2e2', borderColor: '#fecaca', color: '#991b1b' }
+          }
+        >
+          <span>
+            {detectionResult.inserted > 0 ? (
+              <>
+                {detectionResult.inserted} nouveau{detectionResult.inserted !== 1 ? 'x' : ''} lead{detectionResult.inserted !== 1 ? 's' : ''} détecté{detectionResult.inserted !== 1 ? 's' : ''}{' '}
+                <a href="/prospection" className="underline font-medium">Voir dans Prospection →</a>
+              </>
+            ) : detectionResult.inserted === 0 ? (
+              'Aucun nouveau lead détecté'
+            ) : (
+              'Erreur lors de la détection'
+            )}
+          </span>
+          <button
+            onClick={() => setDetectionResult(null)}
+            className="ml-4 rounded p-0.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none"
+            aria-label="Fermer"
+          >
+            <X size={14} />
+          </button>
         </motion.div>
       )}
 
