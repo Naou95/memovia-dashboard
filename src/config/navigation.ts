@@ -173,9 +173,9 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         id: 'admin-users',
         label: 'Gestion admins',
-        path: '/admin/users',
+        path: '/admin',
         icon: UserCog,
-        status: 'soon',
+        status: 'active',
         allowedRoles: ['admin_full'],
       },
     ],
@@ -197,7 +197,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Copilote IA',
         path: '/copilot',
         icon: Bot,
-        status: 'soon',
+        status: 'active',
         allowedRoles: [],
       },
       {

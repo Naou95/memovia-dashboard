@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Sparkles, X, Send, Bot, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCopilot } from '@/hooks/useCopilot'
@@ -29,6 +30,11 @@ export function CopilotBubble() {
   const [draft, setDraft] = useState('')
   const { messages, isStreaming, contextReady, contextLoading, sendMessage, clearHistory } = useCopilot(open)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.pathname === '/copilot') setOpen(true)
+  }, [location.pathname])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
