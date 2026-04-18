@@ -109,7 +109,7 @@ function parseToolResultCard(raw: { type: string; payload: Record<string, unknow
       data: {
         id: String(p.id ?? ''),
         title: String(p.title ?? ''),
-        assigned_to: String(p.assigned_to ?? ''),
+        assigned_to: p.assigned_to ? String(p.assigned_to) : '',
         priority: (p.priority as TaskCardData['priority']) ?? 'normale',
         status: (p.status as TaskCardData['status']) ?? 'todo',
         due_date: p.due_date ? String(p.due_date) : null,
@@ -338,6 +338,7 @@ export function useCopilot(open: boolean): UseCopilotReturn {
         const decoder = new TextDecoder()
         let buffer = ''
         let currentEvent = 'message'
+        let streamDone = false
 
         while (true) {
           const { done, value } = await reader.read()
@@ -357,7 +358,7 @@ export function useCopilot(open: boolean): UseCopilotReturn {
             }
             if (!line.startsWith('data: ')) continue
             const data = line.slice(6).trim()
-            if (data === '[DONE]') break
+            if (data === '[DONE]') { streamDone = true; break }
 
             if (currentEvent === 'tool_result') {
               try {
@@ -406,6 +407,7 @@ export function useCopilot(open: boolean): UseCopilotReturn {
               }
             } catch { /* malformed SSE chunk — skip */ }
           }
+          if (streamDone) break
         }
 
         if (!abort.signal.aborted) {
