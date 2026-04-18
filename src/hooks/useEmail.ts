@@ -55,9 +55,9 @@ export function useEmail(): UseEmailResult {
       toast.error('Erreur IMAP', { description: 'Vérifiez les credentials Hostinger' })
     } else {
       listCache.set(cacheKey, { data, ts: Date.now() })
-      setMessages(data.messages)
-      setAlerts(data.alerts)
-      setTotal(data.total)
+      setMessages(data.messages ?? [])
+      setAlerts(data.alerts ?? [])
+      setTotal(data.total ?? 0)
     }
 
     setIsLoading(false)

@@ -19,6 +19,7 @@ import { useMemoviaUsers } from '@/hooks/useMemoviaUsers'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { RevenueBarChart } from '@/components/shared/RevenueBarChart'
 import { ProfitLossChart } from '@/components/shared/ProfitLossChart'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { staggerContainer, staggerItem, cardGridContainer, staggerCard } from '@/lib/motion'
 
 // ── Formatters ─────────────────────────────────────────────────────────────────
@@ -132,13 +133,13 @@ export default function OverviewPage() {
 
   // ── Existing derived data ──
   const overdueTasks = useMemo(
-    () => tasks.filter((t) => t.status !== 'done' && t.due_date && t.due_date < today),
+    () => (tasks ?? []).filter((t) => t.status !== 'done' && t.due_date && t.due_date < today),
     [tasks, today],
   )
 
   const overdueLeads = useMemo(
     () =>
-      leads.filter(
+      (leads ?? []).filter(
         (l) =>
           l.follow_up_date &&
           l.follow_up_date < today &&
@@ -150,21 +151,21 @@ export default function OverviewPage() {
 
   const recentActivity = useMemo(() => {
     const items = [
-      ...tasks.map((t) => ({
+      ...(tasks ?? []).map((t) => ({
         id: t.id,
         type: 'task' as const,
         label: t.title,
         status: TASK_STATUS[t.status] ?? t.status,
         updatedAt: t.updated_at,
       })),
-      ...leads.map((l) => ({
+      ...(leads ?? []).map((l) => ({
         id: l.id,
         type: 'lead' as const,
         label: l.name,
         status: LEAD_STATUS[l.status] ?? l.status,
         updatedAt: l.updated_at,
       })),
-      ...contracts.map((c) => ({
+      ...(contracts ?? []).map((c) => ({
         id: c.id,
         type: 'contract' as const,
         label: c.organization_name,
@@ -178,7 +179,7 @@ export default function OverviewPage() {
   // ── "Votre journée" — items aggregated per user ──
   const myTodayTasks = useMemo(
     () =>
-      tasks.filter(
+      (tasks ?? []).filter(
         (t) =>
           t.status !== 'done' &&
           t.due_date != null &&
@@ -190,7 +191,7 @@ export default function OverviewPage() {
 
   const myTodayLeads = useMemo(
     () =>
-      leads.filter(
+      (leads ?? []).filter(
         (l) =>
           l.follow_up_date === today &&
           l.status !== 'gagne' &&
@@ -255,14 +256,14 @@ export default function OverviewPage() {
       })
     }
 
-    for (const a of emailAlerts) {
+    for (const a of (Array.isArray(emailAlerts) ? emailAlerts : [])) {
       items.push({
         key: `email-${a.uid}`,
         Icon: Mail,
         iconBg: 'bg-amber-50',
         iconColor: 'text-amber-600',
-        label: a.subject || `De : ${a.from.name ?? a.from.address}`,
-        badge: `+${Math.round(a.hoursUnread)}h`,
+        label: a.subject || `De : ${a.from?.name ?? a.from?.address ?? '?'}`,
+        badge: `+${Math.round(a.hoursUnread ?? 0)}h`,
         badgeClass: 'bg-amber-50 text-amber-700 border border-amber-200',
         href: '/email-drafter',
       })
@@ -323,6 +324,7 @@ export default function OverviewPage() {
       </motion.header>
 
       {/* ── Votre journée ── */}
+      <ErrorBoundary>
       <motion.div
         variants={staggerItem}
         className="rounded-2xl border border-[var(--border-color)] bg-white p-5"
@@ -376,6 +378,7 @@ export default function OverviewPage() {
           </div>
         )}
       </motion.div>
+      </ErrorBoundary>
 
       {/* ── Briefing IA du jour ── */}
       <motion.div
