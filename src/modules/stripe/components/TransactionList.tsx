@@ -43,6 +43,9 @@ export function TransactionList({ transactions }: TransactionListProps) {
             <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Description
             </th>
+            <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+              Utilisateur
+            </th>
             <th scope="col" className="pb-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Montant
             </th>
@@ -63,8 +66,11 @@ export function TransactionList({ transactions }: TransactionListProps) {
               <td className="py-3 pr-4 text-[13px] tabular-nums text-[var(--text-secondary)] whitespace-nowrap">
                 {formatDate(tx.date)}
               </td>
-              <td className="py-3 pr-4 text-[13px] text-[var(--text-primary)] max-w-[260px] truncate">
+              <td className="py-3 pr-4 text-[13px] text-[var(--text-primary)] max-w-[200px] truncate">
                 {tx.description}
+              </td>
+              <td className="py-3 pr-4 font-mono text-[12px] text-[var(--text-secondary)] max-w-[180px] truncate">
+                {tx.customerEmail || <span className="text-[var(--text-muted)] italic">—</span>}
               </td>
               <td className="py-3 text-right tabular-nums text-[13px] font-medium text-[var(--text-primary)] whitespace-nowrap">
                 {formatEur(tx.amount, tx.currency)}

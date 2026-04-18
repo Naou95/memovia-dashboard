@@ -43,6 +43,9 @@ export function SubscriptionTable({ subscriptions }: SubscriptionTableProps) {
             <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] pl-6">
               Depuis
             </th>
+            <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] pl-6">
+              Fin prévue
+            </th>
             <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Statut
             </th>
@@ -73,6 +76,12 @@ export function SubscriptionTable({ subscriptions }: SubscriptionTableProps) {
               </td>
               <td className="py-3 pl-6 text-[13px] tabular-nums text-[var(--text-secondary)]">
                 {formatDate(sub.startDate)}
+              </td>
+              <td className="py-3 pl-6 text-[13px] tabular-nums">
+                {sub.cancelAtPeriodEnd && sub.cancelAt
+                  ? <span className="text-[var(--danger)]">{formatDate(sub.cancelAt)}</span>
+                  : <span className="text-[var(--text-muted)] italic">—</span>
+                }
               </td>
               <td className="py-3">
                 <StatusBadge canceling={sub.cancelAtPeriodEnd} />

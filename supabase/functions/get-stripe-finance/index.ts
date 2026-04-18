@@ -7,10 +7,12 @@ interface MonthlyRevenue { month: string; revenue: number }
 interface SubscriptionRow {
   id: string; customerEmail: string; planName: string
   amount: number; interval: 'month' | 'year'; startDate: string; cancelAtPeriodEnd: boolean
+  cancelAt: string | null
 }
 interface TransactionRow {
   id: string; date: string; description: string
   amount: number; currency: string; status: 'succeeded' | 'failed' | 'refunded'
+  customerEmail: string
 }
 
 // ── Helpers (exportés pour tests Vitest) ────────────────────────────────────────
@@ -95,7 +97,7 @@ Deno.serve(async (req) => {
         { timeout: 8000 }
       ),
       stripe.charges.list(
-        { limit: 20 },
+        { limit: 20, expand: ['data.customer'] },
         { timeout: 8000 }
       ),
       stripe.events.list(
@@ -157,6 +159,12 @@ Deno.serve(async (req) => {
       const priceId = sub.items.data[0]?.price?.id
       const productName = priceId ? priceToProductName.get(priceId) : undefined
 
+      const cancelAt = sub.cancel_at
+        ? new Date(sub.cancel_at * 1000).toISOString()
+        : sub.cancel_at_period_end
+          ? new Date(sub.current_period_end * 1000).toISOString()
+          : null
+
       return {
         id: sub.id,
         customerEmail: email,
@@ -167,6 +175,7 @@ Deno.serve(async (req) => {
         interval: (plan?.interval as 'month' | 'year') ?? 'month',
         startDate: new Date(sub.start_date * 1000).toISOString(),
         cancelAtPeriodEnd: sub.cancel_at_period_end,
+        cancelAt,
       }
     })
 
@@ -186,14 +195,21 @@ Deno.serve(async (req) => {
     }).length
 
     // 10. Transactions récentes
-    const recentTransactions: TransactionRow[] = recentCharges.data.map((c) => ({
-      id: c.id,
-      date: new Date(c.created * 1000).toISOString(),
-      description: c.description ?? c.statement_descriptor ?? c.id,
-      amount: Math.round((c.amount / 100) * 100) / 100,
-      currency: c.currency.toUpperCase(),
-      status: c.refunded ? 'refunded' : c.status === 'succeeded' ? 'succeeded' : 'failed',
-    }))
+    const recentTransactions: TransactionRow[] = recentCharges.data.map((c) => {
+      const customerEmail: string =
+        typeof c.customer === 'object' && c.customer !== null && !('deleted' in c.customer)
+          ? (c.customer as Stripe.Customer).email ?? ''
+          : (c.billing_details?.email ?? c.receipt_email ?? '')
+      return {
+        id: c.id,
+        date: new Date(c.created * 1000).toISOString(),
+        description: c.description ?? c.statement_descriptor ?? c.id,
+        amount: Math.round((c.amount / 100) * 100) / 100,
+        currency: c.currency.toUpperCase(),
+        status: c.refunded ? 'refunded' : c.status === 'succeeded' ? 'succeeded' : 'failed',
+        customerEmail,
+      }
+    })
 
     return Response.json(
       {

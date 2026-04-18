@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
@@ -5,14 +6,22 @@ import { useRealtimePresence } from '@/hooks/useRealtimePresence'
 import { RealtimeStats } from './components/RealtimeStats'
 import { ActivityChart } from './components/ActivityChart'
 import { ActivityFeed } from './components/ActivityFeed'
+import type { Period } from './components/ActivityChart'
 
 function formatTime(date: Date | null): string {
   if (!date) return '—'
   return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+const PERIOD_OPTIONS: { label: string; value: Period }[] = [
+  { label: "Aujourd'hui", value: 'today' },
+  { label: 'Cette semaine', value: 'week' },
+  { label: 'Ce mois', value: 'month' },
+]
+
 export default function RealtimePage() {
-  const { stats, recentUsers, hourlyData, isLoading, error, lastRefresh, isConnected, refresh } =
+  const [period, setPeriod] = useState<Period>('today')
+  const { stats, users, recentUsers, isLoading, error, lastRefresh, isConnected, refresh } =
     useRealtimePresence()
 
   return (
@@ -77,14 +86,50 @@ export default function RealtimePage() {
         </motion.div>
       )}
 
+      {/* ── Period filter ─────────────────────────────────────────────────────── */}
+      <motion.div
+        variants={staggerItem}
+        className="flex items-center gap-2 rounded-xl px-4 py-3"
+        style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}
+      >
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+          Période
+        </span>
+        {PERIOD_OPTIONS.map((opt) => {
+          const isActive = period === opt.value
+          return (
+            <button
+              key={opt.value}
+              onClick={() => setPeriod(opt.value)}
+              className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
+              style={
+                isActive
+                  ? {
+                      backgroundColor: 'color-mix(in oklab, var(--memovia-violet) 14%, var(--bg-primary))',
+                      color: 'var(--memovia-violet)',
+                      border: '1px solid var(--memovia-violet)',
+                    }
+                  : {
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                    }
+              }
+            >
+              {opt.label}
+            </button>
+          )
+        })}
+      </motion.div>
+
       {/* ── KPI Stats ─────────────────────────────────────────────────────────── */}
       <motion.div variants={staggerItem}>
-        <RealtimeStats stats={stats} isLoading={isLoading} error={error} />
+        <RealtimeStats stats={stats} users={users} period={period} isLoading={isLoading} error={error} />
       </motion.div>
 
       {/* ── Hourly Chart ──────────────────────────────────────────────────────── */}
       <motion.div variants={staggerItem}>
-        <ActivityChart data={hourlyData} isLoading={isLoading} />
+        <ActivityChart users={users} period={period} isLoading={isLoading} />
       </motion.div>
 
       {/* ── Activity Feed ─────────────────────────────────────────────────────── */}

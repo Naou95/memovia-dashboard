@@ -15,9 +15,9 @@ export interface UseMemoviaUsersResult {
 /**
  * Charge les utilisateurs de app.memovia.io via la vue v_dashboard_users.
  * Lecture seule — la vue joint profiles + auth.users + organizations.
- * dateRangeDays : null = toutes dates, sinon N derniers jours (filtre created_at).
+ * startDateIso : null = toutes dates, sinon filtre created_at >= startDateIso.
  */
-export function useMemoviaUsers(dateRangeDays: number | null): UseMemoviaUsersResult {
+export function useMemoviaUsers(startDateIso: string | null): UseMemoviaUsersResult {
   const [users, setUsers] = useState<MemoviaUser[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -37,10 +37,8 @@ export function useMemoviaUsers(dateRangeDays: number | null): UseMemoviaUsersRe
         .order('created_at', { ascending: false })
         .limit(LIMIT)
 
-      if (dateRangeDays !== null) {
-        const threshold = new Date()
-        threshold.setDate(threshold.getDate() - dateRangeDays)
-        query = query.gte('created_at', threshold.toISOString())
+      if (startDateIso !== null) {
+        query = query.gte('created_at', startDateIso)
       }
 
       const { data, error: sbError, count } = await query
@@ -78,7 +76,7 @@ export function useMemoviaUsers(dateRangeDays: number | null): UseMemoviaUsersRe
     } finally {
       setIsLoading(false)
     }
-  }, [dateRangeDays])
+  }, [startDateIso])
 
   useEffect(() => {
     fetchAll()

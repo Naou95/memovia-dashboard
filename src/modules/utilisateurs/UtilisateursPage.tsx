@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { useMemoviaUsers } from '@/hooks/useMemoviaUsers'
@@ -7,7 +7,7 @@ import { UserTable } from './components/UserTable'
 import type { MemoviaTypeFilter } from '@/types/users'
 import { TYPE_FILTER_LABELS, matchesTypeFilter } from '@/types/users'
 
-type DateRange = 7 | 30 | 90 | null
+type PeriodFilter = 'week' | 'month' | null
 
 const TYPE_FILTERS: { label: string; value: MemoviaTypeFilter | null }[] = [
   { label: 'Tous', value: null },
@@ -16,24 +16,37 @@ const TYPE_FILTERS: { label: string; value: MemoviaTypeFilter | null }[] = [
   { label: TYPE_FILTER_LABELS.school_admin, value: 'school_admin' },
 ]
 
-const DATE_FILTERS: { label: string; value: DateRange }[] = [
-  { label: 'Toutes dates', value: null },
-  { label: '7 jours', value: 7 },
-  { label: '30 jours', value: 30 },
-  { label: '90 jours', value: 90 },
+const PERIOD_FILTERS: { label: string; value: PeriodFilter }[] = [
+  { label: 'Tout', value: null },
+  { label: 'Cette semaine', value: 'week' },
+  { label: 'Ce mois', value: 'month' },
 ]
 
 export default function UtilisateursPage() {
   const [filterType, setFilterType] = useState<MemoviaTypeFilter | null>(null)
-  const [filterDate, setFilterDate] = useState<DateRange>(null)
+  const [filterPeriod, setFilterPeriod] = useState<PeriodFilter>(null)
 
-  const { users, total, isLoading, error } = useMemoviaUsers(filterDate)
+  const startDate = useMemo((): string | null => {
+    if (filterPeriod === null) return null
+    const today = new Date()
+    if (filterPeriod === 'week') {
+      const dow = today.getDay()
+      const daysFromMonday = dow === 0 ? 6 : dow - 1
+      const monday = new Date(today)
+      monday.setDate(today.getDate() - daysFromMonday)
+      monday.setHours(0, 0, 0, 0)
+      return monday.toISOString()
+    }
+    return new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
+  }, [filterPeriod])
+
+  const { users, total, isLoading, error } = useMemoviaUsers(startDate)
 
   const filteredUsers = filterType != null
     ? users.filter((u) => matchesTypeFilter(u.account_type, filterType))
     : users
 
-  const hasActiveFilter = filterType != null || filterDate != null
+  const hasActiveFilter = filterType != null || filterPeriod != null
 
   return (
     <motion.div className="space-y-6" variants={staggerContainer} initial="hidden" animate="show">
@@ -108,17 +121,17 @@ export default function UtilisateursPage() {
         {/* Divider */}
         <div className="hidden h-5 w-px sm:block" style={{ backgroundColor: 'var(--border-color)' }} />
 
-        {/* Date inscription */}
+        {/* Période d'inscription */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
             Inscrits
           </span>
-          {DATE_FILTERS.map((pill) => {
-            const isActive = filterDate === pill.value
+          {PERIOD_FILTERS.map((pill) => {
+            const isActive = filterPeriod === pill.value
             return (
               <button
                 key={pill.label}
-                onClick={() => setFilterDate(pill.value)}
+                onClick={() => setFilterPeriod(pill.value)}
                 className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
                 style={
                   isActive
@@ -143,7 +156,7 @@ export default function UtilisateursPage() {
         {/* Reset */}
         {hasActiveFilter && (
           <button
-            onClick={() => { setFilterType(null); setFilterDate(null) }}
+            onClick={() => { setFilterType(null); setFilterPeriod(null) }}
             className="ml-auto text-[12px] text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-secondary)] hover:underline"
           >
             Réinitialiser

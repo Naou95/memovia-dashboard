@@ -26,6 +26,7 @@ export interface HourlyBucket {
 
 export interface UseRealtimePresenceResult {
   stats: RealtimeStats | null
+  users: ActiveUser[]
   recentUsers: ActiveUser[]
   hourlyData: HourlyBucket[]
   isLoading: boolean
@@ -132,6 +133,7 @@ export function useRealtimePresence(): UseRealtimePresenceResult {
 
   return {
     stats: !isLoading ? computeStats(users, totalUsers) : null,
+    users,
     recentUsers,
     hourlyData: buildHourlyData(users),
     isLoading,

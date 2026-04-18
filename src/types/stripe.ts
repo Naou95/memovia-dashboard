@@ -12,6 +12,8 @@ export interface SubscriptionRow {
   startDate: string
   /** true = abonnement actif mais ne se renouvellera pas */
   cancelAtPeriodEnd: boolean
+  /** Date de fin prévue (ISO) — current_period_end si cancel_at_period_end, cancel_at sinon */
+  cancelAt: string | null
 }
 
 export interface MonthlyRevenue {
@@ -30,6 +32,8 @@ export interface TransactionRow {
   amount: number
   currency: string
   status: 'succeeded' | 'failed' | 'refunded'
+  /** Email du customer Stripe */
+  customerEmail: string
 }
 
 export interface StripeFinanceData {
