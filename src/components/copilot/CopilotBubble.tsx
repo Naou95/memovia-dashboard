@@ -2,7 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Sparkles, X, Send, Bot, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useCopilot } from '@/hooks/useCopilot'
+import { useCopilot, type CopilotMessage, type ChatMessage } from '@/hooks/useCopilot'
+import { TaskCard } from './TaskCard'
+import { LeadCard } from './LeadCard'
+import { ContractCard } from './ContractCard'
 
 function renderInlineMarkdown(text: string): React.ReactNode[] {
   // Split on **bold** and *italic*, preserve newlines via pre-wrap
@@ -22,8 +25,19 @@ const quickChips = [
   'Quel est notre MRR ?',
   'Solde Qonto actuel ?',
   'Tâches en cours ?',
-  'Leads actifs ?',
+  'Quels leads sont en attente ?',
+  'Ajoute une tâche assignée à Emir',
+  'Contrats actifs ?',
 ]
+
+function renderToolCard(msg: CopilotMessage) {
+  if (!('type' in msg) || msg.type !== 'tool_result') return null
+  const { tool } = msg
+  if (tool.kind === 'task') return <TaskCard data={tool.data} />
+  if (tool.kind === 'lead') return <LeadCard data={tool.data} />
+  if (tool.kind === 'contract') return <ContractCard data={tool.data} />
+  return null
+}
 
 export function CopilotBubble() {
   const [open, setOpen] = useState(false)
@@ -158,53 +172,60 @@ export function CopilotBubble() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    'flex items-start gap-2.5',
-                    message.role === 'user' && 'flex-row-reverse',
-                  )}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--memovia-violet-light)]">
-                      <Sparkles
-                        className="h-3.5 w-3.5 text-[var(--memovia-violet)]"
-                        strokeWidth={2.25}
-                      />
+              {messages.map((message) => {
+                if ('type' in message && message.type === 'tool_result') {
+                  return (
+                    <div key={message.id} className="pl-9">
+                      {renderToolCard(message)}
                     </div>
-                  )}
+                  )
+                }
 
+                const chatMsg = message as ChatMessage
+                return (
                   <div
+                    key={chatMsg.id}
                     className={cn(
-                      'max-w-[80%] px-3 py-2 text-[13px] leading-relaxed',
-                      message.role === 'user'
-                        ? 'rounded-2xl rounded-tr-md bg-[var(--memovia-violet)] text-white'
-                        : 'rounded-2xl rounded-tl-md bg-[var(--bg-primary)] text-[var(--text-primary)]',
+                      'flex items-start gap-2.5',
+                      chatMsg.role === 'user' && 'flex-row-reverse',
                     )}
-                    style={{ whiteSpace: 'pre-wrap' }}
                   >
-                    {'content' in message && (
-                      <>
-                        {message.role === 'assistant'
-                          ? renderInlineMarkdown(message.content)
-                          : message.content}
-                        {message.streaming && (
-                          <span className="ml-1 inline-flex gap-0.5">
-                            {[0, 1, 2].map((i) => (
-                              <span
-                                key={i}
-                                className="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60 animate-bounce"
-                                style={{ animationDelay: `${i * 150}ms` }}
-                              />
-                            ))}
-                          </span>
-                        )}
-                      </>
+                    {chatMsg.role === 'assistant' && (
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--memovia-violet-light)]">
+                        <Sparkles
+                          className="h-3.5 w-3.5 text-[var(--memovia-violet)]"
+                          strokeWidth={2.25}
+                        />
+                      </div>
                     )}
+
+                    <div
+                      className={cn(
+                        'max-w-[80%] px-3 py-2 text-[13px] leading-relaxed',
+                        chatMsg.role === 'user'
+                          ? 'rounded-2xl rounded-tr-md bg-[var(--memovia-violet)] text-white'
+                          : 'rounded-2xl rounded-tl-md bg-[var(--bg-primary)] text-[var(--text-primary)]',
+                      )}
+                      style={{ whiteSpace: 'pre-wrap' }}
+                    >
+                      {chatMsg.role === 'assistant'
+                        ? renderInlineMarkdown(chatMsg.content)
+                        : chatMsg.content}
+                      {chatMsg.streaming && (
+                        <span className="ml-1 inline-flex gap-0.5">
+                          {[0, 1, 2].map((i) => (
+                            <span
+                              key={i}
+                              className="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60 animate-bounce"
+                              style={{ animationDelay: `${i * 150}ms` }}
+                            />
+                          ))}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
 
               {messages.length === 1 && (
                 <div className="flex flex-wrap gap-1.5 pl-9">
