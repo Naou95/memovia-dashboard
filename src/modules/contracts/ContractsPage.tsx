@@ -90,9 +90,9 @@ export default function ContractsPage() {
       {/* Header */}
       <motion.header variants={staggerItem} className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tighter text-[var(--text-primary)]">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
             Contrats B2B
-          </h2>
+          </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Gestion des contrats et partenariats MEMOVIA AI.
           </p>
@@ -123,7 +123,9 @@ export default function ContractsPage() {
             <button
               key={pill.label}
               onClick={() => setFilterStatus(pill.value)}
-              className="rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors"
+              aria-pressed={isActive}
+              aria-label={`Filtrer par statut ${pill.label}`}
+              className="rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
               style={
                 isActive
                   ? {

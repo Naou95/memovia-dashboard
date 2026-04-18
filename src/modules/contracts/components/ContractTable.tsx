@@ -58,28 +58,28 @@ export function ContractTable({
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm" aria-label="Liste des contrats B2B">
         <thead>
           <tr className="border-b border-[var(--border-color)]">
-            <th className="px-4 py-3 text-left text-[12px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+            <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Organisation
             </th>
-            <th className="px-4 py-3 text-left text-[12px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+            <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Statut
             </th>
-            <th className="px-4 py-3 text-right text-[12px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+            <th scope="col" className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Licences
             </th>
-            <th className="px-4 py-3 text-right text-[12px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+            <th scope="col" className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               MRR
             </th>
-            <th className="px-4 py-3 text-left text-[12px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+            <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Contact
             </th>
-            <th className="px-4 py-3 text-left text-[12px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+            <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Renouvellement
             </th>
-            <th className="px-4 py-3 text-right text-[12px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+            <th scope="col" className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Actions
             </th>
           </tr>
