@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -56,6 +56,7 @@ export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete, d
   const [titleError, setTitleError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const descriptionRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (open) {
@@ -64,12 +65,28 @@ export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete, d
     }
   }, [open, task, defaultStatus])
 
+  useEffect(() => {
+    if (!open) return
+    const id = window.setTimeout(() => {
+      const el = descriptionRef.current
+      if (!el) return
+      el.style.height = 'auto'
+      el.style.height = `${Math.max(el.scrollHeight, 200)}px`
+    }, 0)
+    return () => clearTimeout(id)
+  }, [open, form.description])
+
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
     if (name === 'title') setTitleError(null)
+    if (name === 'description') {
+      const el = e.target as HTMLTextAreaElement
+      el.style.height = 'auto'
+      el.style.height = `${Math.max(el.scrollHeight, 200)}px`
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -147,13 +164,14 @@ export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete, d
             <div className="space-y-1.5">
               <Label htmlFor="description">Description</Label>
               <textarea
+                ref={descriptionRef}
                 id="description"
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                rows={3}
                 placeholder="Détails, contexte, liens utiles…"
-                className="w-full resize-none rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--memovia-violet)] focus:ring-1 focus:ring-[var(--memovia-violet)]"
+                className="w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--memovia-violet)] focus:ring-1 focus:ring-[var(--memovia-violet)]"
+                style={{ minHeight: 200, fontSize: 14, padding: 12, resize: 'none', overflow: 'hidden' }}
               />
             </div>
 

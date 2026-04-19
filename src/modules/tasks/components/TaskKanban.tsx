@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -25,7 +25,7 @@ import { TASK_STATUS_LABELS, TASK_STATUS_ORDER } from '@/types/tasks'
 interface TaskKanbanProps {
   tasks: Task[]
   isLoading: boolean
-  onEdit: (task: Task) => void
+  onView: (task: Task) => void
   onStatusChange: (taskId: string, newStatus: TaskStatus) => Promise<void>
   onNewTask: (status: TaskStatus) => void
 }
@@ -62,12 +62,12 @@ const ASSIGNEE_AVATAR: Record<TaskAssignee, { initials: string; bg: string; colo
 
 interface CardContentProps {
   task: Task
-  onEdit?: (t: Task) => void
+  onView?: (t: Task) => void
   isOverlay?: boolean
   isPlaceholder?: boolean
 }
 
-function CardContent({ task, onEdit, isOverlay, isPlaceholder }: CardContentProps) {
+function CardContent({ task, onView, isOverlay, isPlaceholder }: CardContentProps) {
   const overdue = isOverdue(task)
   const badge = PRIORITY_BADGE[task.priority]
 
@@ -92,9 +92,9 @@ function CardContent({ task, onEdit, isOverlay, isPlaceholder }: CardContentProp
           >
             P
           </span>
-          {!isOverlay && !isPlaceholder && onEdit && (
+          {!isOverlay && !isPlaceholder && onView && (
             <button
-              onClick={(e) => { e.stopPropagation(); onEdit(task) }}
+              onClick={(e) => { e.stopPropagation(); onView(task) }}
               className="rounded p-0.5 text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)]"
               aria-label="Options"
             >
@@ -170,16 +170,29 @@ function CardContent({ task, onEdit, isOverlay, isPlaceholder }: CardContentProp
 
 // ── Draggable card ────────────────────────────────────────────────────────────────
 
-function DraggableCard({ task, onEdit }: { task: Task; onEdit: (t: Task) => void }) {
+function DraggableCard({ task, onView }: { task: Task; onView: (t: Task) => void }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: { task },
   })
+  const didDragRef = useRef(false)
+
+  useEffect(() => {
+    if (isDragging) didDragRef.current = true
+  }, [isDragging])
 
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0 : 1,
     transition: isDragging ? undefined : 'transform 200ms ease',
+  }
+
+  function handleClick() {
+    if (didDragRef.current) {
+      didDragRef.current = false
+      return
+    }
+    onView(task)
   }
 
   return (
@@ -188,12 +201,13 @@ function DraggableCard({ task, onEdit }: { task: Task; onEdit: (t: Task) => void
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-grab active:cursor-grabbing focus:outline-none"
+      onClick={handleClick}
+      className="cursor-pointer active:cursor-grabbing focus:outline-none"
     >
       {isDragging ? (
         <CardContent task={task} isPlaceholder />
       ) : (
-        <CardContent task={task} onEdit={onEdit} />
+        <CardContent task={task} onView={onView} />
       )}
     </div>
   )
@@ -221,12 +235,12 @@ interface DroppableColumnProps {
   status: TaskStatus
   tasks: Task[]
   isLoading: boolean
-  onEdit: (task: Task) => void
+  onView: (task: Task) => void
   onNewTask: (status: TaskStatus) => void
   activeTaskId: string | null
 }
 
-function DroppableColumn({ status, tasks, isLoading, onEdit, onNewTask, activeTaskId }: DroppableColumnProps) {
+function DroppableColumn({ status, tasks, isLoading, onView, onNewTask, activeTaskId }: DroppableColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const dot = COLUMN_DOT[status]
 
@@ -284,7 +298,7 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, onNewTask, activeTa
           </div>
         ) : (
           tasks.map((task) => (
-            <DraggableCard key={task.id} task={task} onEdit={onEdit} />
+            <DraggableCard key={task.id} task={task} onView={onView} />
           ))
         )}
       </div>
@@ -294,7 +308,7 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, onNewTask, activeTa
 
 // ── Main Kanban ───────────────────────────────────────────────────────────────────
 
-export function TaskKanban({ tasks, isLoading, onEdit, onStatusChange, onNewTask }: TaskKanbanProps) {
+export function TaskKanban({ tasks, isLoading, onView, onStatusChange, onNewTask }: TaskKanbanProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
 
   const sensors = useSensors(
@@ -326,7 +340,7 @@ export function TaskKanban({ tasks, isLoading, onEdit, onStatusChange, onNewTask
               status={status}
               tasks={tasks.filter((t) => t.status === status)}
               isLoading={isLoading}
-              onEdit={onEdit}
+              onView={onView}
               onNewTask={onNewTask}
               activeTaskId={activeTask?.id ?? null}
             />

@@ -8,6 +8,7 @@ import { useTasks } from '@/hooks/useTasks'
 import { useAuth } from '@/contexts/AuthContext'
 import { TaskKanban } from './components/TaskKanban'
 import { TaskForm } from './components/TaskForm'
+import { TaskDetailModal } from './components/TaskDetailModal'
 import type { Task, TaskStatus, TaskInsert, TaskUpdate } from '@/types/tasks'
 
 export default function TasksPage() {
@@ -17,6 +18,8 @@ export default function TasksPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>('todo')
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [viewingTask, setViewingTask] = useState<Task | null>(null)
 
   function handleNewTask(status?: TaskStatus) {
     setEditingTask(null)
@@ -24,7 +27,19 @@ export default function TasksPage() {
     setFormOpen(true)
   }
 
-  function handleEdit(task: Task) {
+  function handleView(task: Task) {
+    setViewingTask(task)
+    setDetailOpen(true)
+  }
+
+  function handleDetailClose() {
+    setDetailOpen(false)
+    setViewingTask(null)
+  }
+
+  function handleDetailEdit(task: Task) {
+    setDetailOpen(false)
+    setViewingTask(null)
     setEditingTask(task)
     setFormOpen(true)
   }
@@ -117,11 +132,19 @@ export default function TasksPage() {
         <TaskKanban
           tasks={tasks}
           isLoading={isLoading}
-          onEdit={handleEdit}
+          onView={handleView}
           onStatusChange={handleStatusChange}
           onNewTask={handleNewTask}
         />
       </motion.div>
+
+      {/* ── Detail Modal ─────────────────────────────────────────────────────── */}
+      <TaskDetailModal
+        open={detailOpen}
+        task={viewingTask}
+        onClose={handleDetailClose}
+        onEdit={handleDetailEdit}
+      />
 
       {/* ── Modal Form ───────────────────────────────────────────────────────── */}
       <TaskForm
