@@ -32,7 +32,7 @@ interface LeadKanbanProps {
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
 
 const COLUMN_TOP_COLOR: Record<LeadStatus, string> = {
@@ -63,16 +63,16 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
   return (
     <div
       className={[
-        'group rounded-xl border bg-[var(--bg-primary)] transition-all',
+        'group rounded-[8px] bg-white transition-all',
         isPlaceholder
-          ? 'border-dashed border-[var(--memovia-violet)] opacity-30 pointer-events-none'
+          ? 'border border-dashed border-[var(--memovia-violet)] opacity-30 pointer-events-none'
           : isOverlay
-          ? 'border-[var(--memovia-violet)] shadow-[0_12px_32px_rgba(0,0,0,0.18)]'
-          : 'border-[var(--border-color)] hover:border-[var(--memovia-violet)] hover:shadow-sm cursor-default',
+          ? 'border border-[var(--memovia-violet)] shadow-[0_12px_32px_rgba(0,0,0,0.18)]'
+          : 'border border-[#E8E8F0] hover:border-[var(--memovia-violet)] hover:shadow-sm cursor-default',
       ].join(' ')}
       style={isOverlay ? { transform: 'rotate(1.5deg)' } : undefined}
     >
-      <div className="flex items-start gap-2 p-3">
+      <div className="flex items-start gap-2 p-[14px]">
         {/* Drag handle */}
         <div
           {...(dragHandleProps ?? {})}
@@ -80,7 +80,7 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
             'mt-0.5 shrink-0 rounded p-0.5 transition-colors',
             isOverlay || isPlaceholder
               ? 'text-[var(--text-muted)]'
-              : 'cursor-grab text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-secondary)] active:cursor-grabbing',
+              : 'cursor-grab text-[var(--text-muted)] hover:bg-[#F4F4F8] hover:text-[var(--text-secondary)] active:cursor-grabbing',
           ].join(' ')}
           aria-label="Déplacer"
         >
@@ -90,7 +90,7 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
         {/* Card body */}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <span className="text-[13px] font-medium leading-tight text-[var(--text-primary)]">
+            <span className="text-[14px] font-semibold leading-tight text-[var(--text-primary)]">
               {lead.name}
             </span>
             {!isOverlay && !isPlaceholder && onEdit && (
@@ -105,11 +105,11 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
+            <span className="rounded-full bg-[#F4F4F8] px-2 py-0.5 text-[11px] text-[var(--text-muted)]">
               {LEAD_CANAL_LABELS[lead.canal]}
             </span>
             {lead.assigned_to && (
-              <span className="rounded-full bg-[var(--accent-purple-bg)] px-2 py-0.5 text-[11px] text-[var(--memovia-violet)]">
+              <span className="rounded-full bg-[var(--accent-purple-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--memovia-violet)]">
                 {LEAD_ASSIGNEE_LABELS[lead.assigned_to]}
               </span>
             )}
@@ -119,12 +119,12 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
           {(lead.relance_count > 0 || lead.last_contact_date) && (
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
               {lead.relance_count > 0 && (
-                <span className="text-[11px] text-[var(--text-muted)]">
+                <span className="text-[12px] font-medium text-orange-500">
                   {lead.relance_count} relance{lead.relance_count > 1 ? 's' : ''}
                 </span>
               )}
               {lead.last_contact_date && (
-                <span className="text-[11px] text-[var(--text-muted)]">
+                <span className="text-[12px] text-[var(--text-muted)]">
                   Contact : {formatDate(lead.last_contact_date)}
                 </span>
               )}
@@ -133,7 +133,7 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
 
           {lead.follow_up_date && (
             <div
-              className="mt-2 flex items-center gap-1 text-[11px]"
+              className="mt-2 flex items-center gap-1 text-[12px]"
               style={{ color: isOverdue ? 'var(--danger)' : 'var(--text-muted)' }}
             >
               <CalendarClock className="h-3 w-3" />
@@ -142,7 +142,7 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
           )}
 
           {lead.next_action && (
-            <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[var(--text-muted)]">
+            <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-[var(--text-muted)]">
               {lead.next_action}
             </p>
           )}
@@ -194,23 +194,15 @@ function DroppableColumn({ status, leads, isLoading, onEdit, activeLeadId }: Dro
   const topColor = COLUMN_TOP_COLOR[status]
 
   return (
-    <div className="flex w-[240px] shrink-0 flex-col gap-2">
+    <div className="flex w-[240px] shrink-0 flex-col rounded-[10px] bg-[#F4F4F8] p-3">
       {/* Column header */}
-      <div
-        className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2.5 transition-colors"
-        style={{
-          borderTopWidth: 2,
-          borderTopColor: topColor,
-          backgroundColor: isOver
-            ? 'color-mix(in oklab, var(--memovia-violet) 6%, var(--bg-secondary))'
-            : undefined,
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] font-semibold text-[var(--text-primary)]">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: topColor }} />
+          <span className="text-[13px] font-semibold text-[var(--text-primary)]">
             {LEAD_STATUS_LABELS[status]}
           </span>
-          <span className="rounded-full bg-[var(--bg-primary)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-muted)]">
+          <span className="rounded-md border border-[var(--border-color)] bg-white px-1.5 py-0.5 text-[11px] font-medium text-[var(--text-muted)]">
             {isLoading ? '—' : leads.length}
           </span>
         </div>
@@ -219,12 +211,10 @@ function DroppableColumn({ status, leads, isLoading, onEdit, activeLeadId }: Dro
       {/* Cards zone */}
       <div
         ref={setNodeRef}
-        className="flex flex-col gap-2 rounded-xl p-1 transition-colors"
+        className="flex flex-col gap-2 rounded-lg transition-colors"
         style={{
-          minHeight: 60,
-          backgroundColor: isOver
-            ? 'color-mix(in oklab, var(--memovia-violet) 5%, var(--bg-primary))'
-            : 'transparent',
+          minHeight: 80,
+          backgroundColor: isOver ? 'color-mix(in oklab, var(--memovia-violet) 8%, #F4F4F8)' : 'transparent',
           outline: isOver ? `2px dashed ${topColor}` : '2px dashed transparent',
           outlineOffset: '-2px',
         }}
@@ -235,7 +225,7 @@ function DroppableColumn({ status, leads, isLoading, onEdit, activeLeadId }: Dro
             <SkeletonCard />
           </>
         ) : leads.length === 0 && !activeLeadId ? (
-          <div className="rounded-xl border border-dashed border-[var(--border-color)] px-3 py-5 text-center">
+          <div className="rounded-lg border border-dashed border-[#D8D8E4] px-3 py-8 text-center">
             <p className="text-[11px] text-[var(--text-muted)]">Aucun lead</p>
           </div>
         ) : (
@@ -252,7 +242,7 @@ function DroppableColumn({ status, leads, isLoading, onEdit, activeLeadId }: Dro
 
 function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 space-y-2">
+    <div className="rounded-[8px] border border-[#E8E8F0] bg-white p-[14px] space-y-2">
       <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
       <div className="h-3 w-2/3 animate-pulse rounded bg-[var(--border-color)]" />
     </div>
