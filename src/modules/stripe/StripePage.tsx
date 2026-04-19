@@ -5,6 +5,7 @@ import { KpiCard } from '@/components/shared/KpiCard'
 import { MrrChart } from './components/MrrChart'
 import { SubscriptionTable } from './components/SubscriptionTable'
 import { TransactionList } from './components/TransactionList'
+import { CancellationSection } from './components/CancellationSection'
 import { staggerContainer, staggerItem, cardGridContainer, staggerCard } from '@/lib/motion'
 
 // ── Formatters ─────────────────────────────────────────────────────────────────
@@ -144,6 +145,13 @@ export default function StripePage() {
           <MrrChart data={data!.revenueByMonth} />
         )}
       </motion.section>
+
+      {/* Annulations en cours */}
+      {data && (
+        <motion.div variants={staggerItem}>
+          <CancellationSection subscriptions={data.subscriptions} />
+        </motion.div>
+      )}
 
       {/* Abonnements actifs */}
       <motion.section
