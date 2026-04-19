@@ -38,7 +38,7 @@ Co-fondateur MEMOVIA`
 }
 
 export function CancellationSection({ subscriptions }: Props) {
-  const canceling = subscriptions.filter((s) => s.cancelAtPeriodEnd && s.cancelAt)
+  const canceling = subscriptions.filter((s) => s.cancelAtPeriodEnd)
   if (canceling.length === 0) return null
 
   return (
@@ -67,9 +67,9 @@ function CancellationCard({ sub }: { sub: SubscriptionRow }) {
   const [open, setOpen] = useState(false)
   const [sent, setSent] = useState(false)
 
-  const cancelDate = formatCancelDate(sub.cancelAt!)
-  const days = daysUntil(sub.cancelAt!)
-  const isUrgent = days < 7
+  const cancelDate = sub.cancelAt ? formatCancelDate(sub.cancelAt) : 'fin de période inconnue'
+  const days = sub.cancelAt ? daysUntil(sub.cancelAt) : null
+  const isUrgent = days !== null && days < 7
 
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3">
@@ -91,7 +91,7 @@ function CancellationCard({ sub }: { sub: SubscriptionRow }) {
             : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]'
         }`}
       >
-        {days <= 0 ? 'Expire aujourd\'hui' : `${days}j restants`}
+        {days === null ? '—' : days <= 0 ? 'Expire aujourd\'hui' : `${days}j restants`}
       </span>
 
       {/* Action */}
