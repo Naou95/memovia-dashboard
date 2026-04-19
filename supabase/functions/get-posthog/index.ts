@@ -49,7 +49,15 @@ Deno.serve(async (req) => {
   if (!apiKey || !projectId) return errorResponse('posthog_not_configured', 500)
 
   const url = new URL(req.url)
-  const RAW_HOST = url.searchParams.get('host') ?? 'app.memovia.io'
+  let RAW_HOST = url.searchParams.get('host')
+  if (!RAW_HOST) {
+    try {
+      const body = await req.json()
+      RAW_HOST = body?.host ?? 'app.memovia.io'
+    } catch {
+      RAW_HOST = 'app.memovia.io'
+    }
+  }
   const ALLOWED_HOSTS = new Set(['app.memovia.io', 'memovia.io'])
   if (!ALLOWED_HOSTS.has(RAW_HOST)) return errorResponse('invalid_host', 400)
   const host = RAW_HOST

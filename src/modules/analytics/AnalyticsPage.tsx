@@ -1,7 +1,7 @@
 import { RefreshCw, Users, Eye, UserPlus, Sparkles, Activity, ExternalLink } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem, cardGridContainer, staggerCard } from '@/lib/motion'
-import { useAnalytics, invalidateAnalyticsCache } from '@/hooks/useAnalytics'
+import { usePostHogApp, useAnalyticsSupabase, invalidateAllAnalyticsCache } from '@/hooks/useAnalytics'
 import { KpiCard } from '@/components/shared/KpiCard'
 import { VisitorsChart } from './components/VisitorsChart'
 import { TopPagesTable } from './components/TopPagesTable'
@@ -10,10 +10,14 @@ import { TrafficSourcesTable } from './components/TrafficSourcesTable'
 const POSTHOG_URL = 'https://eu.posthog.com/project/162131'
 
 export default function AnalyticsPage() {
-  const { data, isLoading, error } = useAnalytics()
+  const { data, isLoading, error } = usePostHogApp()
+  const { data: supabaseData, isLoading: supabaseLoading, error: supabaseError } = useAnalyticsSupabase()
+
+  const combinedLoading = isLoading || supabaseLoading
+  const combinedError = error ?? supabaseError ?? null
 
   function handleRefresh() {
-    invalidateAnalyticsCache()
+    invalidateAllAnalyticsCache()
     window.location.reload()
   }
 
@@ -61,12 +65,12 @@ export default function AnalyticsPage() {
       </motion.header>
 
       {/* Error */}
-      {error && (
+      {combinedError && (
         <motion.div
           variants={staggerItem}
           className="rounded-xl border border-[var(--danger)] bg-[color-mix(in_oklab,var(--danger)_8%,white)] px-4 py-3 text-sm text-[var(--danger)]"
         >
-          {error}
+          {combinedError}
         </motion.div>
       )}
 
@@ -98,29 +102,29 @@ export default function AnalyticsPage() {
         <motion.div variants={staggerCard}>
           <KpiCard
             label="Inscriptions 7j"
-            value={data ? data.inscriptions7d.toLocaleString('fr-FR') : null}
-            rawValue={data?.inscriptions7d}
+            value={supabaseData ? supabaseData.inscriptions.total7d.toLocaleString('fr-FR') : null}
+            rawValue={supabaseData?.inscriptions.total7d}
             accent="green"
             icon={UserPlus}
-            isLoading={isLoading}
-            error={error}
+            isLoading={supabaseLoading}
+            error={supabaseError}
           />
         </motion.div>
         <motion.div variants={staggerCard}>
           <KpiCard
             label="Générations 7j"
-            value={data ? data.generations7d.toLocaleString('fr-FR') : null}
-            rawValue={data?.generations7d}
+            value={supabaseData ? supabaseData.generations.total7d.toLocaleString('fr-FR') : null}
+            rawValue={supabaseData?.generations.total7d}
             accent="blue"
             icon={Sparkles}
-            isLoading={isLoading}
-            error={error}
+            isLoading={supabaseLoading}
+            error={supabaseError}
           />
         </motion.div>
       </motion.div>
 
       {/* Sessions today chip */}
-      {!isLoading && data !== null && (
+      {!combinedLoading && data !== null && (
         <motion.div variants={staggerItem} className="flex items-center gap-2">
           <div
             className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium"
