@@ -159,12 +159,15 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
 
-  const allowedChatId = Deno.env.get('TELEGRAM_CHAT_ID_NAOUFEL')
+  const allowedChatIds = new Set([
+    Deno.env.get('TELEGRAM_CHAT_ID_NAOUFEL'),
+    Deno.env.get('TELEGRAM_CHAT_ID_EMIR'),
+  ].filter(Boolean))
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
 
   // Always return 200 to Telegram to prevent retries, even on config errors
-  if (!allowedChatId || !apiKey) {
-    console.error('telegram-webhook: missing TELEGRAM_CHAT_ID_NAOUFEL or ANTHROPIC_API_KEY')
+  if (allowedChatIds.size === 0 || !apiKey) {
+    console.error('telegram-webhook: missing chat IDs or ANTHROPIC_API_KEY')
     return new Response('ok', { status: 200 })
   }
 
@@ -176,7 +179,7 @@ Deno.serve(async (req) => {
   }
 
   const msg = update.message
-  if (!msg?.text || String(msg.chat.id) !== allowedChatId) {
+  if (!msg?.text || !allowedChatIds.has(String(msg.chat.id))) {
     return new Response('ok', { status: 200 })
   }
 
