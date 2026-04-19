@@ -68,7 +68,7 @@ function EmptyState() {
         Aucune issue non résolue
       </p>
       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-        Tout est clean — aucun bug actif sur les 7 derniers jours.
+        Tout est clean — aucun bug actif sur les 14 derniers jours.
       </p>
     </div>
   )

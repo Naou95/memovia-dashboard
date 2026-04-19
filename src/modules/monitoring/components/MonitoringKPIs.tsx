@@ -73,7 +73,7 @@ export function MonitoringKPIs({ stats }: Props) {
       />
       <KpiCard
         icon={<RefreshCw className="h-4 w-4" />}
-        label="Occurrences 7 derniers jours"
+        label="Occurrences 14 derniers jours"
         value={stats.totalOccurrences}
         accent="#F97316"
       />

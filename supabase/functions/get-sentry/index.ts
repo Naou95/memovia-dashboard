@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
 
   try {
     const sentryRes = await fetch(
-      `https://sentry.io/api/0/projects/${org}/${project}/issues/?query=is:unresolved&statsPeriod=7d&limit=50`,
+      `https://sentry.io/api/0/projects/${org}/${project}/issues/?query=is:unresolved&statsPeriod=14d&limit=50`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
