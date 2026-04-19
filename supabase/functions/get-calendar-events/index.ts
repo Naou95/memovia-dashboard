@@ -1,7 +1,8 @@
 /**
  * Edge Function : get-calendar-events
  *
- * Récupère les événements Google Calendar de Naoufel.
+ * Récupère les événements Google Calendar de l'utilisateur authentifié.
+ * Chaque utilisateur ne voit que son propre calendrier (lookup par user_id).
  * Auto-refresh du token expiré. Retourne une erreur douce si le token
  * n'est pas configuré.
  *
@@ -18,6 +19,7 @@ import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
 interface TokenRow {
   id: string
   owner: string
+  user_id: string
   provider: string
   access_token: string
   refresh_token: string | null
@@ -41,12 +43,12 @@ interface CalendarEvent {
 
 async function getValidToken(
   supabase: SupabaseClient,
-  owner: string,
+  userId: string,
 ): Promise<string | null> {
   const { data: row, error } = await supabase
     .from('calendar_tokens')
     .select('*')
-    .eq('owner', owner)
+    .eq('user_id', userId)
     .eq('provider', 'google')
     .maybeSingle()
 
@@ -167,6 +169,7 @@ Deno.serve(async (req) => {
 
   const authResult = await validateAuth(req)
   if (authResult instanceof Response) return authResult
+  const { user } = authResult
 
   const url = new URL(req.url)
   const now = new Date()
@@ -181,7 +184,7 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  const googleToken = await getValidToken(supabase, 'naoufel')
+  const googleToken = await getValidToken(supabase, user.id)
 
   let googleEvents: CalendarEvent[] = []
   let googleError: string | null = null

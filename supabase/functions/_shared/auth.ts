@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { createClient, type User } from 'jsr:@supabase/supabase-js@2'
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,7 +9,7 @@ export const corsHeaders = {
  * Valide le JWT Supabase depuis le header Authorization.
  * Retourne { user } si valide, ou une Response 401 sinon.
  */
-export async function validateAuth(req: Request): Promise<{ user: unknown } | Response> {
+export async function validateAuth(req: Request): Promise<{ user: User } | Response> {
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     return errorResponse('unauthorized', 401)

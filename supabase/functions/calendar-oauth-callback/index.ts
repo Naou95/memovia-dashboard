@@ -3,7 +3,8 @@
  *
  * Reçoit le code OAuth après consentement Google.
  * Valide l'état CSRF, échange le code contre access_token + refresh_token,
- * stocke dans calendar_tokens, redirige vers le dashboard.
+ * stocke dans calendar_tokens lié au user_id de l'utilisateur qui a initié le flow,
+ * redirige vers le dashboard.
  *
  * URL de callback enregistrée dans Google Cloud Console :
  *   https://mzjzwffpqubpruyaaxew.supabase.co/functions/v1/calendar-oauth-callback
@@ -54,6 +55,12 @@ Deno.serve(async (req) => {
 
   await supabase.from('calendar_oauth_states').delete().eq('state', state)
 
+  // user_id stocké lors du démarrage OAuth (calendar-oauth-start)
+  const userId = stateRow.user_id as string | null
+  if (!userId) {
+    return Response.redirect(`${appUrl}/calendrier?error=missing_user_id`, 302)
+  }
+
   const clientId = Deno.env.get('GOOGLE_CLIENT_ID')
   const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET')
   if (!clientId || !clientSecret) {
@@ -92,14 +99,15 @@ Deno.serve(async (req) => {
     .from('calendar_tokens')
     .upsert(
       {
-        owner: 'naoufel',
+        owner: userId,
+        user_id: userId,
         provider: 'google',
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token ?? null,
         expires_at: expiresAt,
         scope: tokenData.scope ?? null,
       },
-      { onConflict: 'owner,provider' },
+      { onConflict: 'user_id,provider' },
     )
 
   if (upsertError) {

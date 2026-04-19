@@ -1,8 +1,10 @@
 /**
  * Edge Function : calendar-oauth-start
  *
- * Démarre le flow OAuth2 pour Google Calendar (Naoufel uniquement).
+ * Démarre le flow OAuth2 pour Google Calendar.
  * Génère l'URL de consentement et stocke un état CSRF temporaire (TTL 15 min).
+ * Le user_id de l'utilisateur authentifié est stocké dans l'état pour que
+ * le callback puisse associer le token au bon utilisateur.
  *
  * Query params :
  *   redirect : URL de retour après connexion (défaut : APP_URL/calendrier)
@@ -26,6 +28,7 @@ Deno.serve(async (req) => {
 
   const authResult = await validateAuth(req)
   if (authResult instanceof Response) return authResult
+  const { user } = authResult
 
   const url = new URL(req.url)
   const appUrl = Deno.env.get('APP_URL') ?? 'http://localhost:5173'
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
   const state = crypto.randomUUID()
   await supabase
     .from('calendar_oauth_states')
-    .upsert({ state, provider: 'google', owner: 'naoufel' })
+    .upsert({ state, provider: 'google', owner: user.id, user_id: user.id })
 
   await supabase.rpc('cleanup_oauth_states')
 

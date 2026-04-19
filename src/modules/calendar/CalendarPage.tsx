@@ -153,7 +153,7 @@ export default function CalendarPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Calendrier</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Google Calendar de Naoufel
+            Google Calendar de {user?.profile?.full_name ?? 'votre compte'}
           </p>
         </div>
 
@@ -221,7 +221,7 @@ export default function CalendarPage() {
         <motion.div variants={staggerItem}>
           <CalendarEmptyState
             googleConfigured={false}
-            canConnect={!isEmir}
+            canConnect={true}
             onConnect={startOAuth}
           />
         </motion.div>

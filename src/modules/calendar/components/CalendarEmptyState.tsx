@@ -35,9 +35,7 @@ export function CalendarEmptyState({ googleConfigured, canConnect, onConnect }: 
           Google Calendar non connecté
         </h2>
         <p className="mt-1.5 text-[13px] text-[var(--text-secondary)]">
-          {canConnect
-            ? 'Connectez votre Google Calendar pour afficher les événements et créer des réunions Meet.'
-            : 'En attente que Naoufel connecte Google Calendar.'}
+          Connectez votre Google Calendar pour afficher vos événements et créer des réunions Meet.
         </p>
       </div>
 
