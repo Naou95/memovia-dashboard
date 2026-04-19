@@ -90,9 +90,14 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
         {/* Card body */}
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <span className="text-[14px] font-semibold leading-tight text-[var(--text-primary)]">
-              {lead.name}
-            </span>
+            <div className="min-w-0">
+              <span className="text-[14px] font-semibold leading-tight text-[var(--text-primary)]">
+                {lead.name}
+              </span>
+              {lead.contact_name && (
+                <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">{lead.contact_name}</p>
+              )}
+            </div>
             {!isOverlay && !isPlaceholder && onEdit && (
               <button
                 onClick={(e) => { e.stopPropagation(); onEdit(lead) }}

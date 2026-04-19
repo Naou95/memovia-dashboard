@@ -30,7 +30,7 @@ function formatDate(dateStr: string | null): string {
 function SkeletonRow() {
   return (
     <tr>
-      {[...Array(10)].map((_, i) => (
+      {[...Array(11)].map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
         </td>
@@ -58,13 +58,13 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
       <table className="w-full text-sm" aria-label="Liste des leads commerciaux">
         <thead>
           <tr className="border-b border-[var(--border-color)]">
-            {['Lead', 'Type', 'Canal', 'Statut', 'Maturité', 'Assigné', 'Prochaine action', 'Dernier contact', 'Relances', 'Actions'].map(
+            {['Organisation', 'Contact', 'Type', 'Canal', 'Statut', 'Maturité', 'Assigné', 'Prochaine action', 'Dernier contact', 'Relances', 'Actions'].map(
               (h, i) => (
                 <th
                   key={h}
                   scope="col"
                   className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] ${
-                    i === 9 ? 'text-right' : 'text-left'
+                    i === 10 ? 'text-right' : 'text-left'
                   }`}
                 >
                   {h}
@@ -82,7 +82,7 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
             </>
           ) : leads.length === 0 ? (
             <tr>
-              <td colSpan={10} className="px-4 py-12 text-center">
+              <td colSpan={11} className="px-4 py-12 text-center">
                 <p className="text-[15px] font-medium text-[var(--text-primary)]">
                   Aucun lead trouvé
                 </p>
@@ -97,9 +97,14 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
                 key={lead.id}
                 className="transition-colors hover:bg-[var(--accent-purple-bg)]"
               >
-                {/* Lead name */}
+                {/* Organisation */}
                 <td className="px-4 py-3">
                   <span className="font-medium text-[var(--text-primary)]">{lead.name}</span>
+                </td>
+
+                {/* Contact */}
+                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                  {lead.contact_name ?? '—'}
                 </td>
 
                 {/* Type */}
