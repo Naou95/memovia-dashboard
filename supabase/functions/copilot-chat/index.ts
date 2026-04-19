@@ -17,6 +17,7 @@ interface TaskSummary { id: string; title: string; status: string; priority: str
 interface LeadSummary { id: string; name: string; type: string; status: string; assigned_to: string | null; next_action: string | null }
 interface ContractSummary { id: string; organization_name: string; status: string; mrr_eur: number | null; license_count: number }
 interface CalendarEventSummary { title: string; start: string; end: string }
+interface FeedbackItemSummary { id: string; title: string; status: string; category: string; voteCount: number }
 
 interface DashboardContext {
   mrr?: number
@@ -27,6 +28,7 @@ interface DashboardContext {
   leads?: LeadSummary[]
   contracts?: ContractSummary[]
   todayEvents?: CalendarEventSummary[]
+  feedbackItems?: FeedbackItemSummary[]
 }
 
 interface RequestBody {
@@ -87,6 +89,54 @@ const TOOLS = [
       required: ['organization_name', 'mrr_eur', 'license_count'],
     },
   },
+  {
+    name: 'create_feedback_item',
+    description: 'Crée un item dans la roadmap/feedback MEMOVIA. Utilise cet outil quand l\'utilisateur veut soumettre une idée, signaler un bug ou suggérer une amélioration.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Titre de l\'item de feedback' },
+        description: { type: 'string', description: 'Description détaillée (optionnel)' },
+        category: {
+          type: 'string',
+          enum: ['fonctionnalite', 'bug', 'amelioration'],
+          description: 'Catégorie. Défaut: fonctionnalite',
+        },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'update_feedback_status',
+    description: 'Met à jour le statut d\'un item de feedback/roadmap. Utilise cet outil quand l\'utilisateur veut faire avancer un item vers planifié, en développement ou livré.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        item_title: { type: 'string', description: 'Titre ou partie du titre de l\'item (recherche partielle)' },
+        new_status: {
+          type: 'string',
+          enum: ['backlog', 'planifie', 'en_dev', 'livre'],
+          description: 'Nouveau statut de l\'item',
+        },
+      },
+      required: ['item_title', 'new_status'],
+    },
+  },
+  {
+    name: 'list_feedback_items',
+    description: 'Liste les items de la roadmap/feedback MEMOVIA avec leur nombre de votes.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['backlog', 'planifie', 'en_dev', 'livre'],
+          description: 'Filtre par statut (optionnel — tous si absent)',
+        },
+      },
+      required: [],
+    },
+  },
 ]
 
 // ── System prompt ──────────────────────────────────────────────────────────────
@@ -99,7 +149,7 @@ function buildSystemPrompt(context?: DashboardContext): string {
     `Date du jour : ${today}.`,
     `Réponds toujours en français, de façon concise et directe.`,
     ``,
-    `Tu peux exécuter des actions directement : créer une tâche, changer le statut d'un lead, créer un contrat.`,
+    `Tu peux exécuter des actions directement : créer une tâche, changer le statut d'un lead, créer un contrat, gérer les items de roadmap/feedback.`,
     `Utilise les outils dès qu'une action est clairement demandée. Ne demande pas de confirmation sauf si les paramètres sont ambigus.`,
     ``,
   ]
@@ -159,6 +209,15 @@ function buildSystemPrompt(context?: DashboardContext): string {
     for (const e of context.todayEvents) {
       const start = new Date(e.start).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
       lines.push(`- ${start} : ${e.title}`)
+    }
+    lines.push('')
+  }
+
+  // Feedback
+  if (context.feedbackItems && context.feedbackItems.length > 0) {
+    lines.push('## ROADMAP / FEEDBACK')
+    for (const f of context.feedbackItems) {
+      lines.push(`- [${f.status}] ${f.title} (${f.category}) — ${f.voteCount} vote(s) (id:${f.id})`)
     }
     lines.push('')
   }
@@ -273,6 +332,86 @@ async function executeTool(
     return {
       sseEvent: sseToolResult('create_contract', payload),
       toolResultContent: `Contrat créé pour ${input.organization_name} (id: ${data.id})`,
+    }
+  }
+
+  if (name === 'create_feedback_item') {
+    const { data, error } = await supabaseUser.from('feedback_items').insert({
+      title: String(input.title),
+      description: input.description ? String(input.description) : null,
+      category: (input.category as string) ?? 'fonctionnalite',
+      status: 'backlog',
+      created_by: userId,
+    }).select('id').single()
+
+    if (error) throw new Error('Impossible de créer l\'item de feedback.')
+
+    const payload = {
+      id: data.id,
+      title: String(input.title),
+      category: (input.category as string) ?? 'fonctionnalite',
+      status: 'backlog',
+    }
+    return {
+      sseEvent: sseToolResult('create_feedback_item', payload),
+      toolResultContent: `Item de feedback créé : "${input.title}" (id: ${data.id}) — statut: backlog`,
+    }
+  }
+
+  if (name === 'update_feedback_status') {
+    const { data: items, error: findError } = await supabaseUser
+      .from('feedback_items')
+      .select('id, title, status')
+      .ilike('title', `%${String(input.item_title)}%`)
+      .limit(1)
+
+    if (findError || !items?.[0]) {
+      throw new Error(`Item "${String(input.item_title)}" introuvable dans la roadmap.`)
+    }
+
+    const item = items[0] as { id: string; title: string; status: string }
+    const { error: updateError } = await supabaseUser
+      .from('feedback_items')
+      .update({ status: String(input.new_status) })
+      .eq('id', item.id)
+
+    if (updateError) throw new Error('Impossible de mettre à jour le statut de l\'item.')
+
+    const payload = { id: item.id, title: item.title, old_status: item.status, new_status: String(input.new_status) }
+    return {
+      sseEvent: sseToolResult('update_feedback_status', payload),
+      toolResultContent: `Item "${item.title}" : ${item.status} → ${input.new_status}`,
+    }
+  }
+
+  if (name === 'list_feedback_items') {
+    let query = supabaseUser
+      .from('feedback_items')
+      .select('id, title, status, category, feedback_votes(count)')
+      .order('created_at', { ascending: false })
+
+    if (input.status) {
+      query = query.eq('status', String(input.status))
+    }
+
+    const { data: items, error } = await query
+    if (error) throw new Error('Impossible de récupérer les items de feedback.')
+
+    const list = (items ?? []).map((item: Record<string, unknown>) => {
+      const voteCount = Array.isArray(item.feedback_votes)
+        ? (item.feedback_votes[0] as { count: number } | undefined)?.count ?? 0
+        : 0
+      return `- [${item.status}] ${item.title} (${item.category}) — ${voteCount} vote(s) (id:${item.id})`
+    })
+
+    const resultText = list.length > 0
+      ? `Roadmap (${list.length} items) :\n${list.join('\n')}`
+      : 'Aucun item de feedback trouvé.'
+
+    const payload = { count: list.length, items: list }
+    return {
+      sseEvent: sseToolResult('list_feedback_items', payload),
+      toolResultContent: resultText,
     }
   }
 

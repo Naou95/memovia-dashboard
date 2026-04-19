@@ -67,6 +67,14 @@ interface DashboardUser {
   created_at: string
 }
 
+interface FeedbackItem {
+  id: string
+  title: string
+  status: string
+  category: string
+  voteCount: number
+}
+
 // ── Context loading ────────────────────────────────────────────────────────────
 
 async function loadContext() {
@@ -79,7 +87,7 @@ async function loadContext() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-  const [tasksRes, leadsRes, contractsRes, stripeRes, qontoRes, usersRes] = await Promise.allSettled([
+  const [tasksRes, leadsRes, contractsRes, stripeRes, qontoRes, usersRes, feedbackRes] = await Promise.allSettled([
     supabase
       .from('tasks')
       .select('id, title, status, priority, assigned_to, due_date')
@@ -134,6 +142,12 @@ async function loadContext() {
       .from('v_dashboard_users')
       .select('email, plan, account_type, created_at')
       .order('created_at', { ascending: false }),
+
+    supabase
+      .from('feedback_items')
+      .select('id, title, status, category, feedback_votes(count)')
+      .in('status', ['en_dev', 'backlog'])
+      .order('created_at', { ascending: false }),
   ])
 
   const tasks: Task[] = tasksRes.status === 'fulfilled' ? (tasksRes.value.data ?? []) : []
@@ -151,6 +165,18 @@ async function loadContext() {
     return acc
   }, {})
 
+  const feedbackRaw: Array<Record<string, unknown>> = feedbackRes.status === 'fulfilled' ? (feedbackRes.value.data ?? []) : []
+
+  const feedbackItems: FeedbackItem[] = feedbackRaw.map((item) => ({
+    id: String(item.id),
+    title: String(item.title),
+    status: String(item.status),
+    category: String(item.category),
+    voteCount: Array.isArray(item.feedback_votes)
+      ? (item.feedback_votes[0] as { count: number } | undefined)?.count ?? 0
+      : 0,
+  }))
+
   return {
     tasks,
     leads,
@@ -161,6 +187,7 @@ async function loadContext() {
     staleLeads: leads.filter((l) => new Date(l.updated_at) < new Date(sevenDaysAgo)),
     todayIso,
     users: { total: allUsers.length, newLast24h, newThisWeek, byPlan },
+    feedbackItems,
   }
 }
 
@@ -178,7 +205,7 @@ function buildSystemPrompt(
     `Tu es le Copilote IA interne de MEMOVIA, une EdTech SaaS française (outils pédagogiques IA pour établissements scolaires).`,
     `Tu réponds à *${callerName}* via Telegram. Date du jour : ${today}.`,
     `Réponds en français, de façon concise et directe (max 3-4 paragraphes pour Telegram).`,
-    `Tu peux exécuter des actions : créer/modifier des tâches, leads, contrats et envoyer des emails.`,
+    `Tu peux exécuter des actions : créer/modifier des tâches, leads, contrats, gérer la roadmap/feedback et envoyer des emails.`,
     `Utilise les outils dès qu'une action est clairement demandée. Ne demande pas de confirmation sauf si les paramètres sont ambigus.`,
     `Formate tes réponses en Markdown Telegram (*gras*, _italique_, \`code\`, tirets pour listes).`,
     ``,
@@ -260,6 +287,30 @@ function buildSystemPrompt(
     lines.push('- Données utilisateurs indisponibles')
   }
   lines.push('')
+
+  // ## ROADMAP (items en cours + backlog populaires)
+  const inDev = ctx.feedbackItems.filter((f) => f.status === 'en_dev')
+  const topBacklog = ctx.feedbackItems
+    .filter((f) => f.status === 'backlog')
+    .sort((a, b) => b.voteCount - a.voteCount)
+    .slice(0, 5)
+
+  if (inDev.length > 0 || topBacklog.length > 0) {
+    lines.push('## ROADMAP / FEEDBACK')
+    if (inDev.length > 0) {
+      lines.push('En développement :')
+      for (const f of inDev) {
+        lines.push(`- ${f.title} (${f.category}) — ${f.voteCount} vote(s)`)
+      }
+    }
+    if (topBacklog.length > 0) {
+      lines.push('Backlog populaire :')
+      for (const f of topBacklog) {
+        lines.push(`- ${f.title} (${f.category}) — ${f.voteCount} vote(s)`)
+      }
+    }
+    lines.push('')
+  }
 
   // ## ALERTES
   if (ctx.overdueTasks.length > 0 || ctx.staleLeads.length > 0) {
@@ -384,6 +435,54 @@ const TOOLS = [
       required: ['from', 'to', 'subject', 'body'],
     },
   },
+  {
+    name: 'create_feedback_item',
+    description: 'Crée un item dans la roadmap/feedback MEMOVIA.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Titre de l\'item' },
+        description: { type: 'string', description: 'Description optionnelle' },
+        category: {
+          type: 'string',
+          enum: ['fonctionnalite', 'bug', 'amelioration'],
+          description: 'Catégorie. Défaut: fonctionnalite',
+        },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'update_feedback_status',
+    description: 'Met à jour le statut d\'un item de roadmap/feedback.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        item_title: { type: 'string', description: 'Titre ou partie du titre (recherche partielle)' },
+        new_status: {
+          type: 'string',
+          enum: ['backlog', 'planifie', 'en_dev', 'livre'],
+          description: 'Nouveau statut',
+        },
+      },
+      required: ['item_title', 'new_status'],
+    },
+  },
+  {
+    name: 'list_feedback_items',
+    description: 'Liste les items de roadmap/feedback avec leur nombre de votes.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['backlog', 'planifie', 'en_dev', 'livre'],
+          description: 'Filtre par statut (optionnel)',
+        },
+      },
+      required: [],
+    },
+  },
 ]
 
 // ── Tool execution ─────────────────────────────────────────────────────────────
@@ -483,6 +582,46 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
       text: String(input.body),
     })
     return `Email envoyé à ${input.to} — objet : "${input.subject}" (id: ${info.messageId})`
+  }
+
+  if (name === 'create_feedback_item') {
+    const { data, error } = await supabase.from('feedback_items').insert({
+      title: String(input.title),
+      description: input.description ? String(input.description) : null,
+      category: (input.category as string) ?? 'fonctionnalite',
+      status: 'backlog',
+    }).select('id').single()
+    if (error) throw new Error('Impossible de créer l\'item de feedback.')
+    return `Item de feedback créé : "${input.title}" — statut: backlog (id: ${data.id})`
+  }
+
+  if (name === 'update_feedback_status') {
+    const { data: items, error: findError } = await supabase
+      .from('feedback_items')
+      .select('id, title, status')
+      .ilike('title', `%${String(input.item_title)}%`)
+      .limit(1)
+    if (findError || !items?.[0]) throw new Error(`Item "${String(input.item_title)}" introuvable dans la roadmap.`)
+    const item = items[0] as { id: string; title: string; status: string }
+    await supabase.from('feedback_items').update({ status: String(input.new_status) }).eq('id', item.id)
+    return `Item "${item.title}" : ${item.status} → ${input.new_status}`
+  }
+
+  if (name === 'list_feedback_items') {
+    let query = supabase
+      .from('feedback_items')
+      .select('id, title, status, category, feedback_votes(count)')
+      .order('created_at', { ascending: false })
+    if (input.status) query = query.eq('status', String(input.status))
+    const { data: items, error } = await query
+    if (error) throw new Error('Impossible de récupérer les items de feedback.')
+    const list = (items ?? []).map((item: Record<string, unknown>) => {
+      const voteCount = Array.isArray(item.feedback_votes)
+        ? (item.feedback_votes[0] as { count: number } | undefined)?.count ?? 0
+        : 0
+      return `[${item.status}] ${item.title} (${item.category}) — ${voteCount} vote(s)`
+    })
+    return list.length > 0 ? `Roadmap (${list.length} items) :\n${list.join('\n')}` : 'Aucun item trouvé.'
   }
 
   throw new Error('Action inconnue.')
