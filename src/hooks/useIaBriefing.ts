@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
 interface IaBriefingInput {
@@ -15,6 +15,12 @@ export interface UseIaBriefingResult {
   isLoading: boolean
   isStreaming: boolean
   error: string | null
+  regenerate: () => void
+}
+
+function getTodayKey(): string {
+  const d = new Date()
+  return `briefing_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 export function useIaBriefing({
@@ -25,11 +31,37 @@ export function useIaBriefing({
   overdueTasks,
   overdueLeads,
 }: IaBriefingInput): UseIaBriefingResult {
-  const [briefing, setBriefing] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
+  const cacheKey = useRef(getTodayKey())
+
+  const [briefing, setBriefing] = useState<string>(() => {
+    try { return localStorage.getItem(cacheKey.current) ?? '' } catch { return '' }
+  })
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    try { return !localStorage.getItem(cacheKey.current) } catch { return true }
+  })
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const hasFetched = useRef(false)
+  const [generation, setGeneration] = useState(0)
+
+  // True when we already have data (from cache or from a fetch this session)
+  const hasFetched = useRef<boolean>(false)
+  // Initialize hasFetched from cache synchronously during first render
+  const didInit = useRef(false)
+  if (!didInit.current) {
+    didInit.current = true
+    try {
+      if (localStorage.getItem(cacheKey.current)) hasFetched.current = true
+    } catch {}
+  }
+
+  const regenerate = useCallback(() => {
+    try { localStorage.removeItem(cacheKey.current) } catch {}
+    setBriefing('')
+    setIsLoading(true)
+    setError(null)
+    hasFetched.current = false
+    setGeneration((c) => c + 1)
+  }, [])
 
   useEffect(() => {
     if (!enabled || hasFetched.current) return
@@ -88,6 +120,7 @@ export function useIaBriefing({
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
+        let accumulated = ''
 
         while (true) {
           const { done, value } = await reader.read()
@@ -106,12 +139,17 @@ export function useIaBriefing({
                 parsed.type === 'content_block_delta' &&
                 parsed.delta?.type === 'text_delta'
               ) {
+                accumulated += parsed.delta.text
                 setBriefing((prev) => prev + parsed.delta.text)
               }
             } catch {
               // skip malformed SSE chunks
             }
           }
+        }
+
+        if (accumulated) {
+          try { localStorage.setItem(cacheKey.current, accumulated) } catch {}
         }
       } catch (err) {
         if (!(err instanceof Error && err.name === 'AbortError')) {
@@ -125,7 +163,7 @@ export function useIaBriefing({
 
     run()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]) // hasFetched prevents re-runs; values are stable when enabled becomes true
+  }, [enabled, generation])
 
-  return { briefing, isLoading, isStreaming, error }
+  return { briefing, isLoading, isStreaming, error, regenerate }
 }

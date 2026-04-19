@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import {
   DollarSign, Users, Landmark, UserMinus, Bot, AlertTriangle, Activity,
-  Calendar, Mail, CheckSquare, Phone, UserPlus, CreditCard, Sun, ArrowRight,
+  Calendar, Mail, CheckSquare, Phone, UserPlus, CreditCard, Sun, ArrowRight, RefreshCw,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
@@ -193,7 +193,8 @@ export default function OverviewPage() {
     () =>
       (leads ?? []).filter(
         (l) =>
-          l.follow_up_date === today &&
+          // follow_up_date can be stored as "YYYY-MM-DD" or "YYYY-MM-DDT..." timestamp
+          !!l.follow_up_date && l.follow_up_date.startsWith(today) &&
           l.status !== 'gagne' &&
           l.status !== 'perdu' &&
           (myAssignee === null || l.assigned_to === myAssignee),
@@ -207,6 +208,17 @@ export default function OverviewPage() {
       .filter((e) => toLocalDate(e.start) === today)
       .sort((a, b) => a.start.localeCompare(b.start))
   }, [calendarData, today])
+
+  // Debug: log data for "Votre journée" in dev to identify empty sources
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log('[Overview/journée] myAssignee:', myAssignee)
+      console.log('[Overview/journée] tasks total:', tasks?.length, '| sample due_date:', tasks?.[0]?.due_date, '| sample assigned_to:', tasks?.[0]?.assigned_to)
+      console.log('[Overview/journée] myTodayTasks:', myTodayTasks.length, myTodayTasks)
+      console.log('[Overview/journée] leads total:', leads?.length, '| sample follow_up_date:', leads?.[0]?.follow_up_date, '| today:', today)
+      console.log('[Overview/journée] myTodayLeads:', myTodayLeads.length, myTodayLeads)
+    }
+  }, [myAssignee, tasks, leads, myTodayTasks, myTodayLeads, today])
 
   const myDayItems = useMemo<DayItem[]>(() => {
     const items: DayItem[] = []
@@ -272,6 +284,17 @@ export default function OverviewPage() {
     return items
   }, [myTodayTasks, myTodayLeads, todayCalendarEvents, emailAlerts, today])
 
+  // Fallback: if no items for today, show next 3 assigned tasks (any due date)
+  const myFallbackTasks = useMemo(
+    () => {
+      if (myDayItems.length > 0) return []
+      return (tasks ?? [])
+        .filter((t) => t.status !== 'done' && (myAssignee === null || t.assigned_to === myAssignee))
+        .slice(0, 3)
+    },
+    [myDayItems, tasks, myAssignee],
+  )
+
   const dayLoading = tasksLoading || leadsLoading || calendarLoading || emailLoading
 
   // ── "Actus MEMOVIA 24h" — new signups + Stripe ──
@@ -285,7 +308,7 @@ export default function OverviewPage() {
 
   // ── IA Briefing ──
   const briefingEnabled = !stripeKpiLoading && !tasksLoading && !leadsLoading
-  const { briefing, isLoading: briefingLoading, isStreaming: briefingStreaming } = useIaBriefing({
+  const { briefing, isLoading: briefingLoading, isStreaming: briefingStreaming, regenerate: regenerateBriefing } = useIaBriefing({
     enabled: briefingEnabled,
     mrr: stripe?.mrr ?? null,
     qontoBalance: qontoFinance?.balance ?? null,
@@ -332,9 +355,9 @@ export default function OverviewPage() {
         <div className="mb-4 flex items-center gap-2">
           <Sun size={15} className="text-amber-500" />
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Votre journée</h3>
-          {myDayItems.length > 0 && (
+          {(myDayItems.length > 0 || myFallbackTasks.length > 0) && (
             <span className="rounded-full bg-[var(--memovia-violet)] px-2 py-0.5 text-[11px] font-semibold text-white">
-              {myDayItems.length}
+              {myDayItems.length || myFallbackTasks.length}
             </span>
           )}
         </div>
@@ -345,11 +368,7 @@ export default function OverviewPage() {
               <div key={i} className="skeleton h-9 rounded-xl" />
             ))}
           </div>
-        ) : myDayItems.length === 0 ? (
-          <p className="text-[13px] text-[var(--text-muted)]">
-            Rien de prévu aujourd'hui.
-          </p>
-        ) : (
+        ) : myDayItems.length > 0 ? (
           <div className="divide-y divide-[var(--border-color)]">
             {myDayItems.map((item) => (
               <Link
@@ -376,6 +395,34 @@ export default function OverviewPage() {
               </Link>
             ))}
           </div>
+        ) : myFallbackTasks.length > 0 ? (
+          <>
+            <p className="mb-3 text-[12px] text-[var(--text-muted)]">Prochaines tâches assignées</p>
+            <div className="divide-y divide-[var(--border-color)]">
+              {myFallbackTasks.map((t) => (
+                <Link
+                  key={t.id}
+                  to="/taches"
+                  className="-mx-5 flex items-center justify-between px-5 py-2.5 transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="shrink-0 rounded-lg p-1.5 bg-violet-50">
+                      <CheckSquare size={13} className="text-violet-600" />
+                    </span>
+                    <span className="truncate text-[13px] text-[var(--text-primary)]">{t.title}</span>
+                  </div>
+                  <div className="ml-4 flex shrink-0 items-center gap-2">
+                    <span className="rounded-md border px-2 py-0.5 text-[11px] font-medium bg-gray-50 text-gray-500 border-gray-200">
+                      {t.due_date ?? 'Sans échéance'}
+                    </span>
+                    <ArrowRight size={12} className="text-[var(--text-muted)]" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-[13px] text-[var(--text-muted)]">Rien de prévu aujourd'hui.</p>
         )}
       </motion.div>
       </ErrorBoundary>
@@ -395,6 +442,15 @@ export default function OverviewPage() {
               aria-label="Génération du briefing en cours"
             />
           )}
+          <button
+            onClick={regenerateBriefing}
+            disabled={briefingLoading || briefingStreaming}
+            className="ml-auto rounded-lg p-1 text-[var(--memovia-violet)] opacity-50 transition-opacity hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-20"
+            title="Régénérer le briefing"
+            aria-label="Régénérer le briefing IA"
+          >
+            <RefreshCw size={13} className={briefingStreaming ? 'animate-spin' : ''} />
+          </button>
         </div>
 
         {briefingLoading && !briefing ? (
