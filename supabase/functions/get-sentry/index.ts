@@ -1,4 +1,16 @@
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+
+function formatDateFr(isoDate: string): string {
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Paris',
+  }).format(new Date(isoDate))
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
@@ -57,12 +69,64 @@ Deno.serve(async (req) => {
       usersAffected: issues.reduce((sum, i) => sum + i.usersAffected, 0),
     }
 
-    // Fire-and-forget notifications for critical issues
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const criticalIssues = issues.filter((i) => i.isCritical)
-    if (criticalIssues.length > 0) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+    if (criticalIssues.length > 0) {
+      const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+      // Nouvelles issues critiques (firstSeen dans les 24 dernières heures)
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
+      const recentCritical = criticalIssues.filter((i) => new Date(i.firstSeen) >= cutoff)
+
+      if (recentCritical.length > 0) {
+        const ids = recentCritical.map((i) => i.id)
+        const { data: alreadyNotified } = await supabase
+          .from('sentry_notified_issues')
+          .select('issue_id')
+          .in('issue_id', ids)
+
+        const notifiedSet = new Set((alreadyNotified ?? []).map((r: any) => r.issue_id))
+        const toNotify = recentCritical.filter((i) => !notifiedSet.has(i.id))
+
+        if (toNotify.length > 0) {
+          const chatIds = [
+            Deno.env.get('TELEGRAM_CHAT_ID_NAOUFEL'),
+            Deno.env.get('TELEGRAM_CHAT_ID_EMIR'),
+          ].filter(Boolean) as string[]
+
+          for (const issue of toNotify) {
+            const dateFr = formatDateFr(issue.firstSeen)
+            const message = [
+              '🚨 *Bug critique sur app.memovia.io*',
+              '',
+              `🔴 ${issue.title}`,
+              `📊 ${issue.occurrences} occurrences · ${issue.usersAffected} utilisateurs affectés`,
+              `🕐 Détecté : ${dateFr}`,
+              `🔗 [Voir sur Sentry](${issue.permalink})`,
+            ].join('\n')
+
+            for (const chatId of chatIds) {
+              fetch(`${supabaseUrl}/functions/v1/send-telegram`, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${serviceRoleKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ chat_id: chatId, message }),
+              }).catch(() => {})
+            }
+          }
+
+          // Enregistrer les issues notifiées pour éviter les doublons
+          await supabase
+            .from('sentry_notified_issues')
+            .insert(toNotify.map((i) => ({ issue_id: i.id })))
+        }
+      }
+
+      // Notifications in-app pour toutes les issues critiques
       for (const issue of criticalIssues) {
         fetch(`${supabaseUrl}/functions/v1/create-notification`, {
           method: 'POST',
@@ -76,7 +140,7 @@ Deno.serve(async (req) => {
             title: 'Bug critique détecté',
             message: `${issue.title} — ${issue.occurrences} occurrences`,
           }),
-        }).catch(() => {}) // truly fire-and-forget
+        }).catch(() => {})
       }
     }
 
