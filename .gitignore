@@ -26,3 +26,4 @@ supabase/.temp/
 .claude/
 .gitignoreatopen
 .impeccable.md
+.gstack/

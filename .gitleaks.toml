@@ -1,0 +1,15 @@
+title = "MEMOVIA Dashboard — gitleaks config"
+
+[allowlist]
+  description = "Supabase project URL hardcoded in pg_cron migrations (pg_cron cannot use env vars)"
+  regexes = [
+    '''mzjzwffpqubpruyaaxew\.supabase\.co''',
+  ]
+  paths = [
+    '''supabase/migrations/00016_email_lead_detector_cron\.sql''',
+    '''supabase/migrations/00019_telegram_cron\.sql''',
+    '''supabase/functions/calendar-oauth-callback/index\.ts''',
+    '''CONTEXT\.md''',
+    '''TODOS\.md''',
+    '''docs/''',
+  ]

@@ -71,7 +71,7 @@ export function CalendarEmptyState({ googleConfigured, canConnect, onConnect }: 
               Callback à enregistrer dans Google Cloud Console :
             </p>
             <code className="block rounded bg-white px-2 py-1 text-[10px] border border-[var(--border-color)] break-all">
-              https://mzjzwffpqubpruyaaxew.supabase.co/functions/v1/calendar-oauth-callback
+              {import.meta.env.VITE_SUPABASE_URL}/functions/v1/calendar-oauth-callback
             </code>
           </div>
         </details>
