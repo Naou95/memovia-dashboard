@@ -83,12 +83,12 @@ function CardContent({ task, onEdit, isOverlay, isPlaceholder }: CardContentProp
       ].join(' ')}
       style={isOverlay ? { transform: 'rotate(1.5deg)' } : undefined}
     >
-      <div className="p-3 space-y-2">
+      <div className="p-4 space-y-2" style={{ minHeight: 120 }}>
         {/* Row 1: priority badge + ··· */}
         <div className="flex items-center justify-between min-h-[20px]">
           <span
-            className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold leading-none"
-            style={{ backgroundColor: badge.bg, color: badge.color }}
+            className="inline-flex items-center justify-center rounded text-[11px] font-bold leading-none"
+            style={{ backgroundColor: badge.bg, color: badge.color, width: 24, height: 24 }}
           >
             P
           </span>
@@ -106,7 +106,7 @@ function CardContent({ task, onEdit, isOverlay, isPlaceholder }: CardContentProp
         {/* Row 2: title */}
         <p
           className={[
-            'text-[13px] font-semibold leading-tight',
+            'text-[14px] font-semibold leading-tight',
             task.status === 'done'
               ? 'line-through text-[var(--text-muted)]'
               : 'text-[var(--text-primary)]',
@@ -117,13 +117,13 @@ function CardContent({ task, onEdit, isOverlay, isPlaceholder }: CardContentProp
 
         {/* Row 3: description */}
         {task.description && (
-          <p className="text-[12px] leading-relaxed text-[var(--text-muted)] line-clamp-2">
+          <p className="text-[12px] leading-relaxed text-[var(--text-muted)] line-clamp-3">
             {task.description}
           </p>
         )}
 
         {/* Footer */}
-        <div className="flex items-center gap-2 pt-0.5">
+        <div className="flex items-center gap-2 pt-3">
           {task.due_date && (
             <span
               className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium"
@@ -155,8 +155,8 @@ function CardContent({ task, onEdit, isOverlay, isPlaceholder }: CardContentProp
             const av = ASSIGNEE_AVATAR[task.assigned_to]
             return (
               <span
-                className="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                style={{ backgroundColor: av.bg, color: av.color }}
+                className="ml-auto shrink-0 flex items-center justify-center rounded-full text-[10px] font-bold"
+                style={{ width: 26, height: 26, backgroundColor: av.bg, color: av.color }}
               >
                 {av.initials}
               </span>
@@ -203,7 +203,7 @@ function DraggableCard({ task, onEdit }: { task: Task; onEdit: (t: Task) => void
 
 function SkeletonCard() {
   return (
-    <div className="rounded-lg border border-[#E8E8F0] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-3 space-y-2">
+    <div className="rounded-lg border border-[#E8E8F0] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-4 space-y-2">
       <div className="h-3 w-10 animate-pulse rounded bg-[var(--border-color)]" />
       <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
       <div className="h-3 w-3/4 animate-pulse rounded bg-[var(--border-color)]" />
@@ -231,7 +231,7 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, onNewTask, activeTa
   const dot = COLUMN_DOT[status]
 
   return (
-    <div className="flex w-[260px] shrink-0 flex-col rounded-[10px] bg-[#F4F4F8] p-2.5">
+    <div className="flex w-[280px] shrink-0 flex-col rounded-[10px] bg-[#F4F4F8] p-2.5">
       {/* Column header — transparent, inside grey column */}
       <div className="mb-2 flex items-center justify-between px-0.5">
         <div className="flex items-center gap-2">
@@ -265,7 +265,7 @@ function DroppableColumn({ status, tasks, isLoading, onEdit, onNewTask, activeTa
       {/* Drop zone */}
       <div
         ref={setNodeRef}
-        className="flex flex-col gap-2 rounded-lg transition-colors"
+        className="flex flex-col gap-[10px] rounded-lg transition-colors"
         style={{
           minHeight: 80,
           backgroundColor: isOver ? 'color-mix(in oklab, var(--memovia-violet) 8%, #F4F4F8)' : 'transparent',
@@ -336,7 +336,7 @@ export function TaskKanban({ tasks, isLoading, onEdit, onStatusChange, onNewTask
 
       <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
         {activeTask ? (
-          <div style={{ width: 260 }}>
+          <div style={{ width: 280 }}>
             <CardContent task={activeTask} isOverlay />
           </div>
         ) : null}
