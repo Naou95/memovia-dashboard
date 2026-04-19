@@ -12,6 +12,13 @@ function formatDateFr(isoDate: string): string {
   }).format(new Date(isoDate))
 }
 
+function levelEmoji(level: string): string {
+  if (level === 'fatal') return '🔴'
+  if (level === 'error') return '🟠'
+  if (level === 'warning') return '🟡'
+  return '🔵'
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
@@ -48,7 +55,7 @@ Deno.serve(async (req) => {
       const occurrences = issue.times_seen ?? 0
       const usersAffected = issue.userCount ?? issue.users?.count ?? 0
       const level = issue.level ?? 'error'
-      const isCritical = (level === 'error' || level === 'fatal') && occurrences > 5
+      const isCritical = level === 'error' || level === 'fatal'
 
       return {
         id: issue.id,
@@ -71,63 +78,62 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const criticalIssues = issues.filter((i) => i.isCritical)
 
-    if (criticalIssues.length > 0) {
+    // Tout bug apparu dans les 24 dernières heures → notif Telegram
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const recentIssues = issues.filter((i) => new Date(i.firstSeen) >= cutoff)
+
+    if (recentIssues.length > 0) {
       const supabase = createClient(supabaseUrl, serviceRoleKey)
 
-      // Nouvelles issues critiques (firstSeen dans les 24 dernières heures)
-      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
-      const recentCritical = criticalIssues.filter((i) => new Date(i.firstSeen) >= cutoff)
+      const ids = recentIssues.map((i) => i.id)
+      const { data: alreadyNotified } = await supabase
+        .from('sentry_notified_issues')
+        .select('issue_id')
+        .in('issue_id', ids)
 
-      if (recentCritical.length > 0) {
-        const ids = recentCritical.map((i) => i.id)
-        const { data: alreadyNotified } = await supabase
-          .from('sentry_notified_issues')
-          .select('issue_id')
-          .in('issue_id', ids)
+      const notifiedSet = new Set((alreadyNotified ?? []).map((r: any) => r.issue_id))
+      const toNotify = recentIssues.filter((i) => !notifiedSet.has(i.id))
 
-        const notifiedSet = new Set((alreadyNotified ?? []).map((r: any) => r.issue_id))
-        const toNotify = recentCritical.filter((i) => !notifiedSet.has(i.id))
+      if (toNotify.length > 0) {
+        const chatIds = [
+          Deno.env.get('TELEGRAM_CHAT_ID_NAOUFEL'),
+          Deno.env.get('TELEGRAM_CHAT_ID_EMIR'),
+        ].filter(Boolean) as string[]
 
-        if (toNotify.length > 0) {
-          const chatIds = [
-            Deno.env.get('TELEGRAM_CHAT_ID_NAOUFEL'),
-            Deno.env.get('TELEGRAM_CHAT_ID_EMIR'),
-          ].filter(Boolean) as string[]
+        for (const issue of toNotify) {
+          const emoji = levelEmoji(issue.level)
+          const dateFr = formatDateFr(issue.firstSeen)
+          const message = [
+            `${emoji} Nouveau bug sur app.memovia.io`,
+            '',
+            `Niveau : ${issue.level}`,
+            issue.title,
+            `📊 ${issue.occurrences} occurrences · ${issue.usersAffected} utilisateurs affectés`,
+            `🕐 Détecté : ${dateFr}`,
+            `🔗 ${issue.permalink}`,
+          ].join('\n')
 
-          for (const issue of toNotify) {
-            const dateFr = formatDateFr(issue.firstSeen)
-            const message = [
-              '🚨 *Bug critique sur app.memovia.io*',
-              '',
-              `🔴 ${issue.title}`,
-              `📊 ${issue.occurrences} occurrences · ${issue.usersAffected} utilisateurs affectés`,
-              `🕐 Détecté : ${dateFr}`,
-              `🔗 [Voir sur Sentry](${issue.permalink})`,
-            ].join('\n')
-
-            for (const chatId of chatIds) {
-              fetch(`${supabaseUrl}/functions/v1/send-telegram`, {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${serviceRoleKey}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ chat_id: chatId, message }),
-              }).catch(() => {})
-            }
+          for (const chatId of chatIds) {
+            fetch(`${supabaseUrl}/functions/v1/send-telegram`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${serviceRoleKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ chat_id: chatId, message }),
+            }).catch(() => {})
           }
-
-          // Enregistrer les issues notifiées pour éviter les doublons
-          await supabase
-            .from('sentry_notified_issues')
-            .insert(toNotify.map((i) => ({ issue_id: i.id })))
         }
+
+        // Enregistrer les issues notifiées pour éviter les doublons
+        await supabase
+          .from('sentry_notified_issues')
+          .insert(toNotify.map((i) => ({ issue_id: i.id })))
       }
 
-      // Notifications in-app pour toutes les issues critiques
-      for (const issue of criticalIssues) {
+      // Notifications in-app pour les issues récentes
+      for (const issue of recentIssues) {
         fetch(`${supabaseUrl}/functions/v1/create-notification`, {
           method: 'POST',
           headers: {
@@ -137,7 +143,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             user_id: user.id,
             type: 'sentry_critical',
-            title: 'Bug critique détecté',
+            title: 'Nouveau bug détecté',
             message: `${issue.title} — ${issue.occurrences} occurrences`,
           }),
         }).catch(() => {})
