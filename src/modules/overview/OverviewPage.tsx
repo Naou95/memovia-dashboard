@@ -80,6 +80,7 @@ interface DayItem {
   iconBg: string
   iconColor: string
   label: string
+  subtitle?: string
   badge?: string
   badgeClass?: string
   href: string
@@ -189,15 +190,18 @@ export default function OverviewPage() {
     [tasks, today, myAssignee],
   )
 
-  const myTodayLeads = useMemo(
+  const myUrgentLeads = useMemo(
     () =>
       (leads ?? []).filter(
         (l) =>
-          // follow_up_date can be stored as "YYYY-MM-DD" or "YYYY-MM-DDT..." timestamp
-          !!l.follow_up_date && l.follow_up_date.startsWith(today) &&
           l.status !== 'gagne' &&
           l.status !== 'perdu' &&
-          (myAssignee === null || l.assigned_to === myAssignee),
+          (myAssignee === null || l.assigned_to === myAssignee) &&
+          (
+            l.status === 'en_discussion' ||
+            l.status === 'proposition' ||
+            (!!l.follow_up_date && l.follow_up_date <= today)
+          ),
       ),
     [leads, today, myAssignee],
   )
@@ -216,9 +220,9 @@ export default function OverviewPage() {
       console.log('[Overview/journée] tasks total:', tasks?.length, '| sample due_date:', tasks?.[0]?.due_date, '| sample assigned_to:', tasks?.[0]?.assigned_to)
       console.log('[Overview/journée] myTodayTasks:', myTodayTasks.length, myTodayTasks)
       console.log('[Overview/journée] leads total:', leads?.length, '| sample follow_up_date:', leads?.[0]?.follow_up_date, '| today:', today)
-      console.log('[Overview/journée] myTodayLeads:', myTodayLeads.length, myTodayLeads)
+      console.log('[Overview/journée] myUrgentLeads:', myUrgentLeads.length, myUrgentLeads)
     }
-  }, [myAssignee, tasks, leads, myTodayTasks, myTodayLeads, today])
+  }, [myAssignee, tasks, leads, myTodayTasks, myUrgentLeads, today])
 
   const myDayItems = useMemo<DayItem[]>(() => {
     const items: DayItem[] = []
@@ -239,15 +243,22 @@ export default function OverviewPage() {
       })
     }
 
-    for (const l of myTodayLeads) {
+    for (const l of myUrgentLeads) {
+      const isOverdue = !!l.follow_up_date && l.follow_up_date < today
+      const isHot = l.status === 'proposition'
       items.push({
         key: `lead-${l.id}`,
         Icon: Phone,
-        iconBg: 'bg-cyan-50',
-        iconColor: 'text-cyan-600',
+        iconBg: isHot ? 'bg-amber-50' : 'bg-cyan-50',
+        iconColor: isHot ? 'text-amber-600' : 'text-cyan-600',
         label: l.name,
-        badge: 'Relance',
-        badgeClass: 'bg-cyan-50 text-cyan-700 border border-cyan-200',
+        subtitle: l.next_action ?? undefined,
+        badge: isOverdue ? 'Relance' : (LEAD_STATUS[l.status] ?? l.status),
+        badgeClass: isOverdue
+          ? 'bg-red-50 text-red-700 border border-red-200'
+          : isHot
+            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+            : 'bg-cyan-50 text-cyan-700 border border-cyan-200',
         href: '/prospection',
       })
     }
@@ -282,7 +293,7 @@ export default function OverviewPage() {
     }
 
     return items
-  }, [myTodayTasks, myTodayLeads, todayCalendarEvents, emailAlerts, today])
+  }, [myTodayTasks, myUrgentLeads, todayCalendarEvents, emailAlerts, today])
 
   // Fallback: if no items for today, show next 3 assigned tasks (any due date)
   const myFallbackTasks = useMemo(
@@ -380,9 +391,16 @@ export default function OverviewPage() {
                   <span className={`shrink-0 rounded-lg p-1.5 ${item.iconBg}`}>
                     <item.Icon size={13} className={item.iconColor} />
                   </span>
-                  <span className="truncate text-[13px] text-[var(--text-primary)]">
-                    {item.label}
-                  </span>
+                  <div className="min-w-0">
+                    <span className="block truncate text-[13px] text-[var(--text-primary)]">
+                      {item.label}
+                    </span>
+                    {item.subtitle && (
+                      <span className="block truncate text-[11px] text-[var(--text-muted)]">
+                        {item.subtitle}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="ml-4 flex shrink-0 items-center gap-2">
                   {item.badge && (
