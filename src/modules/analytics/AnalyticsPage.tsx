@@ -209,7 +209,7 @@ function AnalyticsContent({
                   <div>
                     <p className="text-[13px] text-[var(--text-secondary)]">Démos demandées</p>
                     <p className="text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">
-                      {(webData?.events.demo_demandee ?? 0).toLocaleString('fr-FR')}
+                      {(webData?.events?.demo_demandee ?? 0).toLocaleString('fr-FR')}
                     </p>
                   </div>
                 </div>
@@ -223,7 +223,7 @@ function AnalyticsContent({
                   <div>
                     <p className="text-[13px] text-[var(--text-secondary)]">Tarifs consultés</p>
                     <p className="text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">
-                      {(webData?.events.tarifs_vus ?? 0).toLocaleString('fr-FR')}
+                      {(webData?.events?.tarifs_vus ?? 0).toLocaleString('fr-FR')}
                     </p>
                   </div>
                 </div>
@@ -237,7 +237,7 @@ function AnalyticsContent({
                   <div>
                     <p className="text-[13px] text-[var(--text-secondary)]">Articles lus</p>
                     <p className="text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">
-                      {(webData?.events.article_lu ?? 0).toLocaleString('fr-FR')}
+                      {(webData?.events?.article_lu ?? 0).toLocaleString('fr-FR')}
                     </p>
                   </div>
                 </div>

@@ -38,10 +38,10 @@ export interface PostHogWebData {
   visitorsDaily: VisitorDataPoint[]
   topPages: PageEntry[]
   trafficSources: TrafficSource[]
-  events: {
-    demo_demandee: number
-    tarifs_vus: number
-    article_lu: number
+  events?: {
+    demo_demandee?: number
+    tarifs_vus?: number
+    article_lu?: number
   }
   fetchedAt: string
 }
