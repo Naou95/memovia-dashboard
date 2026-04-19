@@ -1,48 +1,41 @@
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
 
-const BASE_URL = 'https://eu.posthog.com/api/projects'
+const EU_BASE = 'https://eu.posthog.com'
 
-interface TrendResult {
-  data: number[]
-  days: string[]
-  count: number
-  breakdown_value?: string
-}
-
-interface TrendResponse {
-  result: TrendResult[]
-}
-
-async function phFetch(path: string, apiKey: string): Promise<TrendResponse> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+async function hogql(query: string, apiKey: string, projectId: string): Promise<unknown[][]> {
+  const res = await fetch(`${EU_BASE}/api/projects/${projectId}/query/`, {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ query: { kind: 'HogQLQuery', query } }),
   })
-  if (!res.ok) throw new Error(`PostHog ${res.status}: ${path}`)
-  return res.json()
+  if (!res.ok) throw new Error(`PostHog ${res.status}`)
+  const data = await res.json() as { results: unknown[][]; error?: string }
+  if (data.error) throw new Error(data.error)
+  return data.results ?? []
 }
 
-function trendUrl(
-  projectId: string,
-  events: object[],
-  opts: {
-    dateFrom?: string
-    dateTo?: string
-    interval?: string
-    breakdown?: string
-    breakdownType?: string
-  } = {},
-): string {
-  const params = new URLSearchParams()
-  params.set('events', JSON.stringify(events))
-  params.set('date_from', opts.dateFrom ?? '-7d')
-  if (opts.dateTo) params.set('date_to', opts.dateTo)
-  if (opts.interval) params.set('interval', opts.interval)
-  if (opts.breakdown) params.set('breakdown', opts.breakdown)
-  if (opts.breakdownType) params.set('breakdown_type', opts.breakdownType)
-  return `/${projectId}/insights/trend/?${params.toString()}`
+// Fill in missing days so the chart always has 7 points
+function buildDailySeries(
+  rows: unknown[][],
+  todayISO: string,
+): { date: string; visitors: number }[] {
+  const map = new Map<string, number>()
+  for (const row of rows) {
+    const day = String(row[0]).split('T')[0]
+    map.set(day, Number(row[1]) ?? 0)
+  }
+
+  const series: { date: string; visitors: number }[] = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(todayISO)
+    d.setDate(d.getDate() - i)
+    const key = d.toISOString().split('T')[0]
+    series.push({ date: key, visitors: map.get(key) ?? 0 })
+  }
+  return series
 }
 
 Deno.serve(async (req) => {
@@ -58,76 +51,79 @@ Deno.serve(async (req) => {
   try {
     const today = new Date().toISOString().split('T')[0]
 
-    const [visitorsRes, pageviewsRes, inscriptionsRes, generationsRes, topPagesRes, sourcesRes, sessionsRes] =
-      await Promise.all([
-        phFetch(trendUrl(projectId, [{ id: '$pageview', math: 'dau' }], { interval: 'day' }), apiKey),
-        phFetch(trendUrl(projectId, [{ id: '$pageview', math: 'total' }], { interval: 'day' }), apiKey),
-        phFetch(trendUrl(projectId, [{ id: 'inscription_completee', math: 'total' }]), apiKey),
-        phFetch(trendUrl(projectId, [{ id: 'generation_contenu', math: 'total' }]), apiKey),
-        phFetch(
-          trendUrl(projectId, [{ id: '$pageview', math: 'total' }], {
-            breakdown: '$current_url',
-            breakdownType: 'event',
-          }),
-          apiKey,
-        ),
-        phFetch(
-          trendUrl(projectId, [{ id: '$pageview', math: 'total' }], {
-            breakdown: '$referring_domain',
-            breakdownType: 'event',
-          }),
-          apiKey,
-        ),
-        phFetch(
-          trendUrl(projectId, [{ id: '$session_start', math: 'total' }], {
-            dateFrom: today,
-            dateTo: today,
-            interval: 'day',
-          }),
-          apiKey,
-        ),
-      ])
+    const [dailyRows, eventsRows, pagesRows, sourcesRows, sessionsRows] = await Promise.all([
+      // Daily visitors + pageviews (7d)
+      hogql(
+        `SELECT toDate(timestamp) AS day, uniq(distinct_id) AS visitors, count() AS pageviews
+         FROM events
+         WHERE event = '$pageview' AND timestamp >= now() - toIntervalDay(7)
+         GROUP BY day ORDER BY day`,
+        apiKey, projectId,
+      ),
+      // Key events totals
+      hogql(
+        `SELECT event, count() AS cnt
+         FROM events
+         WHERE event IN ('inscription_completee', 'generation_contenu')
+           AND timestamp >= now() - toIntervalDay(7)
+         GROUP BY event`,
+        apiKey, projectId,
+      ),
+      // Top pages
+      hogql(
+        `SELECT properties['$current_url'] AS url, count() AS cnt
+         FROM events
+         WHERE event = '$pageview'
+           AND timestamp >= now() - toIntervalDay(7)
+           AND properties['$current_url'] != ''
+         GROUP BY url ORDER BY cnt DESC LIMIT 10`,
+        apiKey, projectId,
+      ),
+      // Traffic sources
+      hogql(
+        `SELECT coalesce(nullIf(properties['$referring_domain'], ''), 'Direct') AS source,
+                count() AS cnt
+         FROM events
+         WHERE event = '$pageview'
+           AND timestamp >= now() - toIntervalDay(7)
+         GROUP BY source ORDER BY cnt DESC LIMIT 10`,
+        apiKey, projectId,
+      ),
+      // Sessions today
+      hogql(
+        `SELECT uniq(properties['$session_id']) AS sessions
+         FROM events
+         WHERE timestamp >= toDate(now())`,
+        apiKey, projectId,
+      ),
+    ])
 
-    // Unique visitors 7d — sum of daily DAU values
-    const visitorsResult = visitorsRes.result[0]
-    const uniqueVisitors7d = visitorsResult?.data?.reduce((s, n) => s + n, 0) ?? 0
+    // Daily series (fill missing days with 0)
+    const visitorsDaily = buildDailySeries(dailyRows, today)
 
-    // Pageviews 7d — sum
-    const pageviewsResult = pageviewsRes.result[0]
-    const pageviews7d = pageviewsResult?.data?.reduce((s, n) => s + n, 0) ?? 0
+    // Totals from daily rows
+    const uniqueVisitors7d = visitorsDaily.reduce((s, d) => s + d.visitors, 0)
+    const pageviews7d = dailyRows.reduce((s, row) => s + (Number(row[2]) || 0), 0)
 
-    // Daily visitors series for chart
-    const visitorsDaily = (visitorsResult?.days ?? []).map((date, i) => ({
-      date,
-      visitors: visitorsResult.data[i] ?? 0,
+    // Key event counts
+    const eventsMap = new Map<string, number>()
+    for (const row of eventsRows) eventsMap.set(String(row[0]), Number(row[1]) || 0)
+    const inscriptions7d = eventsMap.get('inscription_completee') ?? 0
+    const generations7d = eventsMap.get('generation_contenu') ?? 0
+
+    // Top pages
+    const topPages = pagesRows
+      .filter((r) => r[0] && !String(r[0]).startsWith('http://localhost'))
+      .map((r) => ({ url: String(r[0]), count: Number(r[1]) || 0 }))
+
+    // Traffic sources
+    const trafficSources = sourcesRows.map((r) => ({
+      source: String(r[0]) || 'Direct',
+      count: Number(r[1]) || 0,
     }))
 
-    // Key event totals
-    const inscriptions7d = inscriptionsRes.result[0]?.count ?? 0
-    const generations7d = generationsRes.result[0]?.count ?? 0
-
-    // Top pages (breakdown by URL, limit 10)
-    const topPages = topPagesRes.result
-      .map((r) => ({
-        url: String(r.breakdown_value ?? ''),
-        count: r.count ?? r.data?.reduce((s, n) => s + n, 0) ?? 0,
-      }))
-      .filter((p) => p.url && !p.url.startsWith('http://localhost'))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10)
-
-    // Traffic sources (breakdown by referring domain)
-    const trafficSources = sourcesRes.result
-      .map((r) => ({
-        source: String(r.breakdown_value ?? 'Direct'),
-        count: r.count ?? r.data?.reduce((s, n) => s + n, 0) ?? 0,
-      }))
-      .filter((s) => s.count > 0)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10)
-
     // Sessions today
-    const sessionsToday = sessionsRes.result[0]?.count ?? 0
+    const sessionsToday = Number(sessionsRows[0]?.[0]) || 0
 
     return Response.json(
       {
