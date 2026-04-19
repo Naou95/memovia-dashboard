@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 
 const { mockInvoke } = vi.hoisted(() => {
   const mockInvoke = vi.fn()
@@ -94,7 +94,7 @@ describe('useSentry', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
     mockInvoke.mockResolvedValue({ data: { ...mockData, fetchedAt: '2026-04-19T10:00:00Z' }, error: null })
-    result.current.refresh()
+    await act(async () => { result.current.refresh() })
     await waitFor(() => expect(result.current.isLoading).toBe(false))
 
     expect(mockInvoke).toHaveBeenCalledTimes(2)
