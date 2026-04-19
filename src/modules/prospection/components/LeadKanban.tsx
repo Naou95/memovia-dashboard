@@ -68,14 +68,16 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
           ? 'border border-dashed border-[var(--memovia-violet)] opacity-30 pointer-events-none'
           : isOverlay
           ? 'border border-[var(--memovia-violet)] shadow-[0_12px_32px_rgba(0,0,0,0.18)]'
-          : 'border border-[#E8E8F0] hover:border-[var(--memovia-violet)] hover:shadow-sm cursor-default',
+          : 'border border-[#E8E8F0] hover:border-[var(--memovia-violet)] hover:shadow-sm cursor-pointer',
       ].join(' ')}
       style={isOverlay ? { transform: 'rotate(1.5deg)' } : undefined}
+      onClick={() => !isOverlay && !isPlaceholder && onEdit && onEdit(lead)}
     >
       <div className="flex items-start gap-2 p-[14px]">
         {/* Drag handle */}
         <div
           {...(dragHandleProps ?? {})}
+          onClick={(e) => e.stopPropagation()}
           className={[
             'mt-0.5 shrink-0 rounded p-0.5 transition-colors',
             isOverlay || isPlaceholder

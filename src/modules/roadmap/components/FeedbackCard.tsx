@@ -1,4 +1,4 @@
-import { ChevronUp, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { ChevronUp, MoreVertical, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -32,8 +32,9 @@ export function FeedbackCard({
 
   return (
     <div
-      className="rounded-xl border p-3 flex flex-col gap-2 transition-shadow hover:shadow-sm"
+      className={['rounded-xl border p-3 flex flex-col gap-2 transition-shadow hover:shadow-sm', isAdmin ? 'cursor-pointer' : ''].join(' ')}
       style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}
+      onClick={() => isAdmin && onEdit(item)}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
@@ -64,17 +65,14 @@ export function FeedbackCard({
           {isAdmin && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => e.stopPropagation()}>
                   <MoreVertical size={14} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(item)}>
-                  <Pencil size={14} className="mr-2" /> Modifier
-                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-red-500 focus:text-red-500"
-                  onClick={() => onDelete(item.id)}
+                  onClick={(e) => { e.stopPropagation(); onDelete(item.id) }}
                 >
                   <Trash2 size={14} className="mr-2" /> Supprimer
                 </DropdownMenuItem>
@@ -109,7 +107,7 @@ export function FeedbackCard({
           <span />
         )}
         <button
-          onClick={() => onVote(item.id)}
+          onClick={(e) => { e.stopPropagation(); onVote(item.id) }}
           className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors"
           style={
             hasVoted

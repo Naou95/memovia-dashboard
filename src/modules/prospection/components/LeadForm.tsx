@@ -15,6 +15,7 @@ interface LeadFormProps {
 
 interface FormState {
   name: string
+  contact_name: string
   type: string
   canal: string
   status: string
@@ -27,6 +28,7 @@ interface FormState {
 function emptyForm(): FormState {
   return {
     name: '',
+    contact_name: '',
     type: 'entreprise',
     canal: 'linkedin',
     status: 'nouveau',
@@ -40,6 +42,7 @@ function emptyForm(): FormState {
 function leadToForm(lead: Lead): FormState {
   return {
     name: lead.name,
+    contact_name: lead.contact_name ?? '',
     type: lead.type,
     canal: lead.canal,
     status: lead.status,
@@ -104,9 +107,9 @@ export function LeadForm({ open, onClose, lead, onSubmit }: LeadFormProps) {
         assigned_to: (form.assigned_to || null) as LeadInsert['assigned_to'],
         notes: form.notes.trim() || null,
         created_by: null,
+        contact_name: form.contact_name.trim() || null,
         // Preserve AI-managed fields — carry through existing values on edit, null on create
         contact_email: lead?.contact_email ?? null,
-        contact_name: lead?.contact_name ?? null,
         contact_role: lead?.contact_role ?? null,
         source: lead?.source ?? null,
         maturity: lead?.maturity ?? null,
@@ -154,6 +157,18 @@ export function LeadForm({ open, onClose, lead, onSubmit }: LeadFormProps) {
                 aria-invalid={nameError != null}
               />
               {nameError && <p className="text-[12px] text-[var(--danger)]">{nameError}</p>}
+            </div>
+
+            {/* Nom du contact */}
+            <div className="space-y-1.5">
+              <Label htmlFor="contact_name">Nom du contact</Label>
+              <Input
+                id="contact_name"
+                name="contact_name"
+                value={form.contact_name}
+                onChange={handleChange}
+                placeholder="Ex : Marie Dupont"
+              />
             </div>
 
             {/* Type + Canal */}
