@@ -1,12 +1,15 @@
 import { RouterProvider } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { PrivacyProvider } from '@/contexts/PrivacyContext'
 import { router } from '@/router'
 
 function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <PrivacyProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </PrivacyProvider>
   )
 }
 

@@ -280,6 +280,30 @@ export interface Database {
         }
         Relationships: []
       }
+      dashboard_notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'lead_stale' | 'email_critical' | 'new_lead' | 'stripe_cancel'
+          title: string
+          message: string
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: 'lead_stale' | 'email_critical' | 'new_lead' | 'stripe_cancel'
+          title: string
+          message: string
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          read?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       // ── Vue lecture seule — Module 9 Utilisateurs MEMOVIA ──────────────────

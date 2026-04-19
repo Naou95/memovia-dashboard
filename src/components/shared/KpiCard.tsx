@@ -2,6 +2,7 @@ import { AlertCircle, TrendingUp, TrendingDown } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { CountUp } from '@/components/motion/CountUp'
 import { Sparkline } from '@/components/shared/Sparkline'
+import { usePrivacy } from '@/contexts/PrivacyContext'
 
 export type AccentKey = 'violet' | 'cyan' | 'blue' | 'red' | 'green'
 
@@ -22,6 +23,8 @@ export interface KpiCardProps {
   delta?: number
   /** Optional time-series for a sparkline rendered below the value */
   trend?: number[]
+  /** Mask value with •••• when privacy mode is active */
+  sensitive?: boolean
 }
 
 export const ACCENT_MAP: Record<AccentKey, { bg: string; fg: string }> = {
@@ -46,7 +49,10 @@ export function KpiCard({
   error,
   delta,
   trend,
+  sensitive = false,
 }: KpiCardProps) {
+  const { isPrivate } = usePrivacy()
+  const masked = sensitive && isPrivate
   const colors = ACCENT_MAP[accent]
   const hasPositiveDelta = delta !== undefined && delta > 0
   const hasNegativeDelta = delta !== undefined && delta < 0
@@ -90,12 +96,14 @@ export function KpiCard({
       ) : (
         <div className="flex items-end justify-between gap-2">
           <p className="text-[26px] font-semibold leading-none tracking-tight text-[var(--text-primary)] tabular-nums">
-            {rawValue !== undefined ? (
+            {masked ? (
+              <span className="tracking-widest text-[var(--text-muted)]">••••</span>
+            ) : rawValue !== undefined ? (
               <CountUp to={rawValue} formatter={resolvedFormatter} />
             ) : (
               value
             )}
-            {unit && (
+            {!masked && unit && (
               <span className="ml-1 text-base font-normal text-[var(--text-muted)]">{unit}</span>
             )}
           </p>

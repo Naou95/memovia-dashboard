@@ -1,4 +1,5 @@
 import { Landmark, AlertTriangle } from 'lucide-react'
+import { usePrivacy } from '@/contexts/PrivacyContext'
 
 interface BalanceCardProps {
   balance: number
@@ -22,6 +23,7 @@ export function BalanceCard({
   isLoading,
   error,
 }: BalanceCardProps) {
+  const { isPrivate } = usePrivacy()
   const isAlert = threshold !== null && threshold > 0 && balance < threshold
 
   return (
@@ -74,7 +76,11 @@ export function BalanceCard({
             className="text-[26px] font-semibold leading-none tracking-tight tabular-nums"
             style={{ color: isAlert ? 'var(--trend-down-text)' : 'var(--text-primary)' }}
           >
-            {formatEur(balance)}
+            {isPrivate ? (
+              <span className="tracking-widest text-[var(--text-muted)]">••••</span>
+            ) : (
+              formatEur(balance)
+            )}
           </p>
           <p className="mt-3 text-[12px] text-[var(--text-muted)]">
             Mis à jour {new Date(fetchedAt).toLocaleTimeString('fr-FR', {

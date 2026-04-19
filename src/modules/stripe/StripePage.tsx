@@ -71,6 +71,7 @@ export default function StripePage() {
             icon={DollarSign}
             isLoading={isLoading}
             error={error}
+            sensitive
           />
         </motion.div>
         <motion.div variants={staggerCard}>
@@ -84,6 +85,7 @@ export default function StripePage() {
             icon={TrendingUp}
             isLoading={isLoading}
             error={error}
+            sensitive
           />
         </motion.div>
         <motion.div variants={staggerCard}>
@@ -119,6 +121,7 @@ export default function StripePage() {
             icon={BarChart2}
             isLoading={isLoading}
             error={error}
+            sensitive
           />
         </motion.div>
       </motion.div>

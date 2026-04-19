@@ -485,6 +485,7 @@ export default function OverviewPage() {
               isLoading={stripeKpiLoading}
               error={stripeError}
               trend={mrrTrend.length >= 2 ? mrrTrend : undefined}
+              sensitive
             />
           </motion.div>
           <motion.div variants={staggerCard}>
@@ -509,6 +510,7 @@ export default function OverviewPage() {
               icon={Landmark}
               isLoading={qontoFinanceLoading}
               error={qontoError}
+              sensitive
             />
           </motion.div>
           <motion.div variants={staggerCard}>
