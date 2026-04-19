@@ -60,6 +60,13 @@ interface Contract {
 
 interface QontoBankAccount { balance_cents: number }
 
+interface DashboardUser {
+  email: string
+  plan: string | null
+  account_type: string | null
+  created_at: string
+}
+
 // ── Context loading ────────────────────────────────────────────────────────────
 
 async function loadContext() {
@@ -70,8 +77,9 @@ async function loadContext() {
 
   const todayIso = new Date().toISOString().split('T')[0]
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-  const [tasksRes, leadsRes, contractsRes, stripeRes, qontoRes] = await Promise.allSettled([
+  const [tasksRes, leadsRes, contractsRes, stripeRes, qontoRes, usersRes] = await Promise.allSettled([
     supabase
       .from('tasks')
       .select('id, title, status, priority, assigned_to, due_date')
@@ -121,6 +129,11 @@ async function loadContext() {
       const { bank_accounts } = await res.json() as { bank_accounts: QontoBankAccount[] }
       return Math.round(bank_accounts.reduce((s, a) => s + (a.balance_cents ?? 0), 0)) / 100
     })(),
+
+    supabase
+      .from('v_dashboard_users')
+      .select('email, plan, account_type, created_at')
+      .order('created_at', { ascending: false }),
   ])
 
   const tasks: Task[] = tasksRes.status === 'fulfilled' ? (tasksRes.value.data ?? []) : []
@@ -128,6 +141,15 @@ async function loadContext() {
   const contracts: Contract[] = contractsRes.status === 'fulfilled' ? (contractsRes.value.data ?? []) : []
   const stripe = stripeRes.status === 'fulfilled' ? stripeRes.value : null
   const qontoBalance = qontoRes.status === 'fulfilled' ? qontoRes.value : null
+  const allUsers: DashboardUser[] = usersRes.status === 'fulfilled' ? (usersRes.value.data ?? []) : []
+
+  const newLast24h = allUsers.filter((u) => u.created_at >= oneDayAgo)
+  const newThisWeek = allUsers.filter((u) => u.created_at >= sevenDaysAgo)
+  const byPlan = allUsers.reduce<Record<string, number>>((acc, u) => {
+    const key = u.plan ?? u.account_type ?? 'inconnu'
+    acc[key] = (acc[key] ?? 0) + 1
+    return acc
+  }, {})
 
   return {
     tasks,
@@ -138,6 +160,7 @@ async function loadContext() {
     overdueTasks: tasks.filter((t) => t.due_date && t.due_date < todayIso),
     staleLeads: leads.filter((l) => new Date(l.updated_at) < new Date(sevenDaysAgo)),
     todayIso,
+    users: { total: allUsers.length, newLast24h, newThisWeek, byPlan },
   }
 }
 
@@ -214,6 +237,27 @@ function buildSystemPrompt(
     }
   } else {
     lines.push('- Aucun contrat actif.')
+  }
+  lines.push('')
+
+  // ## UTILISATEURS
+  lines.push('## UTILISATEURS')
+  if (ctx.users.total > 0) {
+    lines.push(`- Total inscrits : ${ctx.users.total}`)
+    const planLines = Object.entries(ctx.users.byPlan)
+      .sort((a, b) => b[1] - a[1])
+      .map(([plan, count]) => `${plan}: ${count}`)
+    if (planLines.length > 0) lines.push(`- Répartition : ${planLines.join(' | ')}`)
+    lines.push(`- Nouvelles inscriptions 24h : ${ctx.users.newLast24h.length}`)
+    if (ctx.users.newLast24h.length > 0) {
+      for (const u of ctx.users.newLast24h.slice(0, 5)) {
+        lines.push(`  · ${u.email} (${u.plan ?? u.account_type ?? 'inconnu'})`)
+      }
+      if (ctx.users.newLast24h.length > 5) lines.push(`  · … et ${ctx.users.newLast24h.length - 5} autres`)
+    }
+    lines.push(`- Nouvelles inscriptions 7j : ${ctx.users.newThisWeek.length}`)
+  } else {
+    lines.push('- Données utilisateurs indisponibles')
   }
   lines.push('')
 
