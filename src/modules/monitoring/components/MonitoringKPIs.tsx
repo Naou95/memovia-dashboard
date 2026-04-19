@@ -1,4 +1,5 @@
 import { Bug, RefreshCw, Users } from 'lucide-react'
+import type { ReactNode } from 'react'
 import type { SentryStats } from '@/types/sentry'
 
 interface Props {
@@ -6,13 +7,14 @@ interface Props {
 }
 
 interface KpiCardProps {
-  icon: React.ReactNode
+  icon: ReactNode
   label: string
   value: number
   accent: string
 }
 
 function KpiCard({ icon, label, value, accent }: KpiCardProps) {
+  const isCssVar = accent.startsWith('var(')
   return (
     <div
       className="flex items-center gap-3 rounded-2xl border px-4 py-3"
@@ -20,7 +22,11 @@ function KpiCard({ icon, label, value, accent }: KpiCardProps) {
     >
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-        style={{ backgroundColor: `${accent}18` }}
+        style={
+          isCssVar
+            ? { backgroundColor: 'var(--memovia-violet-light)' }
+            : { backgroundColor: `${accent}18` }
+        }
       >
         <span style={{ color: accent }}>{icon}</span>
       </div>
