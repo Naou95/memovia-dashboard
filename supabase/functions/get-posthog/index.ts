@@ -38,6 +38,13 @@ function buildDailySeries(
   return series
 }
 
+const PARASITIC_DOMAINS = new Set(['temp-mail.org', 'lovable.dev', 'localhost', '127.0.0.1'])
+function isParasiticSource(source: string): boolean {
+  if (PARASITIC_DOMAINS.has(source)) return true
+  if (source.endsWith('.lovable.dev') || source.endsWith('.lovableproject.com')) return true
+  return false
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
@@ -80,13 +87,14 @@ Deno.serve(async (req) => {
            GROUP BY day ORDER BY day`,
           apiKey, projectId,
         ),
-        // Top pages
+        // Top pages (marketing site only — exclude app.memovia.io)
         hogql(
           `SELECT properties['$current_url'] AS url, count() AS cnt
            FROM events
            WHERE event = '$pageview'
              AND timestamp >= now() - toIntervalDay(7)
              AND properties['$current_url'] != ''
+             AND NOT (properties['$current_url'] LIKE '%app.memovia.io%')
              ${hostFilter}
            GROUP BY url ORDER BY cnt DESC LIMIT 10`,
           apiKey, projectId,
@@ -128,13 +136,18 @@ Deno.serve(async (req) => {
       const pageviews7d = dailyRows.reduce((s, row) => s + (Number(row[2]) || 0), 0)
 
       const topPages = pagesRows
-        .filter((r) => r[0] && !String(r[0]).startsWith('http://localhost'))
+        .filter((r) => {
+          const url = String(r[0])
+          return r[0] && !url.startsWith('http://localhost') && !url.includes('app.memovia.io')
+        })
         .map((r) => ({ url: String(r[0]), count: Number(r[1]) || 0 }))
 
-      const trafficSources = sourcesRows.map((r) => ({
-        source: String(r[0]) || 'Direct',
-        count: Number(r[1]) || 0,
-      }))
+      const trafficSources = sourcesRows
+        .filter((r) => !isParasiticSource(String(r[0])))
+        .map((r) => ({
+          source: String(r[0]) || 'Direct',
+          count: Number(r[1]) || 0,
+        }))
 
       const eventsMap = new Map<string, number>()
       for (const row of eventsRows) eventsMap.set(String(row[0]), Number(row[1]) || 0)
@@ -218,10 +231,12 @@ Deno.serve(async (req) => {
       .filter((r) => r[0] && !String(r[0]).startsWith('http://localhost'))
       .map((r) => ({ url: String(r[0]), count: Number(r[1]) || 0 }))
 
-    const trafficSources = sourcesRows.map((r) => ({
-      source: String(r[0]) || 'Direct',
-      count: Number(r[1]) || 0,
-    }))
+    const trafficSources = sourcesRows
+      .filter((r) => !isParasiticSource(String(r[0])))
+      .map((r) => ({
+        source: String(r[0]) || 'Direct',
+        count: Number(r[1]) || 0,
+      }))
 
     const sessionsToday = Number(sessionsRows[0]?.[0]) || 0
 
