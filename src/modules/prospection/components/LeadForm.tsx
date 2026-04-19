@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -58,13 +58,23 @@ export function LeadForm({ open, onClose, lead, onSubmit }: LeadFormProps) {
   const [form, setForm] = useState<FormState>(emptyForm())
   const [nameError, setNameError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const notesRef = useRef<HTMLTextAreaElement>(null)
+
+  const autoResize = useCallback((el: HTMLTextAreaElement) => {
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [])
 
   useEffect(() => {
     if (open) {
       setForm(lead ? leadToForm(lead) : emptyForm())
       setNameError(null)
+      // Reset textarea height when dialog opens
+      setTimeout(() => {
+        if (notesRef.current) autoResize(notesRef.current)
+      }, 0)
     }
-  }, [open, lead])
+  }, [open, lead, autoResize])
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -220,13 +230,15 @@ export function LeadForm({ open, onClose, lead, onSubmit }: LeadFormProps) {
             <div className="space-y-1.5">
               <Label htmlFor="notes">Notes</Label>
               <textarea
+                ref={notesRef}
                 id="notes"
                 name="notes"
                 value={form.notes}
                 onChange={handleChange}
-                rows={3}
+                onInput={(e) => autoResize(e.currentTarget)}
                 placeholder="Informations complémentaires…"
-                className="w-full resize-none rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--memovia-violet)] focus:ring-1 focus:ring-[var(--memovia-violet)]"
+                style={{ minHeight: '150px', fontSize: '14px', padding: '12px' }}
+                className="w-full overflow-hidden rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--memovia-violet)] focus:ring-1 focus:ring-[var(--memovia-violet)]"
               />
             </div>
 

@@ -23,9 +23,9 @@ const NEWSLETTER_KEYWORDS = [
 
 const KNOWN_SENT_FOLDERS = ['Sent', 'Sent Items', 'INBOX.Sent', 'Sent Messages']
 
-const DAYS_BACK = 3
-const MAX_PER_FOLDER = 5
-const MAX_CONVERSATIONS = 5
+const DAYS_BACK = 14
+const MAX_PER_FOLDER = 10
+const MAX_CONVERSATIONS = 10
 const MAX_BODY_CHARS = 1000
 const CLAUDE_DELAY_MS = 100
 const GLOBAL_TIMEOUT_MS = 45_000
@@ -413,14 +413,14 @@ async function runDetector(
       groups.get(key)!.push(email)
     }
 
-    const conversations = [...groups.values()]
+    const sorted = [...groups.values()]
       .map((emails) => emails.sort((a, b) => a.date.localeCompare(b.date)))
-      .sort((a, b) => {
-        const aLast = a[a.length - 1]?.date ?? ''
-        const bLast = b[b.length - 1]?.date ?? ''
-        return bLast.localeCompare(aLast)
-      })
-      .slice(0, MAX_CONVERSATIONS)
+      .sort((a, b) => (b[b.length - 1]?.date ?? '').localeCompare(a[a.length - 1]?.date ?? ''))
+
+    // Sent-without-reply emails get included even if inbox is busy
+    const withReplies = sorted.filter((c) => c.some((e) => e.direction === 'reçu'))
+    const sentOnly = sorted.filter((c) => c.every((e) => e.direction === 'envoyé'))
+    const conversations = [...withReplies, ...sentOnly].slice(0, MAX_CONVERSATIONS)
 
     for (const conversation of conversations) {
       stats.analyzed++
