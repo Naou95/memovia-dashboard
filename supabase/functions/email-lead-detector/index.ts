@@ -23,10 +23,12 @@ const NEWSLETTER_KEYWORDS = [
 
 const KNOWN_SENT_FOLDERS = ['Sent', 'Sent Items', 'INBOX.Sent', 'Sent Messages']
 
-const DAYS_BACK = 30
-const MAX_CONVERSATIONS = 20
-const MAX_BODY_CHARS = 2000
-const CLAUDE_DELAY_MS = 200
+const DAYS_BACK = 3
+const MAX_PER_FOLDER = 5
+const MAX_CONVERSATIONS = 5
+const MAX_BODY_CHARS = 1000
+const CLAUDE_DELAY_MS = 100
+const GLOBAL_TIMEOUT_MS = 45_000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -134,7 +136,7 @@ async function fetchFolderEmails(
 
   try {
     const searchResult = await client.search({ since }, { uid: true })
-    const uids = (searchResult || []).slice(-50)
+    const uids = (searchResult || []).slice(-MAX_PER_FOLDER)
     if (uids.length === 0) return results
 
     // Fetch envelopes in batch
@@ -369,42 +371,23 @@ async function upsertLead(
   return 'inserted'
 }
 
-// ── Main handler ───────────────────────────────────────────────────────────────
+// ── Core logic (extracted for timeout wrapping) ────────────────────────────────
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
-
-  const authHeader = req.headers.get('Authorization') ?? ''
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const isCronCall = serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`
-  if (!isCronCall) {
-    const authResult = await validateAuth(req)
-    if (authResult instanceof Response) return authResult
-  }
-
-  const imapUser = Deno.env.get('HOSTINGER_EMAIL')
-  const imapPass = Deno.env.get('HOSTINGER_IMAP_PASSWORD')
-  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
-
-  if (!imapUser || !imapPass) return errorResponse('email_not_configured', 500)
-  if (!anthropicKey) return errorResponse('anthropic_not_configured', 500)
-
-  try { await req.json() } catch { /* ignore */ }
-
-  const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  )
-
+async function runDetector(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  imapUser: string,
+  imapPass: string,
+  anthropicKey: string,
+): Promise<Response> {
   const client = new ImapFlow({
     host: 'imap.hostinger.com',
     port: 993,
     secure: true,
     auth: { user: imapUser, pass: imapPass },
     logger: false,
-    socketTimeout: 30000,
-    greetingTimeout: 15000,
-    connectionTimeout: 15000,
+    socketTimeout: 20000,
+    greetingTimeout: 10000,
+    connectionTimeout: 10000,
   })
 
   const stats = { analyzed: 0, inserted: 0, updated: 0, skipped: 0, errors: 0 }
@@ -414,20 +397,14 @@ Deno.serve(async (req) => {
 
     const since = new Date(Date.now() - DAYS_BACK * 24 * 60 * 60 * 1000)
 
-    // Detect Sent folder
     const sentFolder = await detectSentFolder(client)
 
-    // Fetch emails from INBOX and Sent
     const allEmails: RawEmail[] = []
-    const inboxEmails = await fetchFolderEmails(client, 'INBOX', since, false)
-    allEmails.push(...inboxEmails)
-
+    allEmails.push(...await fetchFolderEmails(client, 'INBOX', since, false))
     if (sentFolder) {
-      const sentEmails = await fetchFolderEmails(client, sentFolder, since, true)
-      allEmails.push(...sentEmails)
+      allEmails.push(...await fetchFolderEmails(client, sentFolder, since, true))
     }
 
-    // Group by conversation key
     const groups = new Map<string, RawEmail[]>()
     for (const email of allEmails) {
       const key = getConversationKey(email.fromAddress, email.toAddresses)
@@ -436,7 +413,6 @@ Deno.serve(async (req) => {
       groups.get(key)!.push(email)
     }
 
-    // Sort each group chronologically; keep top MAX_CONVERSATIONS by most recent activity
     const conversations = [...groups.values()]
       .map((emails) => emails.sort((a, b) => a.date.localeCompare(b.date)))
       .sort((a, b) => {
@@ -446,7 +422,6 @@ Deno.serve(async (req) => {
       })
       .slice(0, MAX_CONVERSATIONS)
 
-    // Analyze each conversation
     for (const conversation of conversations) {
       stats.analyzed++
       let analysis: ClaudeAnalysis | null = null
@@ -482,4 +457,44 @@ Deno.serve(async (req) => {
     console.error('email-lead-detector error:', err)
     return errorResponse('imap_connection_failed', 503)
   }
+}
+
+// ── Main handler ───────────────────────────────────────────────────────────────
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
+
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const isCronCall = serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`
+  if (!isCronCall) {
+    const authResult = await validateAuth(req)
+    if (authResult instanceof Response) return authResult
+  }
+
+  const imapUser = Deno.env.get('HOSTINGER_EMAIL')
+  const imapPass = Deno.env.get('HOSTINGER_IMAP_PASSWORD')
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
+
+  if (!imapUser || !imapPass) return errorResponse('email_not_configured', 500)
+  if (!anthropicKey) return errorResponse('anthropic_not_configured', 500)
+
+  try { await req.json() } catch { /* ignore */ }
+
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  )
+
+  const timeout = new Promise<Response>((resolve) =>
+    setTimeout(
+      () => resolve(Response.json({ error: 'global_timeout', partial: true }, { status: 504, headers: corsHeaders })),
+      GLOBAL_TIMEOUT_MS,
+    )
+  )
+
+  return Promise.race([
+    runDetector(supabaseAdmin, imapUser, imapPass, anthropicKey),
+    timeout,
+  ])
 })
