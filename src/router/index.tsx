@@ -14,6 +14,7 @@ const TasksPage = lazy(() => import('@/modules/tasks/TasksPage'))
 const CalendarPage = lazy(() => import('@/modules/calendar/CalendarPage'))
 const UtilisateursPage = lazy(() => import('@/modules/utilisateurs/UtilisateursPage'))
 const RealtimePage = lazy(() => import('@/modules/realtime/RealtimePage'))
+const MonitoringPage = lazy(() => import('@/modules/monitoring/MonitoringPage'))
 const RoadmapPage = lazy(() => import('@/modules/roadmap/RoadmapPage'))
 const EmailPage = lazy(() => import('@/modules/email/EmailPage'))
 const GitHubPage = lazy(() => import('@/modules/github/GitHubPage'))
@@ -127,6 +128,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <RealtimePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'monitoring',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <MonitoringPage />
           </Suspense>
         ),
       },

@@ -15,6 +15,7 @@ import {
   BarChart2,
   UserCog,
   Receipt,
+  Bug,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { UserRole } from '@/types/auth'
@@ -153,6 +154,14 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Realtime',
         path: '/realtime',
         icon: Zap,
+        status: 'active',
+        allowedRoles: [],
+      },
+      {
+        id: 'monitoring',
+        label: 'Monitoring',
+        path: '/monitoring',
+        icon: Bug,
         status: 'active',
         allowedRoles: [],
       },
