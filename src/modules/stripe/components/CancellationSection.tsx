@@ -24,7 +24,7 @@ function daysUntil(iso: string): number {
   return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function buildEmailBody(email: string, cancelDate: string): string {
+function buildEmailBody(_email: string, cancelDate: string): string {
   return `Bonjour,
 
 Nous avons vu que vous avez annulé votre abonnement MEMOVIA. Avant que celui-ci se termine le ${cancelDate}, nous aimerions comprendre ce qui n'a pas fonctionné pour vous.
