@@ -12,6 +12,7 @@ import {
   Mail,
   Github,
   BarChart3,
+  BarChart2,
   UserCog,
   Receipt,
 } from 'lucide-react'
@@ -188,6 +189,14 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'SEO & Blog',
         path: '/seo',
         icon: BarChart3,
+        status: 'active',
+        allowedRoles: [],
+      },
+      {
+        id: 'analytics',
+        label: 'Analytics PostHog',
+        path: '/analytics',
+        icon: BarChart2,
         status: 'active',
         allowedRoles: [],
       },

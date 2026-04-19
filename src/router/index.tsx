@@ -19,6 +19,7 @@ const EmailPage = lazy(() => import('@/modules/email/EmailPage'))
 const GitHubPage = lazy(() => import('@/modules/github/GitHubPage'))
 const SeoPage = lazy(() => import('@/modules/seo/SeoPage'))
 const ApiCostsPage = lazy(() => import('@/modules/api-costs/ApiCostsPage'))
+const AnalyticsPage = lazy(() => import('@/modules/analytics/AnalyticsPage'))
 const CopilotPage = lazy(() => import('@/modules/copilot/CopilotPage'))
 const AdminPage = lazy(() => import('@/modules/admin/AdminPage'))
 
@@ -166,6 +167,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <ApiCostsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'analytics',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AnalyticsPage />
           </Suspense>
         ),
       },
