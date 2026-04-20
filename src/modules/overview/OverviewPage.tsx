@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   DollarSign, Users, Landmark, UserMinus, Bot, AlertTriangle, Activity,
   Calendar, Mail, CheckSquare, Phone, UserPlus, CreditCard, Sun, ArrowRight, RefreshCw,
@@ -90,6 +90,16 @@ interface DayItem {
 
 export default function OverviewPage() {
   const { user } = useAuth()
+  const [deferSecondary, setDeferSecondary] = useState(false)
+
+  useEffect(() => {
+    if (typeof requestIdleCallback !== 'undefined') {
+      const id = requestIdleCallback(() => setDeferSecondary(true))
+      return () => cancelIdleCallback(id)
+    }
+    const t = setTimeout(() => setDeferSecondary(true), 100)
+    return () => clearTimeout(t)
+  }, [])
 
   // ── Existing data hooks ──
   const { stripe, stripeError, isLoading: stripeKpiLoading } = useOverviewKpis()
@@ -100,15 +110,15 @@ export default function OverviewPage() {
   const { contracts, isLoading: contractsLoading } = useContracts()
 
   // ── New data hooks ──
-  const { data: calendarData, isLoading: calendarLoading } = useCalendar()
+  const { data: calendarData, isLoading: calendarLoading } = useCalendar(new Date(), { enabled: deferSecondary })
   const { alerts: emailAlerts, isLoading: emailLoading, loadEmails } = useEmail()
 
   const since24h = useMemo(() => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), [])
-  const { users: newUsers24h, isLoading: newUsersLoading } = useMemoviaUsers(since24h)
+  const { users: newUsers24h, isLoading: newUsersLoading } = useMemoviaUsers(deferSecondary ? since24h : null, { enabled: deferSecondary })
 
   useEffect(() => {
-    loadEmails()
-  }, [loadEmails])
+    if (deferSecondary) loadEmails()
+  }, [deferSecondary, loadEmails])
 
   // ── Greeting ──
   const hour = new Date().getHours()

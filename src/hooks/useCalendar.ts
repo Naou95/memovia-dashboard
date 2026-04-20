@@ -6,6 +6,13 @@ import type {
   CreateMeetResponse,
 } from '@/types/calendar'
 
+const CACHE_TTL = 5 * 60 * 1000
+const calendarCache = new Map<string, { data: CalendarEventsResponse; ts: number }>()
+
+export function invalidateCalendarCache(): void {
+  calendarCache.clear()
+}
+
 export interface UseCalendarResult {
   data: CalendarEventsResponse | null
   isLoading: boolean
@@ -21,15 +28,34 @@ function dateRangeForView(date: Date): { start: Date; end: Date } {
   return { start, end }
 }
 
-export function useCalendar(currentDate = new Date()): UseCalendarResult {
+export function useCalendar(currentDate = new Date(), options: { enabled?: boolean } = {}): UseCalendarResult {
+  const { enabled = true } = options
   const [data, setData] = useState<CalendarEventsResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState<string | null>(null)
   const currentDateRef = useRef(currentDate)
+  const abortRef = useRef<{ aborted: boolean } | null>(null)
+
+  useEffect(() => { currentDateRef.current = currentDate }, [currentDate])
 
   const fetchEvents = useCallback(async (start?: Date, end?: Date) => {
-    setIsLoading(true)
-    setError(null)
+    if (abortRef.current) abortRef.current.aborted = true
+    const guard = { aborted: false }
+    abortRef.current = guard
+
+    if (!guard.aborted) setIsLoading(true)
+    if (!guard.aborted) setError(null)
+
+    const cacheKey = (start && end)
+      ? `${start.toISOString()}_${end.toISOString()}`
+      : `${currentDateRef.current.getFullYear()}-${currentDateRef.current.getMonth()}`
+
+    const cached = calendarCache.get(cacheKey)
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      if (!guard.aborted) setData(cached.data)
+      if (!guard.aborted) setIsLoading(false)
+      return
+    }
 
     const range = start && end
       ? { start, end }
@@ -37,8 +63,8 @@ export function useCalendar(currentDate = new Date()): UseCalendarResult {
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
-      setError('Non authentifié')
-      setIsLoading(false)
+      if (!guard.aborted) setError('Non authentifié')
+      if (!guard.aborted) setIsLoading(false)
       return
     }
 
@@ -63,19 +89,24 @@ export function useCalendar(currentDate = new Date()): UseCalendarResult {
       }
 
       const json: CalendarEventsResponse = await res.json()
-      setData(json)
+      calendarCache.set(cacheKey, { data: json, ts: Date.now() })
+      if (!guard.aborted) setData(json)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement')
+      if (!guard.aborted) setError(err instanceof Error ? err.message : 'Erreur de chargement')
     } finally {
-      setIsLoading(false)
+      if (!guard.aborted) setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
     fetchEvents()
-    const timer = setTimeout(() => setIsLoading(false), 5000)
-    return () => clearTimeout(timer)
-  }, [fetchEvents])
+    return () => {
+      if (abortRef.current) abortRef.current.aborted = true
+    }
+  }, [fetchEvents, enabled])
 
   const createMeet = useCallback(async (payload: CreateMeetPayload): Promise<CreateMeetResponse> => {
     const { data: { session } } = await supabase.auth.getSession()
