@@ -10,6 +10,8 @@ export interface Task {
   priority: TaskPriority
   due_date: string | null      // ISO date YYYY-MM-DD
   assigned_to: TaskAssignee | null
+  assignees: string[]
+  is_private: boolean
   created_at: string
   updated_at: string
   created_by: string | null

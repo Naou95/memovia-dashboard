@@ -27,6 +27,14 @@ function formatDate(dateStr: string | null): string {
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
+function getEffectiveAssignees(task: Task): TaskAssignee[] {
+  if (task.assignees && task.assignees.length > 0) {
+    return task.assignees.filter((a): a is TaskAssignee => a in ASSIGNEE_AVATAR)
+  }
+  if (task.assigned_to) return [task.assigned_to]
+  return []
+}
+
 function isOverdue(task: Task): boolean {
   return task.due_date != null && task.status !== 'done' && new Date(task.due_date) < new Date()
 }
@@ -53,7 +61,7 @@ export function TaskDetailModal({ open, task, onClose, onEdit }: TaskDetailModal
   const overdue = isOverdue(t)
   const badge = PRIORITY_BADGE[t.priority]
   const statusStyle = STATUS_STYLE[t.status]
-  const assignee = t.assigned_to ? ASSIGNEE_AVATAR[t.assigned_to] : null
+  const effAssignees = getEffectiveAssignees(t)
 
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
@@ -124,16 +132,28 @@ export function TaskDetailModal({ open, task, onClose, onEdit }: TaskDetailModal
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   Assigné à
                 </p>
-                {assignee ? (
+                {effAssignees.length > 0 ? (
                   <div className="flex items-center gap-2">
-                    <span
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                      style={{ backgroundColor: assignee.bg, color: assignee.color }}
-                    >
-                      {assignee.initials}
-                    </span>
+                    <div className="flex items-center">
+                      {effAssignees.map((key, i) => {
+                        const av = ASSIGNEE_AVATAR[key]
+                        return (
+                          <span
+                            key={key}
+                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-[var(--bg-secondary)]"
+                            style={{
+                              backgroundColor: av.bg,
+                              color: av.color,
+                              marginLeft: i > 0 ? -4 : 0,
+                            }}
+                          >
+                            {av.initials}
+                          </span>
+                        )
+                      })}
+                    </div>
                     <span className="text-[13px] text-[var(--text-primary)]">
-                      {TASK_ASSIGNEE_LABELS[t.assigned_to!]}
+                      {effAssignees.map((key) => TASK_ASSIGNEE_LABELS[key]).join(', ')}
                     </span>
                   </div>
                 ) : (

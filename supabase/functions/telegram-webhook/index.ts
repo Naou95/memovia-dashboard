@@ -339,11 +339,17 @@ const TOOLS = [
         title: { type: 'string', description: 'Titre de la tâche' },
         description: { type: 'string', description: 'Description optionnelle' },
         priority: { type: 'string', enum: ['haute', 'normale', 'basse'], description: 'Priorité. Défaut: normale' },
-        assigned_to: { type: 'string', enum: ['naoufel', 'emir'], description: 'Personne assignée' },
+        assigned_to: {
+          oneOf: [
+            { type: 'string', enum: ['naoufel', 'emir'] },
+            { type: 'array', items: { type: 'string', enum: ['naoufel', 'emir'] } }
+          ],
+          description: 'Personne(s) assignée(s) — string ou array de naoufel/emir'
+        },
         due_date: { type: 'string', description: 'Date d\'échéance YYYY-MM-DD (optionnel)' },
         status: { type: 'string', enum: ['todo', 'en_cours'], description: 'Statut initial. Défaut: todo' },
       },
-      required: ['title', 'assigned_to'],
+      required: ['title'],
     },
   },
   {
@@ -494,11 +500,16 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
   )
 
   if (name === 'create_task') {
+    // Normalize assigned_to: accept string or array
+    const assigneesRaw = Array.isArray(input.assigned_to) ? input.assigned_to as string[] : (input.assigned_to ? [String(input.assigned_to)] : [])
+    const assignedTo = assigneesRaw[0] ?? null
+
     const { data, error } = await supabase.from('tasks').insert({
       title: String(input.title),
       description: input.description ? String(input.description) : null,
       priority: (input.priority as string) ?? 'normale',
-      assigned_to: String(input.assigned_to),
+      assigned_to: assignedTo,
+      assignees: assigneesRaw,
       due_date: input.due_date ? String(input.due_date) : null,
       status: (input.status as string) ?? 'todo',
     }).select('id').single()

@@ -57,6 +57,7 @@ export interface TaskCardData {
   id: string
   title: string
   assigned_to: string
+  assignees?: string[]
   priority: 'haute' | 'normale' | 'basse'
   status: 'todo' | 'en_cours'
   due_date: string | null
@@ -110,6 +111,7 @@ function parseToolResultCard(raw: { type: string; payload: Record<string, unknow
         id: String(p.id ?? ''),
         title: String(p.title ?? ''),
         assigned_to: p.assigned_to ? String(p.assigned_to) : '',
+        assignees: Array.isArray(p.assignees) ? (p.assignees as string[]) : [],
         priority: (p.priority as TaskCardData['priority']) ?? 'normale',
         status: (p.status as TaskCardData['status']) ?? 'todo',
         due_date: p.due_date ? String(p.due_date) : null,

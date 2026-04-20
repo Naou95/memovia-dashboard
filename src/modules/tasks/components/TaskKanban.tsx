@@ -58,6 +58,14 @@ const ASSIGNEE_AVATAR: Record<TaskAssignee, { initials: string; bg: string; colo
   emir: { initials: 'E', bg: '#d1fae5', color: '#059669' },
 }
 
+function getEffectiveAssignees(task: Task): TaskAssignee[] {
+  if (task.assignees && task.assignees.length > 0) {
+    return task.assignees.filter((a): a is TaskAssignee => a in ASSIGNEE_AVATAR)
+  }
+  if (task.assigned_to) return [task.assigned_to]
+  return []
+}
+
 // ── Card content ─────────────────────────────────────────────────────────────────
 
 interface CardContentProps {
@@ -151,15 +159,30 @@ function CardContent({ task, onView, isOverlay, isPlaceholder }: CardContentProp
             <span>0</span>
           </span>
 
-          {task.assigned_to && (() => {
-            const av = ASSIGNEE_AVATAR[task.assigned_to]
+          {(() => {
+            const effAssignees = getEffectiveAssignees(task)
+            if (effAssignees.length === 0) return null
             return (
-              <span
-                className="ml-auto shrink-0 flex items-center justify-center rounded-full text-[10px] font-bold"
-                style={{ width: 26, height: 26, backgroundColor: av.bg, color: av.color }}
-              >
-                {av.initials}
-              </span>
+              <div className="ml-auto flex shrink-0 items-center">
+                {effAssignees.map((key, i) => {
+                  const av = ASSIGNEE_AVATAR[key]
+                  return (
+                    <span
+                      key={key}
+                      className="flex items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-white"
+                      style={{
+                        width: 26,
+                        height: 26,
+                        backgroundColor: av.bg,
+                        color: av.color,
+                        marginLeft: i > 0 ? -4 : 0,
+                      }}
+                    >
+                      {av.initials}
+                    </span>
+                  )
+                })}
+              </div>
             )
           })()}
         </div>

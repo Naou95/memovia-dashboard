@@ -49,11 +49,17 @@ const TOOLS = [
         title: { type: 'string', description: 'Titre de la tâche' },
         description: { type: 'string', description: 'Description optionnelle de la tâche' },
         priority: { type: 'string', enum: ['haute', 'normale', 'basse'], description: 'Priorité. Défaut: normale' },
-        assigned_to: { type: 'string', enum: ['naoufel', 'emir'], description: 'Personne assignée à la tâche' },
+        assigned_to: {
+          oneOf: [
+            { type: 'string', enum: ['naoufel', 'emir'] },
+            { type: 'array', items: { type: 'string', enum: ['naoufel', 'emir'] } }
+          ],
+          description: 'Personne(s) assignée(s) — string ou array de naoufel/emir'
+        },
         due_date: { type: 'string', description: 'Date d\'échéance au format YYYY-MM-DD (optionnel)' },
         status: { type: 'string', enum: ['todo', 'en_cours'], description: 'Statut initial. Défaut: todo' },
       },
-      required: ['title', 'assigned_to'],
+      required: ['title'],
     },
   },
   {
@@ -252,11 +258,16 @@ async function executeTool(
   )
 
   if (name === 'create_task') {
+    // Normalize assigned_to: accept string or array
+    const assigneesRaw = Array.isArray(input.assigned_to) ? input.assigned_to as string[] : (input.assigned_to ? [String(input.assigned_to)] : [])
+    const assignedTo = assigneesRaw[0] ?? null
+
     const { data, error } = await supabaseUser.from('tasks').insert({
       title: String(input.title),
       description: input.description ? String(input.description) : null,
       priority: (input.priority as string) ?? 'normale',
-      assigned_to: String(input.assigned_to),
+      assigned_to: assignedTo,
+      assignees: assigneesRaw,
       due_date: input.due_date ? String(input.due_date) : null,
       status: (input.status as string) ?? 'todo',
       created_by: userId,
@@ -267,7 +278,8 @@ async function executeTool(
     const payload = {
       id: data.id,
       title: String(input.title),
-      assigned_to: String(input.assigned_to),
+      assigned_to: assignedTo,
+      assignees: assigneesRaw,
       priority: (input.priority as string) ?? 'normale',
       status: (input.status as string) ?? 'todo',
       due_date: input.due_date ? String(input.due_date) : null,

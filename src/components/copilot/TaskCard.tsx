@@ -23,6 +23,11 @@ const ASSIGNEE_COLORS: Record<string, string> = {
 }
 
 export function TaskCard({ data }: { data: TaskCardData }) {
+  // Compute effective assignees: use assignees if non-empty, else use assigned_to if non-empty
+  const effectiveAssignees = data.assignees && data.assignees.length > 0
+    ? data.assignees
+    : (data.assigned_to ? [data.assigned_to] : [])
+
   return (
     <div className="my-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 shadow-sm">
       <div className="flex items-start gap-2">
@@ -36,9 +41,20 @@ export function TaskCard({ data }: { data: TaskCardData }) {
             <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-medium', PRIORITY_STYLES[data.priority] ?? '')}>
               {PRIORITY_LABELS[data.priority] ?? data.priority}
             </span>
-            <span className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold', ASSIGNEE_COLORS[data.assigned_to] ?? 'bg-[var(--bg-secondary)] text-[var(--text-muted)]')}>
-              {ASSIGNEE_INITIALS[data.assigned_to] ?? (data.assigned_to[0]?.toUpperCase() || '?')}
-            </span>
+            <div className="flex">
+              {effectiveAssignees.map((assignee, idx) => (
+                <span
+                  key={assignee}
+                  className={cn(
+                    'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold',
+                    ASSIGNEE_COLORS[assignee] ?? 'bg-[var(--bg-secondary)] text-[var(--text-muted)]',
+                    idx > 0 && '-ml-1 ring-1 ring-white'
+                  )}
+                >
+                  {ASSIGNEE_INITIALS[assignee] ?? (assignee[0]?.toUpperCase() || '?')}
+                </span>
+              ))}
+            </div>
             {data.due_date && (
               <span className="text-[10px] text-[var(--text-muted)]">
                 {new Date(data.due_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}

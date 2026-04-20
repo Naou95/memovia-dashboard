@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
+import { X, Lock, Unlock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,7 +22,8 @@ interface FormState {
   status: string
   priority: string
   due_date: string
-  assigned_to: string
+  assignees: string[]
+  is_private: boolean
 }
 
 function emptyForm(): FormState {
@@ -32,19 +33,44 @@ function emptyForm(): FormState {
     status: 'todo',
     priority: 'normale',
     due_date: '',
-    assigned_to: '',
+    assignees: [],
   }
 }
 
 function taskToForm(task: Task): FormState {
+  const assignees =
+    task.assignees && task.assignees.length > 0
+      ? task.assignees
+      : task.assigned_to
+      ? [task.assigned_to]
+      : []
   return {
     title: task.title,
     description: task.description ?? '',
     status: task.status,
     priority: task.priority,
     due_date: task.due_date ?? '',
-    assigned_to: task.assigned_to ?? '',
+    assignees,
   }
+}
+
+const ASSIGNEE_CHIP_CONFIG: Record<string, { label: string; initials: string; bg: string; color: string; selectedBorder: string; selectedBg: string }> = {
+  naoufel: {
+    label: 'Naoufel',
+    initials: 'N',
+    bg: '#ede9fe',
+    color: '#7c3aed',
+    selectedBorder: '#7c3aed',
+    selectedBg: '#f5f3ff',
+  },
+  emir: {
+    label: 'Emir',
+    initials: 'E',
+    bg: '#d1fae5',
+    color: '#059669',
+    selectedBorder: '#059669',
+    selectedBg: '#f0fdf4',
+  },
 }
 
 const selectClass =
@@ -104,7 +130,8 @@ export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete, d
         status: form.status as TaskInsert['status'],
         priority: form.priority as TaskInsert['priority'],
         due_date: form.due_date || null,
-        assigned_to: (form.assigned_to || null) as TaskInsert['assigned_to'],
+        assigned_to: (form.assignees[0] ?? null) as TaskInsert['assigned_to'],
+        assignees: form.assignees,
         created_by: null,
       }
       await onSubmit(payload)
@@ -198,12 +225,41 @@ export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete, d
             {/* Assigné + Date */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="assigned_to">Assigné à</Label>
-                <select id="assigned_to" name="assigned_to" value={form.assigned_to} onChange={handleChange} className={selectClass}>
-                  <option value="">— Non assigné</option>
-                  <option value="naoufel">Naoufel</option>
-                  <option value="emir">Emir</option>
-                </select>
+                <Label>Assigné à</Label>
+                <div className="flex gap-2">
+                  {(['naoufel', 'emir'] as const).map((key) => {
+                    const cfg = ASSIGNEE_CHIP_CONFIG[key]
+                    const selected = form.assignees.includes(key)
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            assignees: selected
+                              ? prev.assignees.filter((a) => a !== key)
+                              : [...prev.assignees, key],
+                          }))
+                        }
+                        className="flex flex-1 items-center gap-2 rounded-md border px-2.5 py-1.5 text-[13px] font-medium transition-all"
+                        style={{
+                          borderColor: selected ? cfg.selectedBorder : 'var(--border-color)',
+                          backgroundColor: selected ? cfg.selectedBg : 'transparent',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <span
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                          style={{ backgroundColor: cfg.bg, color: cfg.color }}
+                        >
+                          {cfg.initials}
+                        </span>
+                        {cfg.label}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="due_date">Date d'échéance</Label>
