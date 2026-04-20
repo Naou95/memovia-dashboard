@@ -109,13 +109,21 @@ export default function SeoPage() {
       </motion.div>
 
       {/* ── Stats bar ──────────────────────────────────────────────────────── */}
-      {!isLoading && (
-        <motion.div variants={staggerItem} className="grid shrink-0 grid-cols-3 gap-3">
-          <StatCard label="Total articles" value={stats.total} accent="#6366f1" />
-          <StatCard label="Publiés" value={stats.published} accent="#10b981" />
-          <StatCard label="Brouillons" value={stats.drafts} accent="#f59e0b" />
-        </motion.div>
-      )}
+      <motion.div variants={staggerItem} className="grid shrink-0 grid-cols-3 gap-3">
+        {isLoading ? (
+          <>
+            <div className="skeleton h-[60px] rounded-2xl" />
+            <div className="skeleton h-[60px] rounded-2xl" />
+            <div className="skeleton h-[60px] rounded-2xl" />
+          </>
+        ) : (
+          <>
+            <StatCard label="Total articles" value={stats.total} accent="#6366f1" />
+            <StatCard label="Publiés" value={stats.published} accent="#10b981" />
+            <StatCard label="Brouillons" value={stats.drafts} accent="#f59e0b" />
+          </>
+        )}
+      </motion.div>
 
       {/* ── Tabs ───────────────────────────────────────────────────────────── */}
       <motion.div

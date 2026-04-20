@@ -5,6 +5,13 @@ import type { MemoviaUser, MemoviaUserPlan, MemoviaAccountType } from '@/types/u
 // Limite : 500 utilisateurs les plus récents
 const LIMIT = 500
 
+const CACHE_TTL = 5 * 60 * 1000
+const usersCache = new Map<string, { data: { users: MemoviaUser[]; total: number }; ts: number }>()
+
+export function invalidateMemoviaUsersCache(): void {
+  usersCache.clear()
+}
+
 export interface UseMemoviaUsersResult {
   users: MemoviaUser[]
   total: number
@@ -17,15 +24,25 @@ export interface UseMemoviaUsersResult {
  * Lecture seule — la vue joint profiles + auth.users + organizations.
  * startDateIso : null = toutes dates, sinon filtre created_at >= startDateIso.
  */
-export function useMemoviaUsers(startDateIso: string | null): UseMemoviaUsersResult {
+export function useMemoviaUsers(startDateIso: string | null, options: { enabled?: boolean } = {}): UseMemoviaUsersResult {
+  const { enabled = true } = options
   const [users, setUsers] = useState<MemoviaUser[]>([])
   const [total, setTotal] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState<string | null>(null)
 
   const fetchAll = useCallback(async () => {
     setIsLoading(true)
     setError(null)
+
+    const cacheKey = startDateIso ?? 'all'
+    const cached = usersCache.get(cacheKey)
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      setUsers(cached.data.users)
+      setTotal(cached.data.total)
+      setIsLoading(false)
+      return
+    }
 
     try {
       let query = supabase
@@ -56,7 +73,8 @@ export function useMemoviaUsers(startDateIso: string | null): UseMemoviaUsersRes
         return
       }
 
-      setTotal(count ?? data.length)
+      const resolvedTotal = count ?? data.length
+      setTotal(resolvedTotal)
 
       const merged: MemoviaUser[] = data.map((row) => ({
         id: row.id,
@@ -70,6 +88,7 @@ export function useMemoviaUsers(startDateIso: string | null): UseMemoviaUsersRes
         organization_name: row.organization_name,
       }))
 
+      usersCache.set(cacheKey, { data: { users: merged, total: resolvedTotal }, ts: Date.now() })
       setUsers(merged)
     } catch {
       setError('Erreur inattendue lors du chargement des utilisateurs.')
@@ -79,8 +98,9 @@ export function useMemoviaUsers(startDateIso: string | null): UseMemoviaUsersRes
   }, [startDateIso])
 
   useEffect(() => {
+    if (!enabled) return
     fetchAll()
-  }, [fetchAll])
+  }, [fetchAll, enabled])
 
   return { users, total, isLoading, error }
 }
