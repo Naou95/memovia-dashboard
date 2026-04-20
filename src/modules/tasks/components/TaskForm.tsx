@@ -287,7 +287,7 @@ export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete, d
                 <div>
                   <p className="text-[13px] font-medium text-[var(--text-primary)]">Tâche privée</p>
                   <p className="text-[11px] text-[var(--text-muted)]">
-                    {form.is_private ? 'Visible uniquement par vous' : 'Visible par toute l'équipe'}
+                    {form.is_private ? 'Visible uniquement par vous' : "Visible par toute l'équipe"}
                   </p>
                 </div>
               </div>

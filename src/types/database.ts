@@ -21,6 +21,8 @@ export interface Database {
           priority: 'haute' | 'normale' | 'basse'
           due_date: string | null
           assigned_to: 'naoufel' | 'emir' | null
+          assignees: string[]
+          is_private: boolean
           created_at: string
           updated_at: string
           created_by: string | null
@@ -33,6 +35,8 @@ export interface Database {
           priority?: 'haute' | 'normale' | 'basse'
           due_date?: string | null
           assigned_to?: 'naoufel' | 'emir' | null
+          assignees?: string[]
+          is_private?: boolean
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -45,6 +49,8 @@ export interface Database {
           priority?: 'haute' | 'normale' | 'basse'
           due_date?: string | null
           assigned_to?: 'naoufel' | 'emir' | null
+          assignees?: string[]
+          is_private?: boolean
           updated_at?: string
           created_by?: string | null
         }
