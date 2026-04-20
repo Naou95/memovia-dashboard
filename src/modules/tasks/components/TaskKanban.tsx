@@ -21,7 +21,7 @@ import {
   Lock,
 } from 'lucide-react'
 import type { Task, TaskStatus, TaskPriority, TaskAssignee } from '@/types/tasks'
-import { TASK_STATUS_LABELS, TASK_STATUS_ORDER } from '@/types/tasks'
+import { TASK_STATUS_LABELS, TASK_STATUS_ORDER, TASK_PRIORITY_LABELS } from '@/types/tasks'
 
 interface TaskKanbanProps {
   tasks: Task[]
@@ -50,7 +50,7 @@ const COLUMN_DOT: Record<TaskStatus, string> = {
 
 const PRIORITY_BADGE: Record<TaskPriority, { bg: string; color: string }> = {
   haute: { bg: '#fee2e2', color: '#dc2626' },
-  normale: { bg: '#e5e7eb', color: '#4b5563' },
+  normale: { bg: '#ffedd5', color: '#ea580c' },
   basse: { bg: '#dbeafe', color: '#2563eb' },
 }
 
@@ -83,12 +83,12 @@ function CardContent({ task, onView, isOverlay, isPlaceholder }: CardContentProp
   return (
     <div
       className={[
-        'group rounded-lg bg-white transition-all',
+        'group rounded-lg bg-[var(--bg-secondary)]',
         isPlaceholder
           ? 'border border-dashed border-[var(--memovia-violet)] opacity-30 pointer-events-none'
           : isOverlay
           ? 'border border-[var(--memovia-violet)] shadow-[0_12px_32px_rgba(0,0,0,0.18)]'
-          : 'border border-[#E8E8F0] shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.12)]',
+          : 'border border-[var(--border-color)] shadow-[0_1px_3px_rgba(0,0,0,0.08)] transition-all duration-150 hover:shadow-[0_4px_12px_rgba(0,0,0,0.10)] hover:scale-[1.01]',
       ].join(' ')}
       style={isOverlay ? { transform: 'rotate(1.5deg)' } : undefined}
     >
@@ -96,10 +96,10 @@ function CardContent({ task, onView, isOverlay, isPlaceholder }: CardContentProp
         {/* Row 1: priority badge + ··· */}
         <div className="flex items-center justify-between min-h-[20px]">
           <span
-            className="inline-flex items-center justify-center rounded text-[11px] font-bold leading-none"
-            style={{ backgroundColor: badge.bg, color: badge.color, width: 24, height: 24 }}
+            className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none"
+            style={{ backgroundColor: badge.bg, color: badge.color }}
           >
-            P
+            {TASK_PRIORITY_LABELS[task.priority]}
           </span>
           {!isOverlay && !isPlaceholder && onView && (
             <button
@@ -178,11 +178,11 @@ function CardContent({ task, onView, isOverlay, isPlaceholder }: CardContentProp
                       key={key}
                       className="flex items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-white"
                       style={{
-                        width: 26,
-                        height: 26,
+                        width: 24,
+                        height: 24,
                         backgroundColor: av.bg,
                         color: av.color,
-                        marginLeft: i > 0 ? -4 : 0,
+                        marginLeft: i > 0 ? -8 : 0,
                       }}
                     >
                       {av.initials}
@@ -247,7 +247,7 @@ function DraggableCard({ task, onView }: { task: Task; onView: (t: Task) => void
 
 function SkeletonCard() {
   return (
-    <div className="rounded-lg border border-[#E8E8F0] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-4 space-y-2">
+    <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[0_1px_3px_rgba(0,0,0,0.08)] p-4 space-y-2">
       <div className="h-3 w-10 animate-pulse rounded bg-[var(--border-color)]" />
       <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
       <div className="h-3 w-3/4 animate-pulse rounded bg-[var(--border-color)]" />
@@ -275,7 +275,7 @@ function DroppableColumn({ status, tasks, isLoading, onView, onNewTask, activeTa
   const dot = COLUMN_DOT[status]
 
   return (
-    <div className="flex w-[280px] shrink-0 flex-col rounded-[10px] bg-[#F4F4F8] p-2.5">
+    <div className="flex w-[280px] shrink-0 flex-col rounded-[10px] bg-[var(--bg-primary)] p-2.5">
       {/* Column header — transparent, inside grey column */}
       <div className="mb-2 flex items-center justify-between px-0.5">
         <div className="flex items-center gap-2">
@@ -312,7 +312,7 @@ function DroppableColumn({ status, tasks, isLoading, onView, onNewTask, activeTa
         className="flex flex-col gap-[10px] rounded-lg transition-colors"
         style={{
           minHeight: 80,
-          backgroundColor: isOver ? 'color-mix(in oklab, var(--memovia-violet) 8%, #F4F4F8)' : 'transparent',
+          backgroundColor: isOver ? 'color-mix(in oklab, var(--memovia-violet) 8%, var(--bg-primary))' : 'transparent',
           outline: isOver ? '2px dashed var(--memovia-violet)' : '2px dashed transparent',
           outlineOffset: '-2px',
         }}
@@ -323,7 +323,7 @@ function DroppableColumn({ status, tasks, isLoading, onView, onNewTask, activeTa
             <SkeletonCard />
           </>
         ) : tasks.length === 0 && !activeTaskId ? (
-          <div className="rounded-lg border border-dashed border-[#D8D8E4] px-3 py-8 text-center">
+          <div className="rounded-lg border border-dashed border-[var(--border-color)] px-3 py-8 text-center">
             <p className="text-[11px] text-[var(--text-muted)]">Aucune tâche</p>
           </div>
         ) : (

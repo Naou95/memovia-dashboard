@@ -7,7 +7,7 @@ import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, TASK_ASSIGNEE_LABELS } from '
 
 const PRIORITY_BADGE: Record<TaskPriority, { bg: string; color: string }> = {
   haute: { bg: '#fee2e2', color: '#dc2626' },
-  normale: { bg: '#e5e7eb', color: '#4b5563' },
+  normale: { bg: '#ffedd5', color: '#ea580c' },
   basse: { bg: '#dbeafe', color: '#2563eb' },
 }
 
@@ -75,7 +75,7 @@ export function TaskDetailModal({ open, task, onClose, onEdit }: TaskDetailModal
                 {t.title}
               </Dialog.Title>
               {t.is_private && (
-                <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: '#ede9fe', color: '#7c3aed' }}>
+                <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: 'var(--memovia-violet-light)', color: 'var(--memovia-violet)' }}>
                   <Lock className="h-3 w-3" />
                   Tâche privée
                 </span>
@@ -115,7 +115,7 @@ export function TaskDetailModal({ open, task, onClose, onEdit }: TaskDetailModal
                   Statut
                 </p>
                 <span
-                  className="inline-flex items-center rounded-md px-2.5 py-1 text-[12px] font-semibold"
+                  className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold"
                   style={{ backgroundColor: statusStyle.bg, color: statusStyle.color }}
                 >
                   {TASK_STATUS_LABELS[t.status]}
@@ -128,7 +128,7 @@ export function TaskDetailModal({ open, task, onClose, onEdit }: TaskDetailModal
                   Priorité
                 </p>
                 <span
-                  className="inline-flex items-center rounded-md px-2.5 py-1 text-[12px] font-semibold"
+                  className="inline-flex items-center rounded-full px-2.5 py-1 text-[12px] font-semibold"
                   style={{ backgroundColor: badge.bg, color: badge.color }}
                 >
                   {TASK_PRIORITY_LABELS[t.priority]}
@@ -152,7 +152,7 @@ export function TaskDetailModal({ open, task, onClose, onEdit }: TaskDetailModal
                             style={{
                               backgroundColor: av.bg,
                               color: av.color,
-                              marginLeft: i > 0 ? -4 : 0,
+                              marginLeft: i > 0 ? -8 : 0,
                             }}
                           >
                             {av.initials}
