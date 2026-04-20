@@ -50,7 +50,9 @@ export function useTasks(): UseTasksResult {
   }, [fetchAll])
 
   const createTask = async (data: TaskInsert): Promise<void> => {
-    const { error: sbError } = await supabase.from('tasks').insert(data)
+    const { data: { user } } = await supabase.auth.getUser()
+    const payload = { ...data, created_by: user?.id ?? null }
+    const { error: sbError } = await supabase.from('tasks').insert(payload)
     if (sbError) throw sbError
     await fetchAll()
   }

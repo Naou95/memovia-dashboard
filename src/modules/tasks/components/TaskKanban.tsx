@@ -18,6 +18,7 @@ import {
   Paperclip,
   MessageSquare,
   AlertCircle,
+  Lock,
 } from 'lucide-react'
 import type { Task, TaskStatus, TaskPriority, TaskAssignee } from '@/types/tasks'
 import { TASK_STATUS_LABELS, TASK_STATUS_ORDER } from '@/types/tasks'
@@ -158,6 +159,12 @@ function CardContent({ task, onView, isOverlay, isPlaceholder }: CardContentProp
             <MessageSquare className="h-3 w-3" />
             <span>0</span>
           </span>
+
+          {task.is_private && (
+            <span title="Tâche privée">
+              <Lock className="h-3 w-3 text-[var(--memovia-violet)]" />
+            </span>
+          )}
 
           {(() => {
             const effAssignees = getEffectiveAssignees(task)

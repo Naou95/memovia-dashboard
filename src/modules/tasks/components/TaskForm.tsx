@@ -34,6 +34,7 @@ function emptyForm(): FormState {
     priority: 'normale',
     due_date: '',
     assignees: [],
+    is_private: false,
   }
 }
 
@@ -51,6 +52,7 @@ function taskToForm(task: Task): FormState {
     priority: task.priority,
     due_date: task.due_date ?? '',
     assignees,
+    is_private: task.is_private ?? false,
   }
 }
 
@@ -132,6 +134,7 @@ export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete, d
         due_date: form.due_date || null,
         assigned_to: (form.assignees[0] ?? null) as TaskInsert['assigned_to'],
         assignees: form.assignees,
+        is_private: form.is_private,
         created_by: null,
       }
       await onSubmit(payload)
@@ -271,6 +274,36 @@ export function TaskForm({ open, onClose, task, onSubmit, onDelete, canDelete, d
                   onChange={handleChange}
                 />
               </div>
+            </div>
+
+            {/* Tâche privée */}
+            <div className="flex items-center justify-between rounded-lg border border-[var(--border-color)] px-3 py-2.5">
+              <div className="flex items-center gap-2.5">
+                {form.is_private ? (
+                  <Lock className="h-4 w-4 text-[var(--memovia-violet)]" />
+                ) : (
+                  <Unlock className="h-4 w-4 text-[var(--text-muted)]" />
+                )}
+                <div>
+                  <p className="text-[13px] font-medium text-[var(--text-primary)]">Tâche privée</p>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    {form.is_private ? 'Visible uniquement par vous' : 'Visible par toute l'équipe'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.is_private}
+                onClick={() => setForm((prev) => ({ ...prev, is_private: !prev.is_private }))}
+                className="relative h-5 w-9 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--memovia-violet)] focus:ring-offset-1"
+                style={{ backgroundColor: form.is_private ? 'var(--memovia-violet)' : 'var(--border-color)' }}
+              >
+                <span
+                  className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
+                  style={{ transform: form.is_private ? 'translateX(18px)' : 'translateX(2px)' }}
+                />
+              </button>
             </div>
 
             {/* Footer */}

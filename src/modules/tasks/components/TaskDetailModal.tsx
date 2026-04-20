@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Edit2, Calendar, AlertCircle } from 'lucide-react'
+import { X, Edit2, Calendar, AlertCircle, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Task, TaskPriority, TaskAssignee, TaskStatus } from '@/types/tasks'
 import { TASK_STATUS_LABELS, TASK_PRIORITY_LABELS, TASK_ASSIGNEE_LABELS } from '@/types/tasks'
@@ -70,9 +70,17 @@ export function TaskDetailModal({ open, task, onClose, onEdit }: TaskDetailModal
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-xl">
           {/* Header */}
           <div className="flex items-start justify-between gap-4 border-b border-[var(--border-color)] px-6 py-5">
-            <Dialog.Title className="text-[20px] font-semibold leading-snug text-[var(--text-primary)]">
-              {t.title}
-            </Dialog.Title>
+            <div className="space-y-1.5">
+              <Dialog.Title className="text-[20px] font-semibold leading-snug text-[var(--text-primary)]">
+                {t.title}
+              </Dialog.Title>
+              {t.is_private && (
+                <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: '#ede9fe', color: '#7c3aed' }}>
+                  <Lock className="h-3 w-3" />
+                  Tâche privée
+                </span>
+              )}
+            </div>
             <Dialog.Close asChild>
               <button
                 className="mt-0.5 shrink-0 rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]"
