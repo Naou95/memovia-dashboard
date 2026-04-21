@@ -7,11 +7,13 @@ export const corsHeaders = {
 
 /**
  * Valide le JWT Supabase depuis le header Authorization.
+ * Tout user authentifié valide est accepté (outil interne).
  * Retourne { user } si valide, ou une Response 401 sinon.
  */
 export async function validateAuth(req: Request): Promise<{ user: User } | Response> {
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
+    console.error('[auth] missing Authorization header')
     return errorResponse('unauthorized', 401)
   }
 
@@ -25,6 +27,7 @@ export async function validateAuth(req: Request): Promise<{ user: User } | Respo
   )
 
   if (error || !user) {
+    console.error('[auth] getUser failed:', error?.message)
     return errorResponse('unauthorized', 401)
   }
 

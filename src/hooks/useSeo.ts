@@ -86,6 +86,11 @@ export function useSeo(): UseSeoResult {
       if (error) throw new Error(error.message)
       if (!data) throw new Error('Réponse vide')
 
+      if (data.article.cover_image_url) {
+        setGenerationStep('generating_cover')
+        await new Promise((r) => setTimeout(r, 800))
+      }
+
       setGenerateResult(data)
       setGenerationStep('done')
       toast.success('Article généré avec succès')

@@ -21,6 +21,7 @@ interface ArticleCreatePayload {
   meta_title?: string
   meta_description?: string
   reading_time?: number
+  cover_image_url?: string
 }
 
 interface ArticleUpdatePayload extends Partial<ArticleCreatePayload> {
@@ -52,7 +53,7 @@ Deno.serve(async (req) => {
           .from('blog_articles')
           .select(`
             id, title, slug, excerpt, keyword, status,
-            meta_title, meta_description, reading_time,
+            meta_title, meta_description, reading_time, cover_image_url,
             created_at, updated_at, published_at,
             category_id, blog_categories(id, name, slug)
           `)
@@ -91,6 +92,7 @@ Deno.serve(async (req) => {
             meta_title: payload.meta_title ?? null,
             meta_description: payload.meta_description ?? null,
             reading_time: payload.reading_time ?? null,
+            cover_image_url: payload.cover_image_url ?? null,
           })
           .select()
           .single()
@@ -155,12 +157,17 @@ Deno.serve(async (req) => {
         const { id } = body
         if (!id) return errorResponse('id_required', 400)
 
+        console.log('[seo-articles] delete attempt, id:', id)
         const { error } = await supabase
           .from('blog_articles')
           .delete()
           .eq('id', id)
 
-        if (error) throw error
+        if (error) {
+          console.error('[seo-articles] delete DB error:', JSON.stringify({ code: error.code, message: error.message, details: error.details, hint: error.hint }))
+          throw error
+        }
+        console.log('[seo-articles] delete OK, id:', id)
         return Response.json({ ok: true }, { headers: corsHeaders })
       }
 
@@ -169,6 +176,7 @@ Deno.serve(async (req) => {
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown_error'
+    console.error('[seo-articles] unhandled error:', message, err instanceof Error ? err.stack : '')
     return errorResponse(message, 500)
   }
 })

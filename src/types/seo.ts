@@ -12,7 +12,7 @@ export interface BlogArticle {
   id: string
   title: string
   slug: string
-  content: string
+  content: string | null
   excerpt: string | null
   keyword: string | null
   status: ArticleStatus
@@ -21,6 +21,7 @@ export interface BlogArticle {
   meta_title: string | null
   meta_description: string | null
   reading_time: number | null
+  cover_image_url: string | null
   created_at: string
   updated_at: string
   published_at: string | null
@@ -47,6 +48,7 @@ export interface GeneratedArticle {
   content: string
   reading_time: number
   suggested_slug: string
+  cover_image_url?: string | null
 }
 
 export interface SeoGenerateResponse {
@@ -65,11 +67,13 @@ export interface ArticleCreatePayload {
   meta_title?: string
   meta_description?: string
   reading_time?: number
+  cover_image_url?: string
 }
 
 export type GenerationStep =
   | 'idle'
   | 'fetching_serp'
   | 'generating_article'
+  | 'generating_cover'
   | 'done'
   | 'error'

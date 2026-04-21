@@ -17,7 +17,7 @@ function blogArticleToGenerated(a: BlogArticle) {
     meta_title: a.meta_title ?? '',
     meta_description: a.meta_description ?? '',
     excerpt: a.excerpt ?? '',
-    content: a.content,
+    content: a.content ?? '',
     reading_time: a.reading_time ?? 5,
     suggested_slug: a.slug,
   }
@@ -185,6 +185,7 @@ export default function SeoPage() {
                 categories={categories}
                 articleId={editingArticle.id}
                 initialCategoryId={editingArticle.category_id ?? undefined}
+                initialCoverImageUrl={editingArticle.cover_image_url ?? undefined}
                 onSave={handleSave}
                 onPublish={handlePublish}
                 onUpdate={handleUpdate}
@@ -202,6 +203,7 @@ export default function SeoPage() {
                     article={generateResult.article}
                     keyword={generateResult.serp.keyword}
                     categories={categories}
+                    initialCoverImageUrl={generateResult.article.cover_image_url ?? undefined}
                     onSave={handleSave}
                     onPublish={handlePublish}
                     isSaving={isSaving}

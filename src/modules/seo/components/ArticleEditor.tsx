@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Save, Globe, FileText, Clock, Tag, Layers } from 'lucide-react'
+import { Save, Globe, FileText, Clock, Tag, Layers, Image } from 'lucide-react'
 import type { GeneratedArticle, ArticleCreatePayload, BlogCategory } from '@/types/seo'
 
 interface ArticleEditorProps {
@@ -8,6 +8,7 @@ interface ArticleEditorProps {
   categories: BlogCategory[]
   articleId?: string
   initialCategoryId?: string
+  initialCoverImageUrl?: string
   onSave: (payload: ArticleCreatePayload) => Promise<void>
   onPublish: (payload: ArticleCreatePayload) => Promise<void>
   onUpdate?: (id: string, payload: Partial<ArticleCreatePayload>) => Promise<void>
@@ -22,6 +23,7 @@ export function ArticleEditor({
   categories,
   articleId,
   initialCategoryId,
+  initialCoverImageUrl,
   onSave,
   onPublish,
   onUpdate,
@@ -30,10 +32,11 @@ export function ArticleEditor({
   const isEditMode = Boolean(articleId)
   const [title, setTitle] = useState(article.title)
   const [slug, setSlug] = useState(article.suggested_slug)
-  const [content, setContent] = useState(article.content)
+  const [content, setContent] = useState(article.content ?? '')
   const [metaTitle, setMetaTitle] = useState(article.meta_title)
   const [metaDescription, setMetaDescription] = useState(article.meta_description)
   const [excerpt, setExcerpt] = useState(article.excerpt)
+  const [coverImageUrl, setCoverImageUrl] = useState(initialCoverImageUrl ?? '')
   const [categoryId, setCategoryId] = useState(initialCategoryId ?? '')
   const [previewTab, setPreviewTab] = useState<PreviewTab>('edit')
 
@@ -49,6 +52,7 @@ export function ArticleEditor({
       meta_title: metaTitle,
       meta_description: metaDescription,
       reading_time: article.reading_time,
+      cover_image_url: coverImageUrl || undefined,
     }
   }
 
@@ -61,6 +65,7 @@ export function ArticleEditor({
       category_id: categoryId || undefined,
       meta_title: metaTitle,
       meta_description: metaDescription,
+      cover_image_url: coverImageUrl || undefined,
     }
   }
 
@@ -145,14 +150,36 @@ export function ArticleEditor({
       </div>
 
       {/* Excerpt */}
-      <Field label="Extrait" icon={<FileText className="h-3.5 w-3.5" />}>
+      <Field label={`Extrait (${(excerpt ?? '').length}/160)`} icon={<FileText className="h-3.5 w-3.5" />}>
         <textarea
           value={excerpt}
           onChange={(e) => setExcerpt(e.target.value)}
           rows={2}
+          maxLength={160}
           className={`${inputClass} resize-none`}
           style={inputStyle}
         />
+      </Field>
+
+      {/* Cover image */}
+      <Field label="Image de couverture (optionnel)" icon={<Image className="h-3.5 w-3.5" />}>
+        <input
+          value={coverImageUrl}
+          onChange={(e) => setCoverImageUrl(e.target.value)}
+          placeholder="https://images.unsplash.com/..."
+          className={inputClass}
+          style={inputStyle}
+        />
+        {coverImageUrl && (
+          <img
+            src={coverImageUrl}
+            alt="Aperçu image de couverture"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+            onLoad={(e) => { e.currentTarget.style.display = 'block' }}
+            className="mt-2 h-24 w-full rounded-xl object-cover"
+            style={{ border: '1px solid var(--border-color)', display: 'none' }}
+          />
+        )}
       </Field>
 
       {/* Content — edit / preview tabs */}
@@ -170,7 +197,7 @@ export function ArticleEditor({
                   previewTab === tab ? 'var(--memovia-violet)' : 'var(--text-muted)',
               }}
             >
-              {tab === 'edit' ? 'Édition' : 'Aperçu Markdown'}
+              {tab === 'edit' ? 'Édition' : 'Aperçu'}
             </button>
           ))}
         </div>
@@ -195,7 +222,11 @@ export function ArticleEditor({
               '--tw-prose-body': 'var(--text-primary)',
             } as React.CSSProperties}
           >
-            <MarkdownPreview content={content} />
+            {isHtmlContent(content) ? (
+              <div dangerouslySetInnerHTML={{ __html: content }} />
+            ) : (
+              <MarkdownPreview content={content} />
+            )}
           </div>
         )}
       </div>
@@ -242,6 +273,10 @@ export function ArticleEditor({
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
+
+function isHtmlContent(str: string): boolean {
+  return /<[a-z][\s\S]*>/i.test(str)
+}
 const inputClass =
   'h-9 w-full rounded-xl border bg-transparent px-3 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)]'
 
@@ -275,7 +310,7 @@ function Field({
 }
 
 function MarkdownPreview({ content }: { content: string }) {
-  const lines = content.split('\n')
+  const lines = (content ?? '').split('\n')
 
   return (
     <div className="space-y-2">
