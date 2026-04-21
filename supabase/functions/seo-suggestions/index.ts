@@ -64,9 +64,15 @@ async function fetchSearchVolumes(
 
   if (Array.isArray(data.tasks)) {
     for (const task of data.tasks) {
-      const result = task.result?.[0]
-      if (result?.keyword != null) {
-        volumeMap.set(result.keyword, result.search_volume ?? 0)
+      if (task.status_code !== 20000) {
+        console.warn(`[dataforseo] task failed: ${task.status_message}`)
+        continue
+      }
+      const results: any[] = task.result ?? []
+      for (const result of results) {
+        if (result?.keyword != null) {
+          volumeMap.set(result.keyword, result.search_volume ?? 0)
+        }
       }
     }
   }
@@ -99,7 +105,7 @@ async function generateSuggestions(
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 6144,
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }],
     }),
@@ -117,13 +123,26 @@ async function generateSuggestions(
   const jsonMatch = raw.match(/\[[\s\S]*\]/)
   if (!jsonMatch) throw new Error('invalid_claude_response')
 
-  const suggestions = JSON.parse(jsonMatch[0]) as SeoSuggestion[]
-  return suggestions
+  const suggestions = JSON.parse(jsonMatch[0])
+
+  if (!Array.isArray(suggestions) || suggestions.length === 0) {
+    throw new Error('invalid_claude_response')
+  }
+  const validSuggestions = suggestions.filter(
+    (s: any) => typeof s.keyword === 'string' && typeof s.opportunity_score === 'number'
+  )
+  if (validSuggestions.length === 0) throw new Error('invalid_claude_response')
+
+  return validSuggestions as SeoSuggestion[]
 }
 
 // ── Handler ────────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
+
+  if (req.method !== 'POST') {
+    return errorResponse('method_not_allowed', 405)
+  }
 
   const authResult = await validateAuth(req)
   if (authResult instanceof Response) return authResult
@@ -162,6 +181,7 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (cached?.suggestions_json) {
+      console.log('[seo-suggestions] cache hit')
       return Response.json(
         { suggestions: cached.suggestions_json },
         { headers: corsHeaders },
@@ -169,14 +189,19 @@ Deno.serve(async (req) => {
     }
 
     // 4. Fetch DataForSEO search volumes for all seeds in one batch
+    console.log('[seo-suggestions] cache miss, generating...')
     const volumeMap = await fetchSearchVolumes(keywords)
+
+    if (volumeMap.size === 0) {
+      throw new Error('no_search_volume_data')
+    }
 
     // 5. Call Claude to generate 8 suggestions
     const suggestions = await generateSuggestions(volumeMap)
 
     // 6. Store result in cache (upsert on seeds_hash, expires in 24h)
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-    await supabase
+    const { error: cacheError } = await supabase
       .from('seo_suggestions_cache')
       .upsert(
         {
@@ -186,6 +211,10 @@ Deno.serve(async (req) => {
         },
         { onConflict: 'seeds_hash' },
       )
+    if (cacheError) {
+      console.error('[cache] upsert failed:', cacheError.message)
+      // Non-fatal: continue and return suggestions
+    }
 
     // 7. Return suggestions
     return Response.json(
