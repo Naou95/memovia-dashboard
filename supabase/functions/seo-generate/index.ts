@@ -9,6 +9,18 @@ function mdToHtml(md: string): string {
   return marked.parse(md) as string
 }
 
+function isSafeUrl(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr)
+    if (u.protocol !== 'https:') return false
+    const host = u.hostname
+    if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(host)) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SerpResult {
   position: number
@@ -112,6 +124,8 @@ async function fetchCompetitorContent(urls: string[]): Promise<string[]> {
   for (const url of urls.slice(0, 5)) {
     if (validContents.length >= 3) break
 
+    if (!isSafeUrl(url)) continue
+
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 8000)
@@ -120,11 +134,12 @@ async function fetchCompetitorContent(urls: string[]): Promise<string[]> {
         signal: controller.signal,
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' },
       })
-      clearTimeout(timeoutId)
 
-      if (!res.ok) continue
+      if (!res.ok) { clearTimeout(timeoutId); continue }
 
       const html = await res.text()
+      clearTimeout(timeoutId)
+
       // Strip HTML tags
       const text = html
         .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -135,7 +150,13 @@ async function fetchCompetitorContent(urls: string[]): Promise<string[]> {
 
       if (text.length < 200) continue
 
-      validContents.push(text.slice(0, 3000))
+      const decoded = text
+        .replace(/&amp;/g, '&')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+      validContents.push(decoded.slice(0, 3000))
     } catch {
       // timeout or network error — skip silently
       continue
@@ -212,6 +233,8 @@ Structure :
 - Excerpt 1-2 phrases (max 160 chars)
 - À la fin, suggérer 2 sujets d'articles connexes pour le maillage interne (champ séparé "internal_linking_suggestions")`
 
+  const cappedContext = competitorContext ? competitorContext.slice(0, 2000) : ''
+
   const userPrompt = `Mot-clé : "${keyword}"
 ${theme ? `\nAngle éditorial : ${theme}` : ''}
 
@@ -221,7 +244,7 @@ ${serp.results.slice(0, 5).map((r, i) => `${i + 1}. ${r.title}`).join('\n')}
 Questions PAA à intégrer comme H3 :
 ${serp.paa.length > 0 ? serp.paa.join('\n') : 'Aucune PAA disponible'}
 
-${competitorContext ? `Ce que couvrent les concurrents (à faire mieux) :\n${competitorContext}` : ''}
+${cappedContext ? `Ce que couvrent les concurrents (à faire mieux) :\n${cappedContext}` : ''}
 
 Réponds UNIQUEMENT avec un objet JSON valide :
 {
@@ -232,8 +255,7 @@ Réponds UNIQUEMENT avec un objet JSON valide :
   "suggested_slug": "url-slug-kebab-case-sans-accents",
   "reading_time": 8,
   "content": "# Titre\\n\\nContenu complet en Markdown...",
-  "internal_linking_suggestions": ["Titre article connexe 1", "Titre article connexe 2"],
-  "paa_used": ${JSON.stringify(serp.paa.slice(0, 5))}
+  "internal_linking_suggestions": ["Titre article connexe 1", "Titre article connexe 2"]
 }`
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -263,7 +285,14 @@ Réponds UNIQUEMENT avec un objet JSON valide :
   const jsonMatch = raw.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('invalid_claude_response')
 
-  const result = JSON.parse(jsonMatch[0]) as GeneratedArticle
+  let result: GeneratedArticle
+  try {
+    result = JSON.parse(jsonMatch[0]) as GeneratedArticle
+  } catch {
+    throw new Error('invalid_claude_json')
+  }
+
+  result.paa_used = serp.paa.slice(0, 5)
   result.content = mdToHtml(result.content)
   return result
 }
@@ -361,8 +390,10 @@ async function runPipeline(keyword: string, theme: string, language: string, loc
   try {
     const contents = await fetchCompetitorContent(competitorUrls)
     if (contents.length > 0) {
-      const apiKey = Deno.env.get('ANTHROPIC_API_KEY')!
-      competitorContext = await analyzeCompetitors(contents, apiKey)
+      const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
+      if (apiKey) {
+        competitorContext = await analyzeCompetitors(contents, apiKey)
+      }
     }
   } catch {
     // Non-fatal: proceed without competitor context
