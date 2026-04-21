@@ -195,6 +195,7 @@ export interface Database {
           created_by: string | null
           created_at: string
           updated_at: string
+          due_date: string | null
         }
         Insert: {
           id?: string
@@ -207,6 +208,7 @@ export interface Database {
           created_by?: string | null
           created_at?: string
           updated_at?: string
+          due_date?: string | null
         }
         Update: {
           id?: string
@@ -218,6 +220,7 @@ export interface Database {
           author_email?: string | null
           created_by?: string | null
           updated_at?: string
+          due_date?: string | null
         }
         Relationships: []
       }
