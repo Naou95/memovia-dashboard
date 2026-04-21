@@ -20,6 +20,7 @@ export interface EmailMessage {
 export interface EmailMessageDetail extends EmailMessage {
   html?: string
   text?: string
+  thread?: EmailMessageDetail[]
 }
 
 export interface EmailAlert {
