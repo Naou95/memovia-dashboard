@@ -1,5 +1,10 @@
 export type CalendarProvider = 'google'
 
+export interface EventOwner {
+  name: string
+  color: string
+}
+
 export interface CalendarEvent {
   id: string
   title: string
@@ -11,6 +16,12 @@ export interface CalendarEvent {
   meetLink?: string
   description?: string
   location?: string
+  owner?: EventOwner   // présent uniquement quand include_all_users=true
+}
+
+export interface AvailabilitySlot {
+  start: Date
+  end: Date
 }
 
 /** Événement au format attendu par react-big-calendar */

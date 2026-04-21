@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { Calendar, dateFnsLocalizer, type View } from 'react-big-calendar'
-import { format, parse, startOfWeek, getDay } from 'date-fns'
+import { format, parse, startOfWeek, getDay, addDays, startOfDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Video, RefreshCw, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { toast } from 'sonner'
@@ -13,7 +13,13 @@ import { useCalendar } from '@/hooks/useCalendar'
 import { useAuth } from '@/contexts/AuthContext'
 import { CalendarEmptyState } from './components/CalendarEmptyState'
 import { CreateMeetModal } from './components/CreateMeetModal'
-import type { RBCEvent, CalendarEvent } from '@/types/calendar'
+import type { RBCEvent, CalendarEvent, AvailabilitySlot } from '@/types/calendar'
+
+// ── Couleurs ───────────────────────────────────────────────────────────────────
+
+const COLOR_NAOUFEL = '#7C3AED'
+const COLOR_EMIR    = '#00E5CC'
+const COLOR_AVAIL   = '#16A34A'
 
 // ── date-fns localizer (français) ──────────────────────────────────────────────
 
@@ -43,10 +49,62 @@ const messages = {
   showMore: (total: number) => `+${total} de plus`,
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Disponibilités communes ────────────────────────────────────────────────────
 
-function toRBCEvents(events: CalendarEvent[]): RBCEvent[] {
-  return events.map((ev) => ({
+function computeAvailableSlots(
+  allEvents: CalendarEvent[],
+  daysAhead = 7,
+): AvailabilitySlot[] {
+  const slots: AvailabilitySlot[] = []
+  const today = startOfDay(new Date())
+  let dayCount = 0
+  let cursor = today
+
+  while (dayCount < daysAhead) {
+    cursor = addDays(cursor, 1)
+    const dow = cursor.getDay()
+    if (dow === 0 || dow === 6) continue // skip weekends
+    dayCount++
+
+    for (let hour = 9; hour < 18; hour++) {
+      for (const minute of [0, 30]) {
+        const slotStart = new Date(cursor)
+        slotStart.setHours(hour, minute, 0, 0)
+        const slotEnd = new Date(slotStart)
+        slotEnd.setMinutes(slotEnd.getMinutes() + 30)
+
+        const isBusy = allEvents.some((ev) => {
+          if (ev.allDay) return false
+          const evStart = new Date(ev.start)
+          const evEnd = new Date(ev.end)
+          return evStart < slotEnd && evEnd > slotStart
+        })
+
+        if (!isBusy) {
+          const last = slots[slots.length - 1]
+          if (last && last.end.getTime() === slotStart.getTime()) {
+            last.end = slotEnd // fusionner créneaux consécutifs
+          } else {
+            slots.push({ start: slotStart, end: slotEnd })
+          }
+        }
+      }
+    }
+  }
+
+  return slots
+}
+
+// ── Helpers RBC ────────────────────────────────────────────────────────────────
+
+function toRBCEvents(
+  ownEvents: CalendarEvent[],
+  emirEvents: CalendarEvent[],
+  availSlots: AvailabilitySlot[],
+  showEmir: boolean,
+  showAvailability: boolean,
+): RBCEvent[] {
+  const result: RBCEvent[] = ownEvents.map((ev) => ({
     id: ev.id,
     title: ev.title,
     start: new Date(ev.start),
@@ -54,14 +112,73 @@ function toRBCEvents(events: CalendarEvent[]): RBCEvent[] {
     allDay: ev.allDay,
     resource: ev,
   }))
+
+  if (showEmir) {
+    emirEvents.forEach((ev) => {
+      result.push({
+        id: ev.id,
+        title: ev.title,
+        start: new Date(ev.start),
+        end: new Date(ev.end),
+        allDay: ev.allDay,
+        resource: ev,
+      })
+    })
+  }
+
+  if (showAvailability) {
+    availSlots.forEach((slot, i) => {
+      const fakeEvent: CalendarEvent = {
+        id: `avail_${i}`,
+        title: 'Disponible',
+        start: slot.start.toISOString(),
+        end: slot.end.toISOString(),
+        allDay: false,
+        provider: 'google',
+        owner: { name: 'availability', color: COLOR_AVAIL },
+      }
+      result.push({
+        id: fakeEvent.id,
+        title: fakeEvent.title,
+        start: slot.start,
+        end: slot.end,
+        allDay: false,
+        resource: fakeEvent,
+      })
+    })
+  }
+
+  return result
 }
 
-function eventStyleGetter(_event: RBCEvent) {
+function eventStyleGetter(event: RBCEvent) {
+  const owner = event.resource.owner
+  const isAvailability = event.resource.id.startsWith('avail_')
+
+  if (isAvailability) {
+    return {
+      style: {
+        backgroundColor: 'rgba(22, 163, 74, 0.10)',
+        borderLeft: `3px solid ${COLOR_AVAIL}`,
+        color: COLOR_AVAIL,
+        borderRadius: '6px',
+        fontSize: '11px',
+        fontWeight: 500,
+        padding: '2px 6px',
+        cursor: 'default',
+        opacity: 0.85,
+      },
+    }
+  }
+
+  const color = owner?.color ?? COLOR_NAOUFEL
+  const isEmir = color === COLOR_EMIR
+
   return {
     style: {
-      backgroundColor: 'rgba(124, 58, 237, 0.12)',
-      borderLeft: '3px solid #7C3AED',
-      color: '#5B21B6',
+      backgroundColor: isEmir ? 'rgba(0, 229, 204, 0.10)' : 'rgba(124, 58, 237, 0.12)',
+      borderLeft: `3px solid ${color}`,
+      color: isEmir ? '#0891B2' : '#5B21B6',
       borderRadius: '6px',
       fontSize: '12px',
       fontWeight: 500,
@@ -69,6 +186,51 @@ function eventStyleGetter(_event: RBCEvent) {
       cursor: 'pointer',
     },
   }
+}
+
+// ── ToggleChip ─────────────────────────────────────────────────────────────────
+
+function ToggleChip({
+  label,
+  color,
+  active,
+  disabled,
+  loading,
+  onClick,
+}: {
+  label: string
+  color: string
+  active: boolean
+  disabled?: boolean
+  loading?: boolean
+  onClick?: () => void
+}) {
+  return (
+    <button
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+        disabled
+          ? 'cursor-default border-transparent'
+          : 'cursor-pointer hover:opacity-80'
+      } ${active ? 'border-transparent' : 'border-[var(--border-color)] bg-white text-[var(--text-secondary)]'}`}
+      style={
+        active
+          ? { backgroundColor: `${color}18`, borderColor: `${color}40`, color }
+          : {}
+      }
+    >
+      <span
+        className="h-2 w-2 rounded-full flex-shrink-0"
+        style={{ backgroundColor: active ? color : 'var(--border-color)' }}
+      />
+      {label}
+      {loading && (
+        <RefreshCw className="h-3 w-3 animate-spin ml-0.5" style={{ color }} />
+      )}
+    </button>
+  )
 }
 
 // ── CalendarPage ───────────────────────────────────────────────────────────────
@@ -79,10 +241,29 @@ export default function CalendarPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showEmir, setShowEmir] = useState(false)
+  const [showAvailability, setShowAvailability] = useState(false)
 
-  const { data, isLoading, error, refetch, createMeet, startOAuth } = useCalendar(currentDate)
+  const { data, allUsersData, isLoading, isLoadingAll, error, refetch, refetchAll, createMeet, startOAuth } = useCalendar(currentDate)
   const { user } = useAuth()
   const isEmir = user?.role === 'admin_bizdev'
+  const myName = user?.profile?.full_name ?? ''
+
+  // Charger les données multi-utilisateur à la demande
+  const needsAllUsers = showEmir || showAvailability
+  useEffect(() => {
+    if (needsAllUsers && !allUsersData && !isLoadingAll) {
+      refetchAll()
+    }
+  }, [needsAllUsers, allUsersData, isLoadingAll, refetchAll])
+
+  // Actualiser les données multi-utilisateur quand on change de mois avec les toggles actifs
+  useEffect(() => {
+    if (needsAllUsers) {
+      refetchAll()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDate])
 
   // Gérer les retours OAuth (?connected=google ou ?error=...)
   useEffect(() => {
@@ -105,9 +286,28 @@ export default function CalendarPage() {
     }
   }, [searchParams, setSearchParams, refetch])
 
-  const rbcEvents = useMemo(
-    () => toRBCEvents(data?.events ?? []),
+  // Séparer les événements : les miens vs Emir
+  const ownEvents = useMemo(
+    () => data?.events ?? [],
     [data?.events],
+  )
+
+  const emirEvents = useMemo(() => {
+    if (!allUsersData?.events) return []
+    return allUsersData.events.filter(
+      (ev) => ev.owner && ev.owner.name !== myName,
+    )
+  }, [allUsersData?.events, myName])
+
+  // Disponibilités communes
+  const availableSlots = useMemo(() => {
+    if (!showAvailability || !allUsersData?.events) return []
+    return computeAvailableSlots(allUsersData.events)
+  }, [showAvailability, allUsersData?.events])
+
+  const rbcEvents = useMemo(
+    () => toRBCEvents(ownEvents, emirEvents, availableSlots, showEmir, showAvailability),
+    [ownEvents, emirEvents, availableSlots, showEmir, showAvailability],
   )
 
   const handleNavigate = useCallback(
@@ -128,6 +328,7 @@ export default function CalendarPage() {
   }, [])
 
   const handleSelectEvent = useCallback((event: RBCEvent) => {
+    if (event.resource.id.startsWith('avail_')) return
     const ev = event.resource
     if (ev.meetLink) {
       window.open(ev.meetLink, '_blank', 'noopener,noreferrer')
@@ -153,14 +354,14 @@ export default function CalendarPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Calendrier</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Google Calendar de {user?.profile?.full_name ?? 'votre compte'}
+            Google Calendar de {myName || 'votre compte'}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Refresh */}
           <button
-            onClick={() => refetch()}
+            onClick={() => { refetch(); if (needsAllUsers) refetchAll() }}
             disabled={isLoading}
             className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border-color)] bg-white px-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             aria-label="Actualiser le calendrier"
@@ -168,7 +369,7 @@ export default function CalendarPage() {
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
-          {/* Bouton Meet — Emir (lecture seule + génération Meet) ou Naoufel (accès complet) */}
+          {/* Bouton Meet */}
           {data?.google_configured && (
             <button
               onClick={() => { setSelectedSlot(null); setModalOpen(true) }}
@@ -180,6 +381,42 @@ export default function CalendarPage() {
           )}
         </div>
       </motion.div>
+
+      {/* ── Sélecteur d'agendas + légende ────────────────────────────────────── */}
+      {data?.google_configured && (
+        <motion.div variants={staggerItem} className="flex flex-col gap-2.5">
+          {/* Toggles */}
+          <div className="flex flex-wrap items-center gap-2">
+            <ToggleChip
+              label="Mon agenda"
+              color={COLOR_NAOUFEL}
+              active={true}
+              disabled={true}
+            />
+            <ToggleChip
+              label="Agenda Emir"
+              color={COLOR_EMIR}
+              active={showEmir}
+              loading={showEmir && isLoadingAll && !allUsersData}
+              onClick={() => setShowEmir((v) => !v)}
+            />
+            <ToggleChip
+              label="Disponibilités communes"
+              color={COLOR_AVAIL}
+              active={showAvailability}
+              loading={showAvailability && isLoadingAll && !allUsersData}
+              onClick={() => setShowAvailability((v) => !v)}
+            />
+          </div>
+
+          {/* Légende */}
+          <div className="flex flex-wrap items-center gap-4">
+            <LegendDot color={COLOR_NAOUFEL} label={myName || 'Naoufel'} />
+            {showEmir && <LegendDot color={COLOR_EMIR} label="Emir" />}
+            {showAvailability && <LegendDot color={COLOR_AVAIL} label="Disponible ensemble" />}
+          </div>
+        </motion.div>
+      )}
 
       {/* ── Google error ─────────────────────────────────────────────────────── */}
       {data?.google_error && (
@@ -314,14 +551,18 @@ export default function CalendarPage() {
             />
           </div>
 
-          {/* Indication lecture seule pour Emir */}
-          {isEmir && (
-            <div className="border-t border-[var(--border-color)] px-5 py-2.5">
+          {/* Footer */}
+          <div className="border-t border-[var(--border-color)] px-5 py-2.5">
+            {isEmir ? (
               <p className="text-[12px] text-[var(--text-muted)]">
                 Vue en lecture seule — utilisez "Générer un Meet" pour créer une réunion.
               </p>
-            </div>
-          )}
+            ) : showAvailability && availableSlots.length > 0 ? (
+              <p className="text-[12px] text-[var(--text-muted)]">
+                {availableSlots.length} créneaux disponibles en commun sur les 7 prochains jours ouvrés (9h–18h).
+              </p>
+            ) : null}
+          </div>
         </motion.div>
       )}
 
@@ -335,5 +576,16 @@ export default function CalendarPage() {
         inviteNaoufel={isEmir}
       />
     </motion.div>
+  )
+}
+
+// ── LegendDot ──────────────────────────────────────────────────────────────────
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+      <span className="text-[12px] text-[var(--text-secondary)]">{label}</span>
+    </div>
   )
 }

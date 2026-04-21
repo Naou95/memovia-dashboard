@@ -1,14 +1,15 @@
 /**
  * Edge Function : get-calendar-events
  *
- * Récupère les événements Google Calendar de l'utilisateur authentifié.
- * Chaque utilisateur ne voit que son propre calendrier (lookup par user_id).
- * Auto-refresh du token expiré. Retourne une erreur douce si le token
- * n'est pas configuré.
+ * Récupère les événements Google Calendar.
+ * Mode par défaut : uniquement l'utilisateur authentifié.
+ * Mode include_all_users=true : tous les utilisateurs ayant connecté Google
+ *   Calendar — chaque événement porte un champ owner { name, color }.
  *
  * Query params :
- *   start  (ISO 8601, défaut : début du mois courant)
- *   end    (ISO 8601, défaut : fin du mois courant)
+ *   start              (ISO 8601, défaut : début du mois courant)
+ *   end                (ISO 8601, défaut : fin du mois courant)
+ *   include_all_users  (boolean string, défaut : false)
  */
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
@@ -26,6 +27,17 @@ interface TokenRow {
   expires_at: string
 }
 
+interface ProfileRow {
+  id: string
+  full_name: string
+  role: string
+}
+
+interface EventOwner {
+  name: string
+  color: string
+}
+
 interface CalendarEvent {
   id: string
   title: string
@@ -37,7 +49,17 @@ interface CalendarEvent {
   meetLink?: string
   description?: string
   location?: string
+  owner?: EventOwner
 }
+
+// ── Role → couleur ─────────────────────────────────────────────────────────────
+
+const ROLE_COLORS: Record<string, string> = {
+  admin_full: '#7C3AED',    // Naoufel — violet
+  admin_bizdev: '#00E5CC',  // Emir — cyan
+}
+
+const DEFAULT_COLOR = '#7C3AED'
 
 // ── Token helpers ──────────────────────────────────────────────────────────────
 
@@ -53,8 +75,13 @@ async function getValidToken(
     .maybeSingle()
 
   if (error || !row) return null
+  return getValidTokenFromRow(supabase, row as TokenRow)
+}
 
-  const tokenRow = row as TokenRow
+async function getValidTokenFromRow(
+  supabase: SupabaseClient,
+  tokenRow: TokenRow,
+): Promise<string | null> {
   const expiresAt = new Date(tokenRow.expires_at).getTime()
   const bufferMs = 5 * 60 * 1000
 
@@ -63,7 +90,6 @@ async function getValidToken(
   }
 
   if (!tokenRow.refresh_token) return null
-
   return await refreshGoogleToken(supabase, tokenRow)
 }
 
@@ -106,6 +132,7 @@ async function fetchGoogleEvents(
   token: string,
   startStr: string,
   endStr: string,
+  owner?: EventOwner,
 ): Promise<CalendarEvent[]> {
   const params = new URLSearchParams({
     timeMin: startStr,
@@ -135,7 +162,7 @@ async function fetchGoogleEvents(
     const isAllDay = !!start?.date && !start?.dateTime
     const meetLink = extractGoogleMeetLink(item)
 
-    return {
+    const event: CalendarEvent = {
       id: `google_${item.id}`,
       title: (item.summary as string) || '(sans titre)',
       start: start?.dateTime ?? `${start?.date}T00:00:00`,
@@ -147,6 +174,9 @@ async function fetchGoogleEvents(
       description: item.description as string | undefined,
       location: item.location as string | undefined,
     }
+
+    if (owner) event.owner = owner
+    return event
   })
 }
 
@@ -158,6 +188,55 @@ function extractGoogleMeetLink(item: Record<string, unknown>): string | undefine
     if (videoEp?.uri) return videoEp.uri
   }
   return item.hangoutLink as string | undefined
+}
+
+// ── All-users fetch ────────────────────────────────────────────────────────────
+
+async function fetchAllUsersEvents(
+  supabase: SupabaseClient,
+  startStr: string,
+  endStr: string,
+): Promise<CalendarEvent[]> {
+  const { data: tokens, error } = await supabase
+    .from('calendar_tokens')
+    .select('*')
+    .eq('provider', 'google')
+
+  if (error || !tokens?.length) return []
+
+  const userIds = (tokens as TokenRow[]).map((t) => t.user_id)
+  const { data: profiles } = await supabase
+    .from('dashboard_profiles')
+    .select('id, full_name, role')
+    .in('id', userIds)
+
+  const profileMap = new Map<string, ProfileRow>(
+    (profiles as ProfileRow[] ?? []).map((p) => [p.id, p]),
+  )
+
+  const allEvents: CalendarEvent[] = []
+
+  await Promise.allSettled(
+    (tokens as TokenRow[]).map(async (tokenRow) => {
+      const token = await getValidTokenFromRow(supabase, tokenRow)
+      if (!token) return
+
+      const profile = profileMap.get(tokenRow.user_id)
+      const owner: EventOwner = {
+        name: profile?.full_name ?? tokenRow.owner,
+        color: ROLE_COLORS[profile?.role ?? ''] ?? DEFAULT_COLOR,
+      }
+
+      try {
+        const events = await fetchGoogleEvents(token, startStr, endStr, owner)
+        allEvents.push(...events)
+      } catch (err) {
+        console.error(`[get-calendar-events] user ${tokenRow.user_id}:`, err)
+      }
+    }),
+  )
+
+  return allEvents
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────
@@ -178,12 +257,28 @@ Deno.serve(async (req) => {
 
   const startStr = url.searchParams.get('start') ?? defaultStart
   const endStr = url.searchParams.get('end') ?? defaultEnd
+  const includeAllUsers = url.searchParams.get('include_all_users') === 'true'
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
+  if (includeAllUsers) {
+    const events = await fetchAllUsersEvents(supabase, startStr, endStr)
+
+    return Response.json(
+      {
+        events,
+        google_configured: events.length > 0,
+        google_error: null,
+        fetched_at: new Date().toISOString(),
+      },
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  }
+
+  // Mode standard : uniquement l'utilisateur courant
   const googleToken = await getValidToken(supabase, user.id)
 
   let googleEvents: CalendarEvent[] = []
