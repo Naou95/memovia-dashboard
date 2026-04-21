@@ -310,6 +310,18 @@ export interface Database {
         }
         Relationships: []
       }
+      seo_seeds: {
+        Row: { id: string; keyword: string; created_at: string }
+        Insert: { id?: string; keyword: string; created_at?: string }
+        Update: { keyword?: string }
+        Relationships: []
+      }
+      seo_suggestions_cache: {
+        Row: { id: string; seeds_hash: string; suggestions_json: Json; created_at: string; expires_at: string | null }
+        Insert: { id?: string; seeds_hash: string; suggestions_json: Json; created_at?: string; expires_at?: string | null }
+        Update: { suggestions_json?: Json; expires_at?: string | null }
+        Relationships: []
+      }
     }
     Views: {
       // ── Vue lecture seule — Module 9 Utilisateurs MEMOVIA ──────────────────

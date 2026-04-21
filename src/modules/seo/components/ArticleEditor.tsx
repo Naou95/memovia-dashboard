@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Save, Globe, FileText, Clock, Tag, Layers, Image, ChevronDown, Link2 } from 'lucide-react'
 import type { GeneratedArticle, ArticleCreatePayload, BlogCategory } from '@/types/seo'
 
