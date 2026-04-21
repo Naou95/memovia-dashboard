@@ -241,6 +241,14 @@ body {
   border: none !important;
   box-shadow: none;
   outline: none;
+  font-size: 11px;
+  padding: 1px 3px;
+}
+
+.calendar-wrapper .rbc-event-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .calendar-wrapper .rbc-event:focus {

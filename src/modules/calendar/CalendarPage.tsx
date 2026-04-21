@@ -323,7 +323,12 @@ export default function CalendarPage() {
     }
   }, [searchParams, setSearchParams, refetch])
 
-  const ownEvents = useMemo(() => data?.events ?? [], [data?.events])
+  const ownEvents = useMemo(() => {
+    if (needsAllUsers && allUsersData?.events) {
+      return allUsersData.events.filter((ev) => !ev.owner || ev.owner.name === myName)
+    }
+    return data?.events ?? []
+  }, [data?.events, allUsersData?.events, needsAllUsers, myName])
 
   const emirEvents = useMemo(() => {
     if (!allUsersData?.events) return []
@@ -602,6 +607,8 @@ export default function CalendarPage() {
                   selectable
                   popup
                   toolbar={false}
+                  step={30}
+                  timeslots={2}
                   min={new Date(2024, 0, 1, 8, 0, 0)}
                   max={new Date(2024, 0, 1, 20, 0, 0)}
                 />
