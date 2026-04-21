@@ -9,7 +9,9 @@ interface KeywordInputProps {
 
 const STEP_LABELS: Record<GenerationStep, string> = {
   idle: '',
-  fetching_serp: 'Analyse SERP en cours…',
+  analyzing_serp: 'Analyse de la SERP Google...',
+  fetching_competitors: 'Lecture des articles concurrents...',
+  analyzing_competitors: 'Analyse du contenu concurrent...',
   generating_article: "Claude rédige l'article…",
   generating_cover: "Génération de l'image de couverture…",
   done: '',
@@ -19,7 +21,7 @@ const STEP_LABELS: Record<GenerationStep, string> = {
 export function KeywordInput({ step, onGenerate }: KeywordInputProps) {
   const [keyword, setKeyword] = useState('')
   const [theme, setTheme] = useState('')
-  const isLoading = step === 'fetching_serp' || step === 'generating_article' || step === 'generating_cover'
+  const isLoading = step === 'analyzing_serp' || step === 'fetching_competitors' || step === 'analyzing_competitors' || step === 'generating_article' || step === 'generating_cover'
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

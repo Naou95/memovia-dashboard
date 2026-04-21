@@ -38,6 +38,7 @@ export interface SerpAnalysis {
   keyword: string
   total_results: number
   results: SerpResult[]
+  paa: string[]
 }
 
 export interface GeneratedArticle {
@@ -49,6 +50,8 @@ export interface GeneratedArticle {
   reading_time: number
   suggested_slug: string
   cover_image_url?: string | null
+  internal_linking_suggestions?: string[] | null
+  paa_used?: string[] | null
 }
 
 export interface SeoGenerateResponse {
@@ -72,8 +75,29 @@ export interface ArticleCreatePayload {
 
 export type GenerationStep =
   | 'idle'
-  | 'fetching_serp'
+  | 'analyzing_serp'
+  | 'fetching_competitors'
+  | 'analyzing_competitors'
   | 'generating_article'
   | 'generating_cover'
   | 'done'
   | 'error'
+
+export interface SeoSuggestion {
+  keyword: string
+  title: string
+  angle: string
+  volume: number
+  opportunity_score: number
+  why_now: string
+}
+
+export interface SeoSeed {
+  id: string
+  keyword: string
+  created_at: string
+}
+
+export interface SeoSuggestionsResponse {
+  suggestions: SeoSuggestion[]
+}

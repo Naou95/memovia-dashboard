@@ -71,7 +71,7 @@ export function useSeo(): UseSeoResult {
   }, [fetchArticles])
 
   const generate = useCallback(async (keyword: string, theme: string) => {
-    setGenerationStep('fetching_serp')
+    setGenerationStep('analyzing_serp')
     setGenerateResult(null)
 
     try {
