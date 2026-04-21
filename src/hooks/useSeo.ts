@@ -7,6 +7,9 @@ import type {
   ArticleCreatePayload,
   SeoGenerateResponse,
   GenerationStep,
+  SeoSeed,
+  SeoSuggestion,
+  SeoSuggestionsResponse,
 } from '@/types/seo'
 
 interface UseSeoResult {
@@ -29,6 +32,15 @@ interface UseSeoResult {
   publishArticle: (id: string) => Promise<void>
   archiveArticle: (id: string) => Promise<void>
   deleteArticle: (id: string) => Promise<void>
+
+  // Seeds & Suggestions
+  seeds: SeoSeed[]
+  fetchSeeds: () => Promise<void>
+  addSeed: (keyword: string) => Promise<void>
+  deleteSeed: (id: string) => Promise<void>
+  suggestions: SeoSuggestion[]
+  suggestionsLoading: boolean
+  generateSuggestions: () => Promise<void>
 }
 
 export function useSeo(): UseSeoResult {
@@ -39,6 +51,11 @@ export function useSeo(): UseSeoResult {
 
   const [generationStep, setGenerationStep] = useState<GenerationStep>('idle')
   const [generateResult, setGenerateResult] = useState<SeoGenerateResponse | null>(null)
+
+  // Seeds & Suggestions
+  const [seeds, setSeeds] = useState<SeoSeed[]>([])
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<SeoSuggestion[]>([])
 
   const fetchArticles = useCallback(async () => {
     setIsLoading(true)
@@ -69,6 +86,55 @@ export function useSeo(): UseSeoResult {
   useEffect(() => {
     fetchArticles()
   }, [fetchArticles])
+
+  const fetchSeeds = useCallback(async () => {
+    const { data, error } = await supabase.from('seo_seeds').select('*').order('created_at', { ascending: true })
+    if (!error && data) setSeeds(data)
+  }, [])
+
+  const addSeed = useCallback(async (keyword: string) => {
+    const trimmed = keyword.trim()
+    if (!trimmed) return
+    const { error } = await supabase.from('seo_seeds').insert({ keyword: trimmed })
+    if (error) {
+      toast.error('Mot-clé déjà existant ou erreur')
+      return
+    }
+    toast.success('Sujet ajouté')
+    await fetchSeeds()
+  }, [fetchSeeds])
+
+  const deleteSeed = useCallback(async (id: string) => {
+    const { error } = await supabase.from('seo_seeds').delete().eq('id', id)
+    if (error) {
+      toast.error('Impossible de supprimer ce sujet')
+      return
+    }
+    await fetchSeeds()
+  }, [fetchSeeds])
+
+  const generateSuggestions = useCallback(async () => {
+    setSuggestionsLoading(true)
+    setSuggestions([])
+    try {
+      const { data, error } = await supabase.functions.invoke<SeoSuggestionsResponse>(
+        'seo-suggestions',
+        { body: {} },
+      )
+      if (error) throw new Error(error.message)
+      setSuggestions(data?.suggestions ?? [])
+      toast.success('Suggestions générées')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
+      toast.error(`Échec : ${msg}`)
+    } finally {
+      setSuggestionsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSeeds()
+  }, [fetchSeeds])
 
   const generate = useCallback(async (keyword: string, theme: string) => {
     setGenerationStep('analyzing_serp')
@@ -195,5 +261,12 @@ export function useSeo(): UseSeoResult {
     publishArticle,
     archiveArticle,
     deleteArticle,
+    seeds,
+    fetchSeeds,
+    addSeed,
+    deleteSeed,
+    suggestions,
+    suggestionsLoading,
+    generateSuggestions,
   }
 }

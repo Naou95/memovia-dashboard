@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Loader2, Lightbulb } from 'lucide-react'
 import type { GenerationStep } from '@/types/seo'
 
 interface KeywordInputProps {
   step: GenerationStep
   onGenerate: (keyword: string, theme: string) => void
+  defaultKeyword?: string
+  onDefaultKeywordConsumed?: () => void
 }
 
 const STEP_LABELS: Record<GenerationStep, string> = {
@@ -18,10 +20,17 @@ const STEP_LABELS: Record<GenerationStep, string> = {
   error: '',
 }
 
-export function KeywordInput({ step, onGenerate }: KeywordInputProps) {
+export function KeywordInput({ step, onGenerate, defaultKeyword, onDefaultKeywordConsumed }: KeywordInputProps) {
   const [keyword, setKeyword] = useState('')
   const [theme, setTheme] = useState('')
   const isLoading = step === 'analyzing_serp' || step === 'fetching_competitors' || step === 'analyzing_competitors' || step === 'generating_article' || step === 'generating_cover'
+
+  useEffect(() => {
+    if (defaultKeyword) {
+      setKeyword(defaultKeyword)
+      onDefaultKeywordConsumed?.()
+    }
+  }, [defaultKeyword])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
