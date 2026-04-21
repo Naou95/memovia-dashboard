@@ -37,11 +37,11 @@ async function fetchSearchVolumes(
 
   const credentials = btoa(`${login}:${password}`)
 
-  const body = keywords.map((keyword) => ({
-    keyword,
+  const body = [{
+    keywords,
     language_name: 'French',
     location_name: 'France',
-  }))
+  }]
 
   const res = await fetch(
     'https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live',
