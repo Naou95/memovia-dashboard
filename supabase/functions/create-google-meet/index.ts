@@ -1,8 +1,7 @@
 /**
  * Edge Function : create-google-meet
  *
- * Crée un événement Google Calendar avec un lien Google Meet intégré.
- * Utilise conferenceData.createRequest pour générer le Meet automatiquement.
+ * Crée un événement Google Calendar, avec ou sans lien Google Meet.
  *
  * Body JSON :
  *   title            : string (requis)
@@ -11,6 +10,8 @@
  *   description      : string (optionnel)
  *   timezone         : string (défaut : Europe/Paris)
  *   inviteAdminFull  : boolean (optionnel) — ajoute l'utilisateur admin_full comme participant
+ *   withMeet         : boolean (optionnel, défaut: true) — ajoute un lien Google Meet
+ *   attendees        : string[] (optionnel) — emails supplémentaires à inviter
  *
  * Retourne :
  *   { eventId, htmlLink, meetLink, title, start, end }
@@ -100,6 +101,8 @@ Deno.serve(async (req) => {
     description?: string
     timezone?: string
     inviteAdminFull?: boolean
+    withMeet?: boolean
+    attendees?: string[]
   }
   try {
     body = await req.json()
@@ -107,7 +110,13 @@ Deno.serve(async (req) => {
     return errorResponse('invalid_json', 400)
   }
 
-  const { title, start, end, description, timezone = 'Europe/Paris', inviteAdminFull = false } = body
+  const {
+    title, start, end, description,
+    timezone = 'Europe/Paris',
+    inviteAdminFull = false,
+    withMeet = true,
+    attendees: extraAttendees = [],
+  } = body
 
   if (!title || !start || !end) {
     return errorResponse('missing_required_fields', 400)
@@ -123,8 +132,9 @@ Deno.serve(async (req) => {
     return errorResponse('google_not_configured', 503)
   }
 
-  // Récupérer l'email de l'admin_full (Naoufel) si on doit l'inviter
-  let attendees: Array<{ email: string }> = []
+  // Construire la liste des participants
+  const attendees: Array<{ email: string }> = (extraAttendees as string[]).map((email) => ({ email }))
+
   if (inviteAdminFull) {
     const { data: adminProfile } = await supabase
       .from('dashboard_profiles')
@@ -133,41 +143,45 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (adminProfile?.email) {
-      attendees = [{ email: adminProfile.email }]
+      const alreadyAdded = attendees.some((a) => a.email === adminProfile.email)
+      if (!alreadyAdded) attendees.push({ email: adminProfile.email })
     }
   }
-
-  const requestId = await makeRequestId(title, start)
 
   const eventBody: Record<string, unknown> = {
     summary: title,
     description: description ?? '',
     start: { dateTime: start, timeZone: timezone },
     end: { dateTime: end, timeZone: timezone },
-    conferenceData: {
+  }
+
+  if (withMeet) {
+    const requestId = await makeRequestId(title, start)
+    eventBody.conferenceData = {
       createRequest: {
         requestId,
         conferenceSolutionKey: { type: 'hangoutsMeet' },
       },
-    },
+    }
   }
 
   if (attendees.length > 0) {
     eventBody.attendees = attendees
   }
 
-  const res = await fetch(
-    'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(eventBody),
-      signal: AbortSignal.timeout(12000),
+  const apiUrl = withMeet
+    ? 'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1'
+    : 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+
+  const res = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
     },
-  )
+    body: JSON.stringify(eventBody),
+    signal: AbortSignal.timeout(12000),
+  })
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))

@@ -1,8 +1,15 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { Calendar, dateFnsLocalizer, type View } from 'react-big-calendar'
-import { format, parse, startOfWeek, getDay, addDays, startOfDay } from 'date-fns'
+import {
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  addDays,
+  startOfDay,
+} from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { Video, RefreshCw, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
+import { RefreshCw, ChevronLeft, ChevronRight, CalendarDays, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -12,14 +19,14 @@ import 'react-big-calendar/lib/css/react-big-calendar.css'
 import { useCalendar } from '@/hooks/useCalendar'
 import { useAuth } from '@/contexts/AuthContext'
 import { CalendarEmptyState } from './components/CalendarEmptyState'
-import { CreateMeetModal } from './components/CreateMeetModal'
+import { CreateEventModal } from './components/CreateEventModal'
 import type { RBCEvent, CalendarEvent, AvailabilitySlot } from '@/types/calendar'
 
 // ── Couleurs ───────────────────────────────────────────────────────────────────
 
 const COLOR_NAOUFEL = '#7C3AED'
 const COLOR_EMIR    = '#00E5CC'
-const COLOR_AVAIL   = '#16A34A'
+const COLOR_AVAIL   = '#10B981'
 
 // ── date-fns localizer (français) ──────────────────────────────────────────────
 
@@ -63,7 +70,7 @@ function computeAvailableSlots(
   while (dayCount < daysAhead) {
     cursor = addDays(cursor, 1)
     const dow = cursor.getDay()
-    if (dow === 0 || dow === 6) continue // skip weekends
+    if (dow === 0 || dow === 6) continue
     dayCount++
 
     for (let hour = 9; hour < 18; hour++) {
@@ -83,7 +90,7 @@ function computeAvailableSlots(
         if (!isBusy) {
           const last = slots[slots.length - 1]
           if (last && last.end.getTime() === slotStart.getTime()) {
-            last.end = slotEnd // fusionner créneaux consécutifs
+            last.end = slotEnd
           } else {
             slots.push({ start: slotStart, end: slotEnd })
           }
@@ -93,6 +100,12 @@ function computeAvailableSlots(
   }
 
   return slots
+}
+
+function fmtHour(d: Date): string {
+  const h = String(d.getHours()).padStart(2, '0')
+  const m = String(d.getMinutes()).padStart(2, '0')
+  return `${h}h${m}`
 }
 
 // ── Helpers RBC ────────────────────────────────────────────────────────────────
@@ -128,9 +141,10 @@ function toRBCEvents(
 
   if (showAvailability) {
     availSlots.forEach((slot, i) => {
+      const title = `Libre · ${fmtHour(slot.start)} – ${fmtHour(slot.end)}`
       const fakeEvent: CalendarEvent = {
         id: `avail_${i}`,
-        title: 'Disponible',
+        title,
         start: slot.start.toISOString(),
         end: slot.end.toISOString(),
         allDay: false,
@@ -139,7 +153,7 @@ function toRBCEvents(
       }
       result.push({
         id: fakeEvent.id,
-        title: fakeEvent.title,
+        title,
         start: slot.start,
         end: slot.end,
         allDay: false,
@@ -152,26 +166,25 @@ function toRBCEvents(
 }
 
 function eventStyleGetter(event: RBCEvent) {
-  const owner = event.resource.owner
   const isAvailability = event.resource.id.startsWith('avail_')
 
   if (isAvailability) {
     return {
       style: {
-        backgroundColor: 'rgba(22, 163, 74, 0.10)',
+        backgroundColor: 'rgba(16, 185, 129, 0.08)',
         borderLeft: `3px solid ${COLOR_AVAIL}`,
-        color: COLOR_AVAIL,
+        color: '#059669',
         borderRadius: '6px',
         fontSize: '11px',
         fontWeight: 500,
         padding: '2px 6px',
         cursor: 'default',
-        opacity: 0.85,
+        opacity: 0.9,
       },
     }
   }
 
-  const color = owner?.color ?? COLOR_NAOUFEL
+  const color = event.resource.owner?.color ?? COLOR_NAOUFEL
   const isEmir = color === COLOR_EMIR
 
   return {
@@ -188,48 +201,75 @@ function eventStyleGetter(event: RBCEvent) {
   }
 }
 
-// ── ToggleChip ─────────────────────────────────────────────────────────────────
+// ── AgendaRow (checkbox Outlook) ───────────────────────────────────────────────
 
-function ToggleChip({
-  label,
+function AgendaRow({
   color,
-  active,
-  disabled,
-  loading,
-  onClick,
+  label,
+  checked,
+  disabled = false,
+  loading = false,
+  onToggle,
 }: {
-  label: string
   color: string
-  active: boolean
+  label: string
+  checked: boolean
   disabled?: boolean
   loading?: boolean
-  onClick?: () => void
+  onToggle?: () => void
 }) {
   return (
     <button
-      onClick={disabled ? undefined : onClick}
+      type="button"
+      onClick={disabled ? undefined : onToggle}
       disabled={disabled}
-      aria-pressed={active}
-      className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
-        disabled
-          ? 'cursor-default border-transparent'
-          : 'cursor-pointer hover:opacity-80'
-      } ${active ? 'border-transparent' : 'border-[var(--border-color)] bg-white text-[var(--text-secondary)]'}`}
-      style={
-        active
-          ? { backgroundColor: `${color}18`, borderColor: `${color}40`, color }
-          : {}
-      }
+      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--bg-primary)] disabled:cursor-default"
     >
-      <span
-        className="h-2 w-2 rounded-full flex-shrink-0"
-        style={{ backgroundColor: active ? color : 'var(--border-color)' }}
-      />
-      {label}
+      <div
+        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-colors"
+        style={{
+          borderColor: color,
+          backgroundColor: checked ? color : 'transparent',
+        }}
+      >
+        {checked && (
+          <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 10 10">
+            <path
+              d="M1.5 5l3 3 4-4.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </div>
+      <span className="flex-1 text-[13px] text-[var(--text-primary)]">{label}</span>
       {loading && (
-        <RefreshCw className="h-3 w-3 animate-spin ml-0.5" style={{ color }} />
+        <RefreshCw className="h-3 w-3 flex-shrink-0 animate-spin" style={{ color }} />
       )}
     </button>
+  )
+}
+
+// ── LegendDot ──────────────────────────────────────────────────────────────────
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: color }} />
+      <span className="text-[12px] text-[var(--text-secondary)]">{label}</span>
+    </div>
+  )
+}
+
+// ── SectionLabel ───────────────────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-2 pb-1 pt-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+      {children}
+    </p>
   )
 }
 
@@ -237,11 +277,11 @@ function ToggleChip({
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState<View>('month')
+  const [view, setView] = useState<View>('week')
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
-  const [showEmir, setShowEmir] = useState(false)
+  const [showEmir, setShowEmir] = useState(true)
   const [showAvailability, setShowAvailability] = useState(false)
 
   const { data, allUsersData, isLoading, isLoadingAll, error, refetch, refetchAll, createMeet, startOAuth } = useCalendar(currentDate)
@@ -249,23 +289,20 @@ export default function CalendarPage() {
   const isEmir = user?.role === 'admin_bizdev'
   const myName = user?.profile?.full_name ?? ''
 
-  // Charger les données multi-utilisateur à la demande
   const needsAllUsers = showEmir || showAvailability
+
   useEffect(() => {
     if (needsAllUsers && !allUsersData && !isLoadingAll) {
       refetchAll()
     }
   }, [needsAllUsers, allUsersData, isLoadingAll, refetchAll])
 
-  // Actualiser les données multi-utilisateur quand on change de mois avec les toggles actifs
   useEffect(() => {
-    if (needsAllUsers) {
-      refetchAll()
-    }
+    if (needsAllUsers) refetchAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDate])
 
-  // Gérer les retours OAuth (?connected=google ou ?error=...)
+  // Gérer les retours OAuth
   useEffect(() => {
     const connected = searchParams.get('connected')
     const oauthError = searchParams.get('error')
@@ -286,20 +323,13 @@ export default function CalendarPage() {
     }
   }, [searchParams, setSearchParams, refetch])
 
-  // Séparer les événements : les miens vs Emir
-  const ownEvents = useMemo(
-    () => data?.events ?? [],
-    [data?.events],
-  )
+  const ownEvents = useMemo(() => data?.events ?? [], [data?.events])
 
   const emirEvents = useMemo(() => {
     if (!allUsersData?.events) return []
-    return allUsersData.events.filter(
-      (ev) => ev.owner && ev.owner.name !== myName,
-    )
+    return allUsersData.events.filter((ev) => ev.owner && ev.owner.name !== myName)
   }, [allUsersData?.events, myName])
 
-  // Disponibilités communes
   const availableSlots = useMemo(() => {
     if (!showAvailability || !allUsersData?.events) return []
     return computeAvailableSlots(allUsersData.events)
@@ -340,83 +370,53 @@ export default function CalendarPage() {
   const googleNotConfigured = data ? !data.google_configured : false
   const nothingConfigured = googleNotConfigured && data !== null
 
+  // Titre de la période affichée
   const viewTitle = useMemo(() => {
     if (view === 'month') {
       return format(currentDate, 'MMMM yyyy', { locale: fr })
     }
-    return format(currentDate, 'd MMMM yyyy', { locale: fr })
+    const wStart = startOfWeek(currentDate, { locale: fr })
+    const wEnd = addDays(wStart, 6)
+    if (wStart.getMonth() === wEnd.getMonth()) {
+      return `${format(wStart, 'd', { locale: fr })} – ${format(wEnd, 'd MMMM yyyy', { locale: fr })}`
+    }
+    return `${format(wStart, 'd MMM', { locale: fr })} – ${format(wEnd, 'd MMM yyyy', { locale: fr })}`
   }, [currentDate, view])
 
+  // Navigation prev/next
+  function navigatePrev() {
+    const d = new Date(currentDate)
+    if (view === 'month') d.setMonth(d.getMonth() - 1)
+    else d.setDate(d.getDate() - 7)
+    handleNavigate(d)
+  }
+
+  function navigateNext() {
+    const d = new Date(currentDate)
+    if (view === 'month') d.setMonth(d.getMonth() + 1)
+    else d.setDate(d.getDate() + 7)
+    handleNavigate(d)
+  }
+
   return (
-    <motion.div className="flex flex-col gap-5" variants={staggerContainer} initial="hidden" animate="show">
+    <motion.div className="flex flex-col gap-4" variants={staggerContainer} initial="hidden" animate="show">
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <motion.div variants={staggerItem} className="flex flex-wrap items-center justify-between gap-3">
+      <motion.div variants={staggerItem} className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Calendrier</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Google Calendar de {myName || 'votre compte'}
+            Google Calendar · {myName || 'votre compte'}
           </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          {/* Refresh */}
-          <button
-            onClick={() => { refetch(); if (needsAllUsers) refetchAll() }}
-            disabled={isLoading}
-            className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border-color)] bg-white px-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
-            aria-label="Actualiser le calendrier"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-
-          {/* Bouton Meet */}
-          {data?.google_configured && (
-            <button
-              onClick={() => { setSelectedSlot(null); setModalOpen(true) }}
-              className="flex h-9 items-center gap-2 rounded-lg bg-[var(--memovia-violet)] px-4 text-[13px] font-medium text-white hover:bg-[var(--memovia-violet-hover)] transition-colors"
-            >
-              <Video className="h-4 w-4" />
-              {isEmir ? 'Générer un Meet' : 'Nouvelle réunion'}
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => { refetch(); if (needsAllUsers) refetchAll() }}
+          disabled={isLoading}
+          className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border-color)] bg-white px-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+          aria-label="Actualiser le calendrier"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </button>
       </motion.div>
-
-      {/* ── Sélecteur d'agendas + légende ────────────────────────────────────── */}
-      {data?.google_configured && (
-        <motion.div variants={staggerItem} className="flex flex-col gap-2.5">
-          {/* Toggles */}
-          <div className="flex flex-wrap items-center gap-2">
-            <ToggleChip
-              label="Mon agenda"
-              color={COLOR_NAOUFEL}
-              active={true}
-              disabled={true}
-            />
-            <ToggleChip
-              label="Agenda Emir"
-              color={COLOR_EMIR}
-              active={showEmir}
-              loading={showEmir && isLoadingAll && !allUsersData}
-              onClick={() => setShowEmir((v) => !v)}
-            />
-            <ToggleChip
-              label="Disponibilités communes"
-              color={COLOR_AVAIL}
-              active={showAvailability}
-              loading={showAvailability && isLoadingAll && !allUsersData}
-              onClick={() => setShowAvailability((v) => !v)}
-            />
-          </div>
-
-          {/* Légende */}
-          <div className="flex flex-wrap items-center gap-4">
-            <LegendDot color={COLOR_NAOUFEL} label={myName || 'Naoufel'} />
-            {showEmir && <LegendDot color={COLOR_EMIR} label="Emir" />}
-            {showAvailability && <LegendDot color={COLOR_AVAIL} label="Disponible ensemble" />}
-          </div>
-        </motion.div>
-      )}
 
       {/* ── Google error ─────────────────────────────────────────────────────── */}
       {data?.google_error && (
@@ -425,167 +425,210 @@ export default function CalendarPage() {
         </motion.div>
       )}
 
-      {/* ── Loading skeleton ─────────────────────────────────────────────────── */}
-      {isLoading && !data && (
-        <motion.div variants={staggerItem} className="flex flex-col gap-3 rounded-2xl border border-[var(--border-color)] bg-white p-6">
-          <div className="h-5 w-40 skeleton rounded-md" />
-          <div className="h-[520px] skeleton rounded-xl" />
-        </motion.div>
-      )}
+      {/* ── Content layout : sidebar + calendar ──────────────────────────────── */}
+      <motion.div variants={staggerItem} className="flex items-start gap-4">
 
-      {/* ── Error state ──────────────────────────────────────────────────────── */}
-      {error && !isLoading && (
-        <motion.div variants={staggerItem} className="flex flex-col items-center gap-4 rounded-2xl border border-[var(--border-color)] bg-white py-16 text-center">
-          <CalendarDays className="h-10 w-10 text-[var(--text-muted)]" />
-          <div>
-            <p className="text-[15px] font-medium text-[var(--text-primary)]">
-              Impossible de charger le calendrier
-            </p>
-            <p className="text-[13px] text-[var(--text-secondary)]">{error}</p>
+        {/* ── Left Sidebar ─────────────────────────────────────────────────── */}
+        <aside className="w-[220px] flex-shrink-0">
+          <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border-color)] bg-white p-4">
+
+            {/* Nouvel événement */}
+            {data?.google_configured && (
+              <button
+                onClick={() => { setSelectedSlot(null); setModalOpen(true) }}
+                className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-[var(--memovia-violet)] text-[13px] font-medium text-white hover:bg-[var(--memovia-violet-hover)] transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Nouvel événement
+              </button>
+            )}
+
+            {/* Mes agendas */}
+            {data?.google_configured && (
+              <div className="flex flex-col">
+                <SectionLabel>Mes agendas</SectionLabel>
+                <AgendaRow
+                  color={COLOR_NAOUFEL}
+                  label={myName || 'Mon agenda'}
+                  checked={true}
+                  disabled={true}
+                />
+                <AgendaRow
+                  color={COLOR_EMIR}
+                  label="Agenda Emir"
+                  checked={showEmir}
+                  loading={showEmir && isLoadingAll && !allUsersData}
+                  onToggle={() => setShowEmir((v) => !v)}
+                />
+              </div>
+            )}
+
+            {/* Planification */}
+            {data?.google_configured && (
+              <div className="flex flex-col">
+                <SectionLabel>Planification</SectionLabel>
+                <AgendaRow
+                  color={COLOR_AVAIL}
+                  label="Disponibilités communes"
+                  checked={showAvailability}
+                  loading={showAvailability && isLoadingAll && !allUsersData}
+                  onToggle={() => setShowAvailability((v) => !v)}
+                />
+              </div>
+            )}
+
+            {/* Légende */}
+            {data?.google_configured && (
+              <div className="flex flex-col gap-1.5 border-t border-[var(--border-color)] pt-3">
+                <SectionLabel>Légende</SectionLabel>
+                <LegendDot color={COLOR_NAOUFEL} label={myName || 'Naoufel'} />
+                {showEmir && <LegendDot color={COLOR_EMIR} label="Emir" />}
+                {showAvailability && <LegendDot color={COLOR_AVAIL} label="Disponible ensemble" />}
+              </div>
+            )}
           </div>
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-2 rounded-lg bg-[var(--memovia-violet)] px-4 py-2 text-[13px] font-medium text-white hover:bg-[var(--memovia-violet-hover)] transition-colors"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Réessayer
-          </button>
-        </motion.div>
-      )}
+        </aside>
 
-      {/* ── Empty state : Google non configuré ──────────────────────────────── */}
-      {nothingConfigured && !isLoading && (
-        <motion.div variants={staggerItem}>
-          <CalendarEmptyState
-            googleConfigured={false}
-            canConnect={true}
-            onConnect={startOAuth}
-          />
-        </motion.div>
-      )}
+        {/* ── Main calendar area ────────────────────────────────────────────── */}
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
 
-      {/* ── Calendar ─────────────────────────────────────────────────────────── */}
-      {data && data.google_configured && !isLoading && (
-        <motion.div variants={staggerItem} className="flex flex-col gap-0 rounded-2xl border border-[var(--border-color)] bg-white overflow-hidden">
-          {/* Custom toolbar */}
-          <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-3">
-            {/* Navigation */}
-            <div className="flex items-center gap-1">
+          {/* Loading skeleton */}
+          {isLoading && !data && (
+            <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border-color)] bg-white p-6">
+              <div className="h-5 w-40 skeleton rounded-md" />
+              <div className="h-[600px] skeleton rounded-xl" />
+            </div>
+          )}
+
+          {/* Error state */}
+          {error && !isLoading && (
+            <div className="flex flex-col items-center gap-4 rounded-2xl border border-[var(--border-color)] bg-white py-16 text-center">
+              <CalendarDays className="h-10 w-10 text-[var(--text-muted)]" />
+              <div>
+                <p className="text-[15px] font-medium text-[var(--text-primary)]">
+                  Impossible de charger le calendrier
+                </p>
+                <p className="text-[13px] text-[var(--text-secondary)]">{error}</p>
+              </div>
               <button
-                onClick={() => {
-                  const d = new Date(currentDate)
-                  if (view === 'month') d.setMonth(d.getMonth() - 1)
-                  else d.setDate(d.getDate() - 7)
-                  handleNavigate(d)
-                }}
-                aria-label={view === 'month' ? 'Mois précédent' : 'Semaine précédente'}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
+                onClick={() => refetch()}
+                className="flex items-center gap-2 rounded-lg bg-[var(--memovia-violet)] px-4 py-2 text-[13px] font-medium text-white hover:bg-[var(--memovia-violet-hover)] transition-colors"
               >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => handleNavigate(new Date())}
-                className="h-8 rounded-lg px-3 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
-              >
-                Aujourd'hui
-              </button>
-              <button
-                onClick={() => {
-                  const d = new Date(currentDate)
-                  if (view === 'month') d.setMonth(d.getMonth() + 1)
-                  else d.setDate(d.getDate() + 7)
-                  handleNavigate(d)
-                }}
-                aria-label={view === 'month' ? 'Mois suivant' : 'Semaine suivante'}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
-              >
-                <ChevronRight className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
+                Réessayer
               </button>
             </div>
+          )}
 
-            {/* Current period title */}
-            <span className="text-[15px] font-semibold text-[var(--text-primary)] capitalize">
-              {viewTitle}
-            </span>
-
-            {/* View switcher */}
-            <div className="flex rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-0.5">
-              {(['month', 'week'] as View[]).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => handleViewChange(v)}
-                  aria-pressed={view === v}
-                  aria-label={`Vue ${v === 'month' ? 'mensuelle' : 'hebdomadaire'}`}
-                  className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 ${
-                    view === v
-                      ? 'bg-white text-[var(--text-primary)] shadow-sm'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {v === 'month' ? 'Mois' : 'Semaine'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* react-big-calendar */}
-          <div className="calendar-wrapper px-2 pb-2">
-            <Calendar
-              localizer={localizer}
-              events={rbcEvents}
-              startAccessor="start"
-              endAccessor="end"
-              view={view}
-              onView={handleViewChange}
-              date={currentDate}
-              onNavigate={handleNavigate}
-              messages={messages}
-              culture="fr"
-              style={{ height: 580 }}
-              eventPropGetter={eventStyleGetter}
-              onSelectSlot={isEmir ? undefined : handleSelectSlot}
-              onSelectEvent={handleSelectEvent}
-              selectable={!isEmir}
-              popup
-              toolbar={false}
+          {/* Empty state : Google non configuré */}
+          {nothingConfigured && !isLoading && (
+            <CalendarEmptyState
+              googleConfigured={false}
+              canConnect={true}
+              onConnect={startOAuth}
             />
-          </div>
+          )}
 
-          {/* Footer */}
-          <div className="border-t border-[var(--border-color)] px-5 py-2.5">
-            {isEmir ? (
-              <p className="text-[12px] text-[var(--text-muted)]">
-                Vue en lecture seule — utilisez "Générer un Meet" pour créer une réunion.
-              </p>
-            ) : showAvailability && availableSlots.length > 0 ? (
-              <p className="text-[12px] text-[var(--text-muted)]">
-                {availableSlots.length} créneaux disponibles en commun sur les 7 prochains jours ouvrés (9h–18h).
-              </p>
-            ) : null}
-          </div>
-        </motion.div>
-      )}
+          {/* Calendar */}
+          {data && data.google_configured && !isLoading && (
+            <div className="flex flex-col rounded-2xl border border-[var(--border-color)] bg-white overflow-hidden">
+              {/* Toolbar */}
+              <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-3">
+                {/* Navigation */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={navigatePrev}
+                    aria-label={view === 'month' ? 'Mois précédent' : 'Semaine précédente'}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleNavigate(new Date())}
+                    className="h-8 rounded-lg px-3 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
+                  >
+                    Aujourd'hui
+                  </button>
+                  <button
+                    onClick={navigateNext}
+                    aria-label={view === 'month' ? 'Mois suivant' : 'Semaine suivante'}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
 
-      {/* ── Create Meet Modal ─────────────────────────────────────────────────── */}
-      <CreateMeetModal
+                {/* Période affichée */}
+                <span className="text-[15px] font-semibold text-[var(--text-primary)] capitalize">
+                  {viewTitle}
+                </span>
+
+                {/* Sélecteur de vue */}
+                <div className="flex rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-0.5">
+                  {(['week', 'month'] as View[]).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => handleViewChange(v)}
+                      aria-pressed={view === v}
+                      className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 ${
+                        view === v
+                          ? 'bg-white text-[var(--text-primary)] shadow-sm'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {v === 'week' ? 'Semaine' : 'Mois'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* react-big-calendar */}
+              <div className="calendar-wrapper px-2 pb-2">
+                <Calendar
+                  localizer={localizer}
+                  events={rbcEvents}
+                  startAccessor="start"
+                  endAccessor="end"
+                  view={view}
+                  onView={handleViewChange}
+                  date={currentDate}
+                  onNavigate={handleNavigate}
+                  messages={messages}
+                  culture="fr"
+                  style={{ height: 680 }}
+                  eventPropGetter={eventStyleGetter}
+                  onSelectSlot={handleSelectSlot}
+                  onSelectEvent={handleSelectEvent}
+                  selectable
+                  popup
+                  toolbar={false}
+                  min={new Date(2024, 0, 1, 8, 0, 0)}
+                  max={new Date(2024, 0, 1, 20, 0, 0)}
+                />
+              </div>
+
+              {/* Footer */}
+              {showAvailability && availableSlots.length > 0 && (
+                <div className="border-t border-[var(--border-color)] px-5 py-2.5">
+                  <p className="text-[12px] text-[var(--text-muted)]">
+                    {availableSlots.length} créneaux disponibles en commun sur les 7 prochains jours ouvrés (9h–18h).
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* ── Modal création événement ─────────────────────────────────────────── */}
+      <CreateEventModal
         isOpen={modalOpen}
         defaultStart={selectedSlot?.start}
         defaultEnd={selectedSlot?.end}
         onClose={() => { setModalOpen(false); setSelectedSlot(null) }}
-        onCreateMeet={createMeet}
+        onCreateEvent={createMeet}
         inviteNaoufel={isEmir}
       />
     </motion.div>
-  )
-}
-
-// ── LegendDot ──────────────────────────────────────────────────────────────────
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-      <span className="text-[12px] text-[var(--text-secondary)]">{label}</span>
-    </div>
   )
 }

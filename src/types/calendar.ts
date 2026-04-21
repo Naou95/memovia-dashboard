@@ -48,6 +48,8 @@ export interface CreateMeetPayload {
   description?: string
   timezone?: string
   inviteAdminFull?: boolean
+  withMeet?: boolean      // si false, crée l'événement sans lien Meet (défaut: true)
+  attendees?: string[]    // emails supplémentaires à inviter
 }
 
 export interface CreateMeetResponse {
