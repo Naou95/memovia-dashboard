@@ -325,15 +325,19 @@ export default function CalendarPage() {
 
   const ownEvents = useMemo(() => {
     if (needsAllUsers && allUsersData?.events) {
-      return allUsersData.events.filter((ev) => !ev.owner || ev.owner.name === myName)
+      return allUsersData.events.filter(
+        (ev) => !ev.owner || ev.owner.name.toLowerCase().includes('naoufel'),
+      )
     }
     return data?.events ?? []
-  }, [data?.events, allUsersData?.events, needsAllUsers, myName])
+  }, [data?.events, allUsersData?.events, needsAllUsers])
 
   const emirEvents = useMemo(() => {
     if (!allUsersData?.events) return []
-    return allUsersData.events.filter((ev) => ev.owner && ev.owner.name !== myName)
-  }, [allUsersData?.events, myName])
+    return allUsersData.events.filter(
+      (ev) => ev.owner?.name.toLowerCase().includes('emir'),
+    )
+  }, [allUsersData?.events])
 
   const availableSlots = useMemo(() => {
     if (!showAvailability || !allUsersData?.events) return []
