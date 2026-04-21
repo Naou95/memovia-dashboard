@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
         const { data, error } = await supabase
           .from('blog_articles')
           .select(`
-            id, title, slug, excerpt, keyword, status,
+            id, title, slug, content, excerpt, keyword, status,
             meta_title, meta_description, reading_time, cover_image_url,
             created_at, updated_at, published_at,
             category_id, blog_categories(id, name, slug)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Save, Globe, FileText, Clock, Tag, Layers, Image } from 'lucide-react'
 import type { GeneratedArticle, ArticleCreatePayload, BlogCategory } from '@/types/seo'
 
@@ -7,6 +7,7 @@ interface ArticleEditorProps {
   keyword: string
   categories: BlogCategory[]
   articleId?: string
+  initialContent?: string
   initialCategoryId?: string
   initialCoverImageUrl?: string
   onSave: (payload: ArticleCreatePayload) => Promise<void>
@@ -22,6 +23,7 @@ export function ArticleEditor({
   keyword,
   categories,
   articleId,
+  initialContent,
   initialCategoryId,
   initialCoverImageUrl,
   onSave,
@@ -32,7 +34,11 @@ export function ArticleEditor({
   const isEditMode = Boolean(articleId)
   const [title, setTitle] = useState(article.title)
   const [slug, setSlug] = useState(article.suggested_slug)
-  const [content, setContent] = useState(article.content ?? '')
+  const [content, setContent] = useState(initialContent ?? article.content ?? '')
+
+  useEffect(() => {
+    console.log('[ArticleEditor] mount — articleId:', articleId, 'content length:', content.length, 'preview:', content.slice(0, 120))
+  }, [])
   const [metaTitle, setMetaTitle] = useState(article.meta_title)
   const [metaDescription, setMetaDescription] = useState(article.meta_description)
   const [excerpt, setExcerpt] = useState(article.excerpt)

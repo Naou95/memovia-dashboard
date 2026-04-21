@@ -184,6 +184,7 @@ export default function SeoPage() {
                 keyword={editingArticle.keyword ?? ''}
                 categories={categories}
                 articleId={editingArticle.id}
+                initialContent={editingArticle.content ?? undefined}
                 initialCategoryId={editingArticle.category_id ?? undefined}
                 initialCoverImageUrl={editingArticle.cover_image_url ?? undefined}
                 onSave={handleSave}
