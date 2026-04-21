@@ -21,6 +21,7 @@ interface SerpAnalysis {
   keyword: string
   total_results: number
   results: SerpResult[]
+  paa: string[]
 }
 
 interface GeneratedArticle {
@@ -32,9 +33,11 @@ interface GeneratedArticle {
   reading_time: number
   suggested_slug: string
   cover_image_url?: string | null
+  internal_linking_suggestions?: string[] | null
+  paa_used?: string[] | null
 }
 
-// ── DataForSEO SERP ────────────────────────────────────────────────────────────
+// ── Step 1 — DataForSEO SERP + PAA ────────────────────────────────────────────
 async function fetchSerp(
   keyword: string,
   language: string,
@@ -83,6 +86,12 @@ async function fetchSerp(
   const items: any[] = task.result?.[0]?.items ?? []
   const organic = items.filter((i: any) => i.type === 'organic').slice(0, 10)
 
+  // Extract PAA questions (max 5)
+  const paaItems = items.filter((i: any) => i.type === 'people_also_ask')
+  const paa: string[] = paaItems
+    .flatMap((i: any) => (i.items ?? []).map((q: any) => q.title).filter(Boolean))
+    .slice(0, 5)
+
   return {
     keyword,
     total_results: task.result?.[0]?.se_results_count ?? 0,
@@ -92,76 +101,139 @@ async function fetchSerp(
       url: i.url ?? '',
       description: i.description ?? '',
     })),
+    paa,
   }
 }
 
-// ── Claude article generation ──────────────────────────────────────────────────
+// ── Step 2 — Competitor content fetching ──────────────────────────────────────
+async function fetchCompetitorContent(urls: string[]): Promise<string[]> {
+  const validContents: string[] = []
+
+  for (const url of urls.slice(0, 5)) {
+    if (validContents.length >= 3) break
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 8000)
+
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' },
+      })
+      clearTimeout(timeoutId)
+
+      if (!res.ok) continue
+
+      const html = await res.text()
+      // Strip HTML tags
+      const text = html
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+
+      if (text.length < 200) continue
+
+      validContents.push(text.slice(0, 3000))
+    } catch {
+      // timeout or network error — skip silently
+      continue
+    }
+  }
+
+  return validContents
+}
+
+// ── Step 3 — Competitor analysis (single Haiku call) ─────────────────────────
+async function analyzeCompetitors(contents: string[], apiKey: string): Promise<string> {
+  if (contents.length === 0) return ''
+
+  const numbered = contents
+    .map((c, i) => `=== Article concurrent ${i + 1} ===\n${c}`)
+    .join('\n\n')
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: `Voici ${contents.length} article(s) concurrent(s). Pour chacun, liste en 5 points les sous-thèmes et angles couverts. Sois concis.\n\n${numbered}`,
+      }],
+    }),
+  })
+
+  if (!res.ok) return '' // Non-fatal: proceed without competitor context
+
+  const data = await res.json()
+  return data.content?.[0]?.text ?? ''
+}
+
+// ── Step 4 — Claude article generation (E-E-A-T) ──────────────────────────────
 async function generateArticle(
   keyword: string,
   serp: SerpAnalysis,
   theme: string,
+  competitorContext: string,
 ): Promise<GeneratedArticle> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
   if (!apiKey) throw new Error('anthropic_not_configured')
 
-  const serpContext = serp.results
-    .slice(0, 5)
-    .map((r) => `${r.position}. ${r.title}\n   ${r.url}\n   ${r.description}`)
-    .join('\n\n')
+  const systemPrompt = `Tu es un expert en formation professionnelle et EdTech en France, avec 10 ans d'expérience terrain dans les CFAs et organismes de formation. Tu rédiges pour MEMOVIA AI.
 
-  const themeSection = theme
-    ? `\nThème / angle éditorial : ${theme}\n`
-    : ''
+Lecteur cible : responsable pédagogique ou directeur de CFA, pragmatique, peu de temps, cherche des solutions concrètes.
 
-  const systemPrompt = `Tu es un rédacteur expert en EdTech et formation professionnelle, avec 10 ans d'expérience. Tu écris des articles de blog pour MEMOVIA AI, une plateforme française qui génère du contenu pédagogique par IA pour les CFAs et écoles.
+Règles E-E-A-T :
+- Montre une vraie expertise : exemples concrets du secteur, erreurs courantes connues sur le terrain, chiffres réels si disponibles
+- Opinion tranchée — pas de "d'un côté... de l'autre"
+- Intègre chaque PAA comme sous-section H3 naturellement dans le texte
+- Suis l'intent dominant des concurrents pour la structure
+- Angle spécifique CFA/formation pro — jamais de généralités EdTech globales
 
-Règles absolues de rédaction :
-- Jamais de tiret (—) comme transition entre deux idées. Utilise des points, des virgules, des phrases courtes.
-- Jamais de formules creuses : "Dans un monde où", "À l'ère du numérique", "Il est essentiel de", "Force est de constater", "N'hésitez pas à".
-- Jamais de listes à puces sauf si la liste apporte vraiment quelque chose (max 1 liste par section).
-- Pas de conclusion qui résume ce qui vient d'être dit mot pour mot.
-- Pas de ton corporate ou publicitaire. Tu n'es pas un commercial.
-- Phrases courtes à moyennes (15-25 mots max). Pas de phrases à rallonge avec trois subordonnées.
-- Ton direct, concret, légèrement personnel. Comme un expert qui parle à un pair, pas à un client.
-- Chaque paragraphe fait 3-4 lignes max. Aère le texte.
+Interdit :
+- Tirets (—) comme transitions
+- "Dans un monde où", "À l'ère du numérique", "Il est essentiel de", "N'hésitez pas à", "En conclusion nous avons vu que"
+- Introduction qui paraphrase la question plus de 2 lignes
+- Keyword stuffing
+- Plus d'une liste à puces par section
 
-Structure obligatoire en Markdown :
-- Un seul H1 (le titre, max 60 caractères)
-- Des H2 pour les grandes sections (4 à 6 sections)
-- Des H3 pour les sous-parties si nécessaire
-- Minimum 900 mots, maximum 1400 mots
-- Un excerpt de 1-2 phrases percutantes (max 160 caractères) séparé du corps de l'article
+Structure :
+- H1 unique (max 60 chars)
+- 4-6 H2
+- H3 pour les PAA
+- 900-1400 mots selon la cible
+- Excerpt 1-2 phrases (max 160 chars)
+- À la fin, suggérer 2 sujets d'articles connexes pour le maillage interne (champ séparé "internal_linking_suggestions")`
 
-Ce qui doit transparaître :
-- Une vraie expertise sur le sujet
-- Des exemples concrets ou des chiffres réels si pertinents
-- Un point de vue tranché — pas de "d'un côté... de l'autre"
-- Une accroche première phrase qui donne envie de lire la suite`
+  const userPrompt = `Mot-clé : "${keyword}"
+${theme ? `\nAngle éditorial : ${theme}` : ''}
 
-  const userPrompt = `Tu rédiges pour MEMOVIA, une EdTech SaaS française spécialisée dans les outils pédagogiques IA.
+Top 5 titres des concurrents :
+${serp.results.slice(0, 5).map((r, i) => `${i + 1}. ${r.title}`).join('\n')}
 
-Génère un article de blog SEO optimisé en français pour le mot-clé : "${keyword}"
-${themeSection}
-Contexte SERP — top résultats actuels :
-${serpContext || 'Aucun résultat SERP disponible.'}
+Questions PAA à intégrer comme H3 :
+${serp.paa.length > 0 ? serp.paa.join('\n') : 'Aucune PAA disponible'}
 
-Structure attendue :
-- Un H1 (titre, ≤ 60 caractères, sans "Pourquoi" ni "Comment" en début)
-- Introduction en 2 paragraphes courts (3-4 lignes chacun), mot-clé inclus naturellement
-- 4 à 6 sections H2, chacune avec 2-3 paragraphes courts et des exemples concrets
-- Sous-sections H3 si une section est complexe
-- Conclusion avec un CTA vers MEMOVIA (memovia.io)
-- Aucun tiret en début de ligne, aucune liste à puces excessive
+${competitorContext ? `Ce que couvrent les concurrents (à faire mieux) :\n${competitorContext}` : ''}
 
-Réponds UNIQUEMENT avec un objet JSON valide, sans markdown autour, avec exactement cette structure :
+Réponds UNIQUEMENT avec un objet JSON valide :
 {
-  "title": "Titre ≤ 60 caractères, sans Pourquoi/Comment en début",
-  "meta_title": "Meta title SEO (60 caractères max)",
-  "meta_description": "Meta description (155 caractères max)",
-  "excerpt": "1-2 phrases, 160 caractères max",
+  "title": "Titre ≤ 60 caractères",
+  "meta_title": "Meta title SEO (60 chars max)",
+  "meta_description": "Meta description (155 chars max)",
+  "excerpt": "1-2 phrases, 160 chars max",
   "suggested_slug": "url-slug-kebab-case-sans-accents",
   "reading_time": 8,
-  "content": "# Titre\\n\\nContenu complet en Markdown..."
+  "content": "# Titre\\n\\nContenu complet en Markdown...",
+  "internal_linking_suggestions": ["Titre article connexe 1", "Titre article connexe 2"],
+  "paa_used": ${JSON.stringify(serp.paa.slice(0, 5))}
 }`
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -275,6 +347,35 @@ async function generateCoverImage(title: string, slug: string): Promise<string |
   }
 }
 
+// ── 4-step pipeline ───────────────────────────────────────────────────────────
+const PIPELINE_TIMEOUT = 90_000
+
+async function runPipeline(keyword: string, theme: string, language: string, location: string) {
+  // Step 1 — SERP + PAA
+  const serp = await fetchSerp(keyword, language, location)
+
+  // Step 2 + 3 — Competitor fetch & analysis (non-fatal)
+  const competitorUrls = serp.results.slice(0, 5).map((r) => r.url)
+  let competitorContext = ''
+
+  try {
+    const contents = await fetchCompetitorContent(competitorUrls)
+    if (contents.length > 0) {
+      const apiKey = Deno.env.get('ANTHROPIC_API_KEY')!
+      competitorContext = await analyzeCompetitors(contents, apiKey)
+    }
+  } catch {
+    // Non-fatal: proceed without competitor context
+    competitorContext = ''
+  }
+
+  // Step 4 — Article generation + cover image
+  const article = await generateArticle(keyword, serp, theme, competitorContext)
+  const coverImageUrl = await generateCoverImage(article.title, article.suggested_slug)
+
+  return { serp, article: { ...article, cover_image_url: coverImageUrl } }
+}
+
 // ── Handler ────────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
@@ -291,17 +392,23 @@ Deno.serve(async (req) => {
 
     if (!keyword) return errorResponse('keyword_required', 400)
 
-    // Sequential: SERP → Claude article → Gemini cover image
-    const serp = await fetchSerp(keyword, language, location)
-    const article = await generateArticle(keyword, serp, theme)
-    const coverImageUrl = await generateCoverImage(article.title, article.suggested_slug)
+    // 4-step pipeline: SERP+PAA → fetch competitors → analyse competitors → generate article+image
+    const result = await Promise.race([
+      runPipeline(keyword, theme, language, location),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('pipeline_timeout')), PIPELINE_TIMEOUT)
+      ),
+    ])
 
-    return Response.json(
-      { serp, article: { ...article, cover_image_url: coverImageUrl } },
-      { headers: corsHeaders },
-    )
+    return Response.json(result, { headers: corsHeaders })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown_error'
+    if (message === 'pipeline_timeout') {
+      return errorResponse(
+        'La génération a dépassé 90 secondes. Réessayez avec un mot-clé plus court ou sans thème.',
+        504,
+      )
+    }
     return errorResponse(message, 502)
   }
 })
