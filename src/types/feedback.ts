@@ -10,6 +10,7 @@ export interface FeedbackItem {
   author_name: string | null
   author_email: string | null
   created_by: string | null
+  due_date: string | null
   created_at: string
   updated_at: string
 }
@@ -26,6 +27,7 @@ export type FeedbackItemInsert = {
   author_name?: string | null
   author_email?: string | null
   created_by?: string | null
+  due_date?: string | null
 }
 
 export type FeedbackItemUpdate = Partial<FeedbackItemInsert>

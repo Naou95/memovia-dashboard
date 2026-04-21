@@ -21,6 +21,9 @@ import { RevenueBarChart } from '@/components/shared/RevenueBarChart'
 import { ProfitLossChart } from '@/components/shared/ProfitLossChart'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { staggerContainer, staggerItem, cardGridContainer, staggerCard } from '@/lib/motion'
+import { TaskDetailModal } from '@/modules/tasks/components/TaskDetailModal'
+import { TaskForm } from '@/modules/tasks/components/TaskForm'
+import type { Task, TaskUpdate } from '@/types/tasks'
 
 // ── Formatters ─────────────────────────────────────────────────────────────────
 
@@ -91,6 +94,8 @@ interface DayItem {
 export default function OverviewPage() {
   const { user } = useAuth()
   const [deferSecondary, setDeferSecondary] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
 
   useEffect(() => {
     if (typeof requestIdleCallback !== 'undefined') {
@@ -105,7 +110,7 @@ export default function OverviewPage() {
   const { stripe, stripeError, isLoading: stripeKpiLoading } = useOverviewKpis()
   const { data: stripeFinance, isLoading: stripeFinanceLoading } = useStripeFinance()
   const { data: qontoFinance, isLoading: qontoFinanceLoading, error: qontoError } = useQontoFinance()
-  const { tasks, isLoading: tasksLoading } = useTasks()
+  const { tasks, isLoading: tasksLoading, updateTask, deleteTask } = useTasks()
   const { leads, isLoading: leadsLoading } = useLeads()
   const { contracts, isLoading: contractsLoading } = useContracts()
 
@@ -391,47 +396,70 @@ export default function OverviewPage() {
           </div>
         ) : myDayItems.length > 0 ? (
           <div className="divide-y divide-[var(--border-color)]">
-            {myDayItems.map((item) => (
-              <Link
-                key={item.key}
-                to={item.href}
-                className="-mx-5 flex items-center justify-between px-5 py-2.5 transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className={`shrink-0 rounded-lg p-1.5 ${item.iconBg}`}>
-                    <item.Icon size={13} className={item.iconColor} />
-                  </span>
-                  <div className="min-w-0">
-                    <span className="block truncate text-[13px] text-[var(--text-primary)]">
-                      {item.label}
+            {myDayItems.map((item) => {
+              const isTaskItem = item.key.startsWith('task-')
+              const taskId = isTaskItem ? item.key.slice(5) : null
+              const innerContent = (
+                <>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className={`shrink-0 rounded-lg p-1.5 ${item.iconBg}`}>
+                      <item.Icon size={13} className={item.iconColor} />
                     </span>
-                    {item.subtitle && (
-                      <span className="block truncate text-[11px] text-[var(--text-muted)]">
-                        {item.subtitle}
+                    <div className="min-w-0">
+                      <span className="block truncate text-[13px] text-[var(--text-primary)]">
+                        {item.label}
+                      </span>
+                      {item.subtitle && (
+                        <span className="block truncate text-[11px] text-[var(--text-muted)]">
+                          {item.subtitle}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ml-4 flex shrink-0 items-center gap-2">
+                    {item.badge && (
+                      <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${item.badgeClass}`}>
+                        {item.badge}
                       </span>
                     )}
+                    <ArrowRight size={12} className="text-[var(--text-muted)]" />
                   </div>
-                </div>
-                <div className="ml-4 flex shrink-0 items-center gap-2">
-                  {item.badge && (
-                    <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${item.badgeClass}`}>
-                      {item.badge}
-                    </span>
-                  )}
-                  <ArrowRight size={12} className="text-[var(--text-muted)]" />
-                </div>
-              </Link>
-            ))}
+                </>
+              )
+              if (isTaskItem) {
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => {
+                      const task = tasks.find((t) => t.id === taskId)
+                      if (task) setSelectedTask(task)
+                    }}
+                    className="-mx-5 w-full flex items-center justify-between px-5 py-2.5 text-left transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
+                  >
+                    {innerContent}
+                  </button>
+                )
+              }
+              return (
+                <Link
+                  key={item.key}
+                  to={item.href}
+                  className="-mx-5 flex items-center justify-between px-5 py-2.5 transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
+                >
+                  {innerContent}
+                </Link>
+              )
+            })}
           </div>
         ) : myFallbackTasks.length > 0 ? (
           <>
             <p className="mb-3 text-[12px] text-[var(--text-muted)]">Prochaines tâches assignées</p>
             <div className="divide-y divide-[var(--border-color)]">
               {myFallbackTasks.map((t) => (
-                <Link
+                <button
                   key={t.id}
-                  to="/taches"
-                  className="-mx-5 flex items-center justify-between px-5 py-2.5 transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
+                  onClick={() => setSelectedTask(t)}
+                  className="-mx-5 w-full flex items-center justify-between px-5 py-2.5 text-left transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="shrink-0 rounded-lg p-1.5 bg-violet-50">
@@ -445,7 +473,7 @@ export default function OverviewPage() {
                     </span>
                     <ArrowRight size={12} className="text-[var(--text-muted)]" />
                   </div>
-                </Link>
+                </button>
               ))}
             </div>
           </>
@@ -837,6 +865,21 @@ export default function OverviewPage() {
           </div>
         </div>
       </motion.div>
+
+      <TaskDetailModal
+        open={selectedTask !== null}
+        task={selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onEdit={(t) => { setSelectedTask(null); setEditingTask(t) }}
+      />
+      <TaskForm
+        open={editingTask !== null}
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onSubmit={async (data) => { if (editingTask) await updateTask(editingTask.id, data as TaskUpdate) }}
+        onDelete={async (id) => { await deleteTask(id) }}
+        canDelete
+      />
     </motion.div>
   )
 }

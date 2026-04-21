@@ -1,4 +1,4 @@
-import { ChevronUp, MoreVertical, Trash2 } from 'lucide-react'
+import { ChevronUp, MoreVertical, Trash2, CalendarClock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -96,6 +96,19 @@ export function FeedbackCard({
           </p>
         )}
       </div>
+
+      {/* Due date badge */}
+      {item.due_date && (
+        <div className="flex items-center gap-1">
+          <CalendarClock size={11} style={{ color: 'var(--text-muted)' }} />
+          <span
+            className="rounded-md border px-1.5 py-0.5 text-[11px] font-medium"
+            style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+          >
+            {new Date(item.due_date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </span>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between mt-auto pt-1">

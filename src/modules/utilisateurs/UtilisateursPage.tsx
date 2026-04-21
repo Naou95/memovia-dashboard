@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Search } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { useMemoviaUsers } from '@/hooks/useMemoviaUsers'
@@ -25,6 +26,15 @@ const PERIOD_FILTERS: { label: string; value: PeriodFilter }[] = [
 export default function UtilisateursPage() {
   const [filterType, setFilterType] = useState<MemoviaTypeFilter | null>(null)
   const [filterPeriod, setFilterPeriod] = useState<PeriodFilter>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => setDebouncedQuery(searchQuery), 300)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [searchQuery])
 
   const startDate = useMemo((): string | null => {
     if (filterPeriod === null) return null
@@ -42,9 +52,20 @@ export default function UtilisateursPage() {
 
   const { users, total, isLoading, error } = useMemoviaUsers(startDate)
 
-  const filteredUsers = filterType != null
+  const typeFilteredUsers = filterType != null
     ? users.filter((u) => matchesTypeFilter(u.account_type, filterType))
     : users
+
+  const filteredUsers = useMemo(() => {
+    const q = debouncedQuery.trim().toLowerCase()
+    if (!q) return typeFilteredUsers
+    return typeFilteredUsers.filter(
+      (u) =>
+        `${u.first_name} ${u.last_name ?? ''}`.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.organization_name ?? '').toLowerCase().includes(q),
+    )
+  }, [typeFilteredUsers, debouncedQuery])
 
   const hasActiveFilter = filterType != null || filterPeriod != null
 
@@ -79,6 +100,22 @@ export default function UtilisateursPage() {
       {/* ── KPI Stats ────────────────────────────────────────────────────────── */}
       <motion.div variants={staggerItem}>
         <UserStats users={filteredUsers} total={total} isLoading={isLoading} error={error} />
+      </motion.div>
+
+      {/* ── Search ───────────────────────────────────────────────────────────── */}
+      <motion.div variants={staggerItem} className="relative">
+        <Search
+          size={14}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+        />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Rechercher un utilisateur..."
+          className="w-full rounded-xl border py-2 pl-9 pr-4 text-sm outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--memovia-violet)]"
+          style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+        />
       </motion.div>
 
       {/* ── Filters ──────────────────────────────────────────────────────────── */}

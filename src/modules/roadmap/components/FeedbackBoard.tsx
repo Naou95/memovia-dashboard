@@ -163,7 +163,14 @@ export function FeedbackBoard({
     Record<FeedbackStatus, FeedbackItemWithVotes[]>
   >(
     (acc, s) => {
-      acc[s] = items.filter((i) => i.status === s)
+      acc[s] = items
+        .filter((i) => i.status === s)
+        .sort((a, b) => {
+          if (!a.due_date && !b.due_date) return 0
+          if (!a.due_date) return 1
+          if (!b.due_date) return -1
+          return a.due_date.localeCompare(b.due_date)
+        })
       return acc
     },
     { backlog: [], planifie: [], en_dev: [], livre: [] }

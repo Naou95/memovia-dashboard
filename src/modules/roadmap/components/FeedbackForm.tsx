@@ -49,6 +49,7 @@ export function FeedbackForm({ open, onClose, onSubmit, initialItem }: FeedbackF
   const [category, setCategory] = useState<FeedbackCategory>('fonctionnalite')
   const [authorName, setAuthorName] = useState('')
   const [authorEmail, setAuthorEmail] = useState('')
+  const [dueDate, setDueDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export function FeedbackForm({ open, onClose, onSubmit, initialItem }: FeedbackF
       setCategory(initialItem.category)
       setAuthorName(initialItem.author_name ?? '')
       setAuthorEmail(initialItem.author_email ?? '')
+      setDueDate(initialItem.due_date ?? '')
     } else {
       setTitle('')
       setDescription('')
@@ -66,6 +68,7 @@ export function FeedbackForm({ open, onClose, onSubmit, initialItem }: FeedbackF
       setCategory('fonctionnalite')
       setAuthorName('')
       setAuthorEmail('')
+      setDueDate('')
     }
   }, [initialItem, open])
 
@@ -80,6 +83,7 @@ export function FeedbackForm({ open, onClose, onSubmit, initialItem }: FeedbackF
       category,
       author_name: authorName.trim() || null,
       author_email: authorEmail.trim() || null,
+      due_date: dueDate || null,
     })
     setIsSubmitting(false)
     onClose()
@@ -175,6 +179,18 @@ export function FeedbackForm({ open, onClose, onSubmit, initialItem }: FeedbackF
                 placeholder="email@exemple.com"
               />
             </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="fb-due-date" style={{ color: 'var(--text-label)' }}>
+              Date cible
+            </Label>
+            <input
+              id="fb-due-date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              style={selectStyle}
+            />
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>
