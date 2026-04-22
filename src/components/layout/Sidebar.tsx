@@ -38,7 +38,7 @@ export function Sidebar({ className }: SidebarProps) {
     >
       {/* Logo */}
       <motion.div
-        className="flex h-14 items-center gap-2.5 px-5"
+        className="flex h-14 shrink-0 items-center gap-2.5 px-5"
         initial={{ opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
@@ -54,7 +54,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Navigation — staggered mount + sliding active pill via LayoutGroup */}
       <LayoutGroup>
         <motion.nav
-          className="flex-1 px-3 pb-2"
+          className="min-h-0 flex-1 overflow-y-auto px-3 pb-2"
           aria-label="Navigation principale"
           variants={sidebarContainer}
           initial="hidden"
@@ -82,7 +82,7 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* User card */}
       <motion.div
-        className="border-t border-[var(--border-color)] p-2"
+        className="shrink-0 border-t border-[var(--border-color)] p-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.3 }}

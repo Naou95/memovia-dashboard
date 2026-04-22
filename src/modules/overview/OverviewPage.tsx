@@ -523,11 +523,11 @@ export default function OverviewPage() {
       </motion.div>
 
       {/* ── Bento : KPIs (2×2) à gauche + P&L chart à droite ── */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
         {/* Colonne KPI : 4 cards en 2×2 */}
         <motion.div
           variants={cardGridContainer}
-          className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:col-span-7"
+          className="grid grid-cols-1 gap-5 md:col-span-2 md:grid-cols-2 xl:col-span-2"
         >
           <motion.div variants={staggerCard}>
             <KpiCard
@@ -590,7 +590,7 @@ export default function OverviewPage() {
         {/* Colonne P&L chart : hauteur alignée sur 2×2 KPI */}
         <motion.div
           variants={staggerItem}
-          className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)] xl:col-span-5"
+          className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)] md:col-span-2 xl:col-span-1"
         >
           <div className="mb-2 flex items-start justify-between">
             <div>
@@ -632,6 +632,36 @@ export default function OverviewPage() {
           ) : null}
         </motion.div>
       </div>
+
+      {/* ── Revenue chart (capsule bars, Adminix-style) ── */}
+      <motion.div
+        variants={staggerItem}
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+      >
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
+              Revenus facturés
+            </h3>
+            <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">6 derniers mois</p>
+          </div>
+          {stripeFinance && (
+            <span className="text-[13px] font-semibold tabular-nums text-[var(--memovia-violet)]">
+              {new Intl.NumberFormat('fr-FR', {
+                style: 'currency',
+                currency: 'EUR',
+                maximumFractionDigits: 0,
+              }).format(revenueLast6Months.reduce((s, m) => s + m.revenue, 0))}
+            </span>
+          )}
+        </div>
+
+        {stripeFinanceLoading ? (
+          <div className="skeleton h-[160px] rounded-md" />
+        ) : (
+          <RevenueBarChart data={revenueLast6Months} variant="mini" rounded="capsule" />
+        )}
+      </motion.div>
 
       {/* ── Alertes prioritaires ── */}
       <motion.div
@@ -676,36 +706,6 @@ export default function OverviewPage() {
               </span>
             )}
           </div>
-        )}
-      </motion.div>
-
-      {/* ── Revenue chart (capsule bars, Adminix-style) ── */}
-      <motion.div
-        variants={staggerItem}
-        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
-      >
-        <div className="mb-4 flex items-end justify-between">
-          <div>
-            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
-              Revenus facturés
-            </h3>
-            <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">6 derniers mois</p>
-          </div>
-          {stripeFinance && (
-            <span className="text-[13px] font-semibold tabular-nums text-[var(--memovia-violet)]">
-              {new Intl.NumberFormat('fr-FR', {
-                style: 'currency',
-                currency: 'EUR',
-                maximumFractionDigits: 0,
-              }).format(revenueLast6Months.reduce((s, m) => s + m.revenue, 0))}
-            </span>
-          )}
-        </div>
-
-        {stripeFinanceLoading ? (
-          <div className="skeleton h-[160px] rounded-md" />
-        ) : (
-          <RevenueBarChart data={revenueLast6Months} variant="mini" rounded="capsule" />
         )}
       </motion.div>
 
