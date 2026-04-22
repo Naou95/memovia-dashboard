@@ -38,7 +38,7 @@ export function Sidebar({ className }: SidebarProps) {
     >
       {/* Logo */}
       <motion.div
-        className="flex h-16 items-center gap-2.5 px-5"
+        className="flex h-14 items-center gap-2.5 px-5"
         initial={{ opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
@@ -54,18 +54,18 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Navigation — staggered mount + sliding active pill via LayoutGroup */}
       <LayoutGroup>
         <motion.nav
-          className="flex-1 overflow-y-auto px-3 pb-2"
+          className="flex-1 px-3 pb-2"
           aria-label="Navigation principale"
           variants={sidebarContainer}
           initial="hidden"
           animate="show"
         >
           {sections.map((section) => (
-            <div key={section.id} className="mb-3">
-              <div className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-label)]">
+            <div key={section.id} className="mb-2.5">
+              <div className="mb-0.5 px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-label)]">
                 {section.label}
               </div>
-              <ul className="space-y-0.5">
+              <ul className="space-y-px">
                 {section.items.map((item) => (
                   <motion.li key={item.id} variants={sidebarItem}>
                     <SidebarNavItem
@@ -82,7 +82,7 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* User card */}
       <motion.div
-        className="border-t border-[var(--border-color)] p-3"
+        className="border-t border-[var(--border-color)] p-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.3 }}
@@ -126,7 +126,7 @@ function SidebarNavItem({ item, isActive }: SidebarNavItemProps) {
   const content = (
     <span
       className={cn(
-        'relative flex h-8 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium',
+        'relative flex h-7 items-center gap-2 rounded-lg px-2.5 text-[12px] font-medium',
         isActive
           ? 'text-[var(--memovia-violet)]'
           : !isSoon
@@ -146,7 +146,7 @@ function SidebarNavItem({ item, isActive }: SidebarNavItemProps) {
 
       <Icon
         className={cn(
-          'relative z-10 h-[17px] w-[17px] shrink-0',
+          'relative z-10 h-[15px] w-[15px] shrink-0',
           isActive && 'text-[var(--memovia-violet)]',
           !isActive && !isSoon && 'text-[var(--text-muted)]',
           isSoon && !isActive && 'text-[var(--text-muted)] opacity-60'
