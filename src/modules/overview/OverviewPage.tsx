@@ -389,7 +389,7 @@ export default function OverviewPage() {
 
   return (
     <motion.div
-      className="space-y-6"
+      className="space-y-5"
       variants={staggerContainer}
       initial="hidden"
       animate="show"
@@ -554,10 +554,10 @@ export default function OverviewPage() {
         )}
       </motion.div>
 
-      {/* ── KPI cards — 2×2 grid, hauteur égale min-h-[160px] ── */}
+      {/* ── KPI cards — 2×2 grid strict, hauteur égale min-h-[160px] ── */}
       <motion.div
         variants={cardGridContainer}
-        className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2"
+        className="grid auto-rows-fr grid-cols-2 gap-4"
       >
         <motion.div variants={staggerCard} className="min-h-[160px] [&>article]:h-full">
           <KpiCard

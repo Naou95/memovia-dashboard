@@ -35,7 +35,7 @@ export default function AppLayout() {
         </header>
 
         {/* Page content — keyed div triggers entrance animation on route change */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-5">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 8 }}
