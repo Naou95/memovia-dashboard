@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { useQontoFinance, invalidateQontoFinanceCache } from '@/hooks/useQontoFinance'
+import { CacheFreshness } from '@/components/shared/CacheFreshness'
 import { BalanceCard } from './components/BalanceCard'
 import { AlertThresholdConfig } from './components/AlertThresholdConfig'
 import { CashFlowChart } from './components/CashFlowChart'
@@ -12,7 +13,7 @@ import { supabase } from '@/lib/supabase'
 const SETTINGS_KEY = 'qonto_alert_threshold'
 
 export default function QontoPage() {
-  const { data, isLoading, error } = useQontoFinance()
+  const { data, isLoading, error, lastFetchedAt } = useQontoFinance()
   const [threshold, setThreshold] = useState<number | null>(null)
 
   // Charger le seuil au montage
@@ -46,16 +47,8 @@ export default function QontoPage() {
             Qonto Trésorerie
           </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Solde, flux et transactions bancaires.
-            {data?.fetchedAt && (
-              <span className="ml-2 tabular-nums text-[var(--text-muted)]">
-                Mis à jour{' '}
-                {new Date(data.fetchedAt).toLocaleTimeString('fr-FR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-            )}
+            Solde, flux et transactions bancaires.{' '}
+            <CacheFreshness timestamp={lastFetchedAt} />
           </p>
         </div>
         <button

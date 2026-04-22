@@ -1,43 +1,48 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { createCache } from '@/lib/cache'
 import type { QontoFinanceData } from '@/types/qonto'
 
-// Cache module-level : 5 minutes TTL
-const CACHE_TTL = 5 * 60 * 1000
-let cache: { data: QontoFinanceData; ts: number } | null = null
+const qontoCache = createCache<QontoFinanceData>('qonto', 2 * 60 * 1000)
 
 export interface UseQontoFinanceResult {
   data: QontoFinanceData | null
   isLoading: boolean
   error: string | null
+  lastFetchedAt: number | null
 }
 
 export function useQontoFinance(): UseQontoFinanceResult {
   const [isLoading, setIsLoading] = useState(true)
   const [data, setData] = useState<QontoFinanceData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    if (cache && Date.now() - cache.ts < CACHE_TTL) {
-      setData(cache.data)
+    const cached = qontoCache.get()
+    if (cached) {
+      setData(cached.data)
+      setLastFetchedAt(cached.ts)
       setIsLoading(false)
-      return
     }
 
     supabase.functions
       .invoke<QontoFinanceData>('get-qonto-finance')
       .then(({ data: d, error: e }) => {
         if (cancelled) return
-
         if (e || !d) {
-          setError('Impossible de charger les données Qonto')
+          if (!cached) {
+            setError('Impossible de charger les données Qonto')
+            setIsLoading(false)
+          }
         } else {
-          cache = { data: d, ts: Date.now() }
+          qontoCache.set(d)
           setData(d)
+          setLastFetchedAt(Date.now())
+          if (!cached) setIsLoading(false)
         }
-        setIsLoading(false)
       })
 
     return () => {
@@ -45,9 +50,9 @@ export function useQontoFinance(): UseQontoFinanceResult {
     }
   }, [])
 
-  return { data, isLoading, error }
+  return { data, isLoading, error, lastFetchedAt }
 }
 
 export function invalidateQontoFinanceCache(): void {
-  cache = null
+  qontoCache.clear()
 }

@@ -1,46 +1,53 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { createCache } from '@/lib/cache'
 import type { SentryData } from '@/types/sentry'
 
-const CACHE_TTL = 5 * 60 * 1000
-let cache: { data: SentryData; ts: number } | null = null
+const sentryCache = createCache<SentryData>('sentry', 10 * 60 * 1000)
 
 export interface UseSentryResult {
   data: SentryData | null
   isLoading: boolean
   error: string | null
   refresh: () => void
+  lastFetchedAt: number | null
 }
 
 export function useSentry(): UseSentryResult {
   const [isLoading, setIsLoading] = useState(true)
   const [data, setData] = useState<SentryData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
-    if (cache && Date.now() - cache.ts < CACHE_TTL) {
-      setData(cache.data)
+    const cached = sentryCache.get()
+    if (cached) {
+      setData(cached.data)
+      setLastFetchedAt(cached.ts)
       setIsLoading(false)
-      return
+    } else {
+      setIsLoading(true)
+      setError(null)
     }
-
-    setIsLoading(true)
-    setError(null)
 
     supabase.functions
       .invoke<SentryData>('get-sentry')
       .then(({ data: d, error: e }) => {
         if (cancelled) return
         if (e || !d) {
-          setError('Impossible de charger les données Sentry')
+          if (!cached) {
+            setError('Impossible de charger les données Sentry')
+            setIsLoading(false)
+          }
         } else {
-          cache = { data: d, ts: Date.now() }
+          sentryCache.set(d)
           setData(d)
+          setLastFetchedAt(Date.now())
+          if (!cached) setIsLoading(false)
         }
-        setIsLoading(false)
       })
 
     return () => {
@@ -49,13 +56,13 @@ export function useSentry(): UseSentryResult {
   }, [tick])
 
   const refresh = useCallback(() => {
-    cache = null
+    sentryCache.clear()
     setTick((t) => t + 1)
   }, [])
 
-  return { data, isLoading, error, refresh }
+  return { data, isLoading, error, refresh, lastFetchedAt }
 }
 
 export function invalidateSentryCache(): void {
-  cache = null
+  sentryCache.clear()
 }

@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { createCache } from '@/lib/cache'
 import type { StripeMetrics, OverviewKpis } from '@/types/overview'
 
-const CACHE_TTL = 5 * 60 * 1000
-let cache: { data: StripeMetrics; ts: number } | null = null
+const overviewCache = createCache<StripeMetrics>('overview-kpis', 5 * 60 * 1000)
 
-export function useOverviewKpis(): OverviewKpis {
+export function useOverviewKpis(): OverviewKpis & { lastFetchedAt: number | null } {
   const [isLoading, setIsLoading] = useState(true)
   const [stripe, setStripe] = useState<StripeMetrics | null>(null)
   const [stripeError, setStripeError] = useState<string | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    if (cache && Date.now() - cache.ts < CACHE_TTL) {
-      setStripe(cache.data)
+    const cached = overviewCache.get()
+    if (cached) {
+      setStripe(cached.data)
+      setLastFetchedAt(cached.ts)
       setIsLoading(false)
-      return
     }
 
     supabase.functions
@@ -25,13 +27,16 @@ export function useOverviewKpis(): OverviewKpis {
         if (cancelled) return
 
         if (error || !data) {
-          setStripeError('Impossible de charger les métriques Stripe')
+          if (!cached) {
+            setStripeError('Impossible de charger les métriques Stripe')
+            setIsLoading(false)
+          }
         } else {
-          cache = { data, ts: Date.now() }
+          overviewCache.set(data)
           setStripe(data)
+          setLastFetchedAt(Date.now())
+          if (!cached) setIsLoading(false)
         }
-
-        setIsLoading(false)
       })
 
     return () => {
@@ -39,12 +44,9 @@ export function useOverviewKpis(): OverviewKpis {
     }
   }, [])
 
-  // qonto balance is now sourced from useQontoFinance on the Overview page
-  // to avoid a redundant network call. Kept here as null for type compatibility
-  // with existing OverviewKpis shape; consumers should prefer useQontoFinance.
-  return { stripe, qonto: null, stripeError, qontoError: null, isLoading }
+  return { stripe, qonto: null, stripeError, qontoError: null, isLoading, lastFetchedAt }
 }
 
 export function invalidateOverviewKpisCache(): void {
-  cache = null
+  overviewCache.clear()
 }

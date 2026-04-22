@@ -2,6 +2,7 @@ import { DollarSign, TrendingUp, UserPlus, UserMinus, BarChart2, RefreshCw } fro
 import { motion } from 'framer-motion'
 import { useStripeFinance, invalidateStripeFinanceCache } from '@/hooks/useStripeFinance'
 import { KpiCard } from '@/components/shared/KpiCard'
+import { CacheFreshness } from '@/components/shared/CacheFreshness'
 import { MrrChart } from './components/MrrChart'
 import { SubscriptionTable } from './components/SubscriptionTable'
 import { TransactionList } from './components/TransactionList'
@@ -16,7 +17,7 @@ const formatEur = (val: number) => frNum.format(val)
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function StripePage() {
-  const { data, isLoading, error } = useStripeFinance()
+  const { data, isLoading, error, lastFetchedAt } = useStripeFinance()
 
   function handleRefresh() {
     invalidateStripeFinanceCache()
@@ -37,12 +38,8 @@ export default function StripePage() {
             Stripe & Finance
           </h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Revenus, abonnements et transactions.
-            {data?.fetchedAt && (
-              <span className="ml-2 tabular-nums text-[var(--text-muted)]">
-                Mis à jour {new Date(data.fetchedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
+            Revenus, abonnements et transactions.{' '}
+            <CacheFreshness timestamp={lastFetchedAt} />
           </p>
         </div>
         <button

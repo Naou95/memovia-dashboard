@@ -2,6 +2,7 @@ import { Github, RefreshCw, Star, GitFork, CircleDot, GitPullRequest, Code2 } fr
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { useGithub, invalidateGithubCache } from '@/hooks/useGithub'
+import { CacheFreshness } from '@/components/shared/CacheFreshness'
 import { CommitList } from './components/CommitList'
 import { IssueList } from './components/IssueList'
 import { PullRequestList } from './components/PullRequestList'
@@ -70,7 +71,7 @@ function SkeletonCard({ lines = 4 }: { lines?: number }) {
 }
 
 export default function GitHubPage() {
-  const { data, isLoading, error } = useGithub()
+  const { data, isLoading, error, lastFetchedAt } = useGithub()
 
   const handleRefresh = () => {
     invalidateGithubCache()
@@ -95,6 +96,7 @@ export default function GitHubPage() {
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
               naou95/memovia-ia-notes
               {data?.stats.description ? ` — ${data.stats.description}` : ''}
+              {lastFetchedAt && <> · <CacheFreshness timestamp={lastFetchedAt} /></>}
             </p>
           </div>
         </div>

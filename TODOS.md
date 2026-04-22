@@ -156,3 +156,52 @@ https://mzjzwffpqubpruyaaxew.supabase.co/functions/v1/calendar-oauth-callback
 **Source:** /plan-eng-review on 2026-04-18, Overview redesign.
 
 ---
+
+## Performance
+
+### [TODO-P1] Migration vers React Query
+
+**What:** Remplacer `createCache` (localStorage + in-memory) et le pattern stale-while-revalidate custom par `@tanstack/react-query` (`useQuery` + `QueryClient`).
+
+**Why:** Tout le code de cache qu'on est en train d'écrire dans `src/lib/cache.ts` + chaque hook (TTL, background refresh, invalidation) est exactement ce que React Query gère nativement — avec en bonus : retry automatique, devtools, cache partagé cross-composants, et invalidation cross-modules.
+
+**Pros:**
+- Suppression de ~200 lignes de code custom (cache.ts + boilerplate dans chaque hook).
+- Invalidation cross-modules (ex: refresh Stripe depuis Overview invalide aussi StripePage).
+- React Query DevTools pour debugger les fetches en dev.
+- Pattern uniforme sur tous les modules futurs.
+
+**Cons:**
+- Nouvelle dépendance (~13KB gzippé).
+- Migration de 6+ hooks existants + wrapping de l'app dans `<QueryClientProvider>`.
+- Sur-engineered pour un tableau de bord interne à 2 users — mais le coût est faible avec CC.
+
+**Context:** Capturé lors du /plan-eng-review performance du 2026-04-22. On implémente d'abord `createCache` (pragmatique, compatible avec l'existant). Migration React Query = timing optimal avant que le nombre de hooks dépasse ~10, soit avant Module 10 (Realtime).
+
+**Depends on / blocked by:** Aucun. Peut remplacer `createCache` à tout moment.
+
+**Source:** /plan-eng-review on 2026-04-22, axe performance.
+
+---
+
+### [TODO-P2] Cache IndexedDB pour datasets larges
+
+**What:** Utiliser IndexedDB (via `idb` ou `localforage`) pour cacher `useMemoviaUsers` (500 users, ~150KB) et `useAnalytics` (PostHog + Supabase, ~50KB). Ces deux hooks sont exclus du cache localStorage pour éviter de dépasser le quota de 5MB.
+
+**Why:** Sans cache persistant, un F5 sur la page Utilisateurs ou Analytics recharge toujours depuis le réseau (~1-2s). IndexedDB permet des écritures asynchrones (pas de blocage main thread) et supporte des centaines de MB.
+
+**Pros:**
+- Reload instantané même pour les datasets larges.
+- Écriture async = zéro jank.
+- Compatible avec la stratégie TTL existante de `createCache`.
+
+**Cons:**
+- API IndexedDB plus complexe — `idb` (~1KB gzippé) est le wrapper standard.
+- Deuxième mécanisme de cache (localStorage pour petits payloads, IndexedDB pour larges).
+- YAGNI si l'app reste interne à 2-3 utilisateurs.
+
+**Context:** Capturé lors du /plan-eng-review performance du 2026-04-22. useMemoviaUsers et useAnalytics restent en in-memory cache pour l'instant.
+
+**Depends on / blocked by:** TODO-P1 (React Query) couvre ce besoin nativement avec `cacheTime` + `persistQueryClient`. Faire P1 avant P2.
+
+**Source:** /plan-eng-review on 2026-04-22, axe performance.

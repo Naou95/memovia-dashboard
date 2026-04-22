@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { createCache } from '@/lib/cache'
 import type { PostHogAppData, PostHogWebData, SupabaseAnalyticsData } from '@/types/analytics'
 
-const CACHE_TTL = 10 * 60 * 1000
+const TTL = 15 * 60 * 1000
 
-// ── Module-level caches ──────────────────────────────────────────────────────
-
-let cacheApp: { data: PostHogAppData; ts: number } | null = null
-let cacheWeb: { data: PostHogWebData; ts: number } | null = null
-let cacheSupabase: { data: SupabaseAnalyticsData; ts: number } | null = null
+// In-memory only — payloads too large for localStorage quota
+const cacheApp = createCache<PostHogAppData>('posthog-app', TTL, { inMemoryOnly: true })
+const cacheWeb = createCache<PostHogWebData>('posthog-web', TTL, { inMemoryOnly: true })
+const cacheSupabase = createCache<SupabaseAnalyticsData>('analytics-supabase', TTL, { inMemoryOnly: true })
 
 // ── usePostHogApp ────────────────────────────────────────────────────────────
 
@@ -16,41 +16,47 @@ export interface UsePostHogAppResult {
   data: PostHogAppData | null
   isLoading: boolean
   error: string | null
+  lastFetchedAt: number | null
 }
 
 export function usePostHogApp(): UsePostHogAppResult {
   const [isLoading, setIsLoading] = useState(true)
   const [data, setData] = useState<PostHogAppData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    if (cacheApp && Date.now() - cacheApp.ts < CACHE_TTL) {
-      setData(cacheApp.data)
-      setError(null)
+    const cached = cacheApp.get()
+    if (cached) {
+      setData(cached.data)
+      setLastFetchedAt(cached.ts)
       setIsLoading(false)
-      return
     }
 
     supabase.functions
-      .invoke<PostHogAppData>('get-posthog', {
-        body: { host: 'app.memovia.io' },
-      })
+      .invoke<PostHogAppData>('get-posthog', { body: { host: 'app.memovia.io' } })
       .then(({ data: d, error: e }) => {
         if (cancelled) return
         if (e || !d) {
-          setError('Impossible de charger les données PostHog (app.memovia.io)')
+          if (!cached) {
+            setError('Impossible de charger les données PostHog (app.memovia.io)')
+            setIsLoading(false)
+          }
         } else {
-          cacheApp = { data: d, ts: Date.now() }
+          cacheApp.set(d)
           setData(d)
+          setLastFetchedAt(Date.now())
+          if (!cached) setIsLoading(false)
         }
-        setIsLoading(false)
       })
       .catch(() => {
         if (cancelled) return
-        setError('Erreur réseau lors du chargement PostHog (app.memovia.io)')
-        setIsLoading(false)
+        if (!cached) {
+          setError('Erreur réseau lors du chargement PostHog (app.memovia.io)')
+          setIsLoading(false)
+        }
       })
 
     return () => {
@@ -58,7 +64,7 @@ export function usePostHogApp(): UsePostHogAppResult {
     }
   }, [])
 
-  return { data, isLoading, error }
+  return { data, isLoading, error, lastFetchedAt }
 }
 
 // ── usePostHogWeb ────────────────────────────────────────────────────────────
@@ -67,41 +73,47 @@ export interface UsePostHogWebResult {
   data: PostHogWebData | null
   isLoading: boolean
   error: string | null
+  lastFetchedAt: number | null
 }
 
 export function usePostHogWeb(): UsePostHogWebResult {
   const [isLoading, setIsLoading] = useState(true)
   const [data, setData] = useState<PostHogWebData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    if (cacheWeb && Date.now() - cacheWeb.ts < CACHE_TTL) {
-      setData(cacheWeb.data)
-      setError(null)
+    const cached = cacheWeb.get()
+    if (cached) {
+      setData(cached.data)
+      setLastFetchedAt(cached.ts)
       setIsLoading(false)
-      return
     }
 
     supabase.functions
-      .invoke<PostHogWebData>('get-posthog', {
-        body: { host: 'memovia.io' },
-      })
+      .invoke<PostHogWebData>('get-posthog', { body: { host: 'memovia.io' } })
       .then(({ data: d, error: e }) => {
         if (cancelled) return
         if (e || !d) {
-          setError('Impossible de charger les données PostHog (memovia.io)')
+          if (!cached) {
+            setError('Impossible de charger les données PostHog (memovia.io)')
+            setIsLoading(false)
+          }
         } else {
-          cacheWeb = { data: d, ts: Date.now() }
+          cacheWeb.set(d)
           setData(d)
+          setLastFetchedAt(Date.now())
+          if (!cached) setIsLoading(false)
         }
-        setIsLoading(false)
       })
       .catch(() => {
         if (cancelled) return
-        setError('Erreur réseau lors du chargement PostHog (memovia.io)')
-        setIsLoading(false)
+        if (!cached) {
+          setError('Erreur réseau lors du chargement PostHog (memovia.io)')
+          setIsLoading(false)
+        }
       })
 
     return () => {
@@ -109,7 +121,7 @@ export function usePostHogWeb(): UsePostHogWebResult {
     }
   }, [])
 
-  return { data, isLoading, error }
+  return { data, isLoading, error, lastFetchedAt }
 }
 
 // ── useAnalyticsSupabase ─────────────────────────────────────────────────────
@@ -118,21 +130,23 @@ export interface UseAnalyticsSupabaseResult {
   data: SupabaseAnalyticsData | null
   isLoading: boolean
   error: string | null
+  lastFetchedAt: number | null
 }
 
 export function useAnalyticsSupabase(): UseAnalyticsSupabaseResult {
   const [isLoading, setIsLoading] = useState(true)
   const [data, setData] = useState<SupabaseAnalyticsData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
-    if (cacheSupabase && Date.now() - cacheSupabase.ts < CACHE_TTL) {
-      setData(cacheSupabase.data)
-      setError(null)
+    const cached = cacheSupabase.get()
+    if (cached) {
+      setData(cached.data)
+      setLastFetchedAt(cached.ts)
       setIsLoading(false)
-      return
     }
 
     supabase.functions
@@ -140,17 +154,23 @@ export function useAnalyticsSupabase(): UseAnalyticsSupabaseResult {
       .then(({ data: d, error: e }) => {
         if (cancelled) return
         if (e || !d) {
-          setError('Impossible de charger les données Supabase (inscriptions / générations)')
+          if (!cached) {
+            setError('Impossible de charger les données Supabase (inscriptions / générations)')
+            setIsLoading(false)
+          }
         } else {
-          cacheSupabase = { data: d, ts: Date.now() }
+          cacheSupabase.set(d)
           setData(d)
+          setLastFetchedAt(Date.now())
+          if (!cached) setIsLoading(false)
         }
-        setIsLoading(false)
       })
       .catch(() => {
         if (cancelled) return
-        setError('Erreur réseau lors du chargement des données Supabase')
-        setIsLoading(false)
+        if (!cached) {
+          setError('Erreur réseau lors du chargement des données Supabase')
+          setIsLoading(false)
+        }
       })
 
     return () => {
@@ -158,13 +178,13 @@ export function useAnalyticsSupabase(): UseAnalyticsSupabaseResult {
     }
   }, [])
 
-  return { data, isLoading, error }
+  return { data, isLoading, error, lastFetchedAt }
 }
 
 // ── Cache invalidation ───────────────────────────────────────────────────────
 
 export function invalidateAllAnalyticsCache(): void {
-  cacheApp = null
-  cacheWeb = null
-  cacheSupabase = null
+  cacheApp.clear()
+  cacheWeb.clear()
+  cacheSupabase.clear()
 }

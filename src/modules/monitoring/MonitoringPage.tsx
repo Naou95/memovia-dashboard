@@ -2,11 +2,12 @@ import { Bug, RefreshCw, AlertTriangle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { useSentry } from '@/hooks/useSentry'
+import { CacheFreshness } from '@/components/shared/CacheFreshness'
 import { MonitoringKPIs, MonitoringKPIsSkeleton } from './components/MonitoringKPIs'
 import { IssueList, IssueListSkeleton } from './components/IssueList'
 
 export default function MonitoringPage() {
-  const { data, isLoading, error, refresh } = useSentry()
+  const { data, isLoading, error, refresh, lastFetchedAt } = useSentry()
 
   return (
     <motion.div
@@ -19,9 +20,12 @@ export default function MonitoringPage() {
       <motion.div variants={staggerItem} className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <Bug className="h-5 w-5" style={{ color: 'var(--memovia-violet)' }} />
-          <h1 className="text-[18px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Monitoring Sentry
-          </h1>
+          <div>
+            <h1 className="text-[18px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Monitoring Sentry
+            </h1>
+            <CacheFreshness timestamp={lastFetchedAt} className="text-[11px]" />
+          </div>
         </div>
         <button
           onClick={refresh}
