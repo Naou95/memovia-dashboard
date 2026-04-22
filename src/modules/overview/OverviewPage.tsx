@@ -408,7 +408,7 @@ export default function OverviewPage() {
       <ErrorBoundary>
       <motion.div
         variants={staggerItem}
-        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+        className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center gap-2">
           <Sun size={15} className="text-amber-500" />
