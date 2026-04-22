@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Filter, ArrowUpDown, ChevronDown } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
@@ -86,35 +86,25 @@ export default function TasksPage() {
   return (
     <motion.div className="space-y-4" variants={staggerContainer} initial="hidden" animate="show">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <motion.div variants={staggerItem} className="space-y-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-          Tâches
-        </h1>
-        <div className="flex items-center justify-between">
-          <button className="flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
-            <span>Tout</span>
-            <span className="text-[var(--text-muted)]">· 3 vues</span>
-            <ChevronDown className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-          </button>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              onClick={() => handleNewTask()}
-              className="h-8 gap-1.5 px-3 text-[13px]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Nouvelle tâche
-            </Button>
-            <button className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 text-[13px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-secondary)]">
-              <Filter className="h-3.5 w-3.5" />
-              Filtrer
-            </button>
-            <button className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 text-[13px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-secondary)]">
-              <ArrowUpDown className="h-3.5 w-3.5" />
-              Trier
-            </button>
-          </div>
+      <motion.div variants={staggerItem} className="flex items-center justify-between">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+            Tâches
+          </h1>
+          {!isLoading && (
+            <span className="text-[13px] tabular-nums text-[var(--text-muted)]">
+              {tasks.length} au total
+            </span>
+          )}
         </div>
+        <Button
+          size="sm"
+          onClick={() => handleNewTask()}
+          className="h-8 gap-1.5 px-3 text-[13px]"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Nouvelle tâche
+        </Button>
       </motion.div>
 
       {/* ── Error banner ─────────────────────────────────────────────────────── */}
