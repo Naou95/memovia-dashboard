@@ -17,8 +17,7 @@ interface StatCardProps {
 function StatCard({ label, value, icon, accent, isLoading }: StatCardProps) {
   return (
     <div
-      className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3"
-      style={{ borderLeftWidth: 3, borderLeftColor: accent }}
+      className="flex items-center gap-3 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
     >
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"

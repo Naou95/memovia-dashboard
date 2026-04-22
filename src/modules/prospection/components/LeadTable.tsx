@@ -54,7 +54,7 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+    <div className="overflow-x-auto rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <table className="w-full text-sm" aria-label="Liste des leads commerciaux">
         <thead>
           <tr className="border-b border-[var(--border-color)]">

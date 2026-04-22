@@ -57,7 +57,7 @@ export function ContractTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+    <div className="overflow-x-auto rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <table className="w-full text-sm" aria-label="Liste des contrats B2B">
         <thead>
           <tr className="border-b border-[var(--border-color)]">
