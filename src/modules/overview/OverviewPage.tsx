@@ -427,35 +427,33 @@ export default function OverviewPage() {
             ))}
           </div>
         ) : myDayItems.length > 0 ? (
-          <div className="divide-y divide-[var(--border-color)]">
+          <div className="divide-y divide-[#F3F4F6]">
             {myDayItems.map((item) => {
               const isTaskItem = item.key.startsWith('task-')
               const taskId = isTaskItem ? item.key.slice(5) : null
               const innerContent = (
                 <>
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className={`shrink-0 rounded-lg p-1.5 ${item.iconBg}`}>
-                      <item.Icon size={13} className={item.iconColor} />
+                  <item.Icon
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-[var(--memovia-violet)]"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] text-[var(--text-primary)]">
+                      {item.label}
                     </span>
-                    <div className="min-w-0">
-                      <span className="block truncate text-[13px] text-[var(--text-primary)]">
-                        {item.label}
-                      </span>
-                      {item.subtitle && (
-                        <span className="block truncate text-[11px] text-[var(--text-muted)]">
-                          {item.subtitle}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="ml-4 flex shrink-0 items-center gap-2">
-                    {item.badge && (
-                      <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${item.badgeClass}`}>
-                        {item.badge}
+                    {item.subtitle && (
+                      <span className="block truncate text-[11px] text-[var(--text-muted)]">
+                        {item.subtitle}
                       </span>
                     )}
-                    <ArrowRight size={12} className="text-[var(--text-muted)]" />
                   </div>
+                  {item.badge && (
+                    <span className="flex-shrink-0 rounded-full bg-[#F3F4F6] px-2.5 py-1 text-xs font-medium text-[#6B7280]">
+                      {item.badge}
+                    </span>
+                  )}
+                  <ArrowRight size={14} className="flex-shrink-0 text-[var(--text-muted)]" />
                 </>
               )
               if (isTaskItem) {
@@ -466,7 +464,7 @@ export default function OverviewPage() {
                       const task = tasks.find((t) => t.id === taskId)
                       if (task) setSelectedTask(task)
                     }}
-                    className="-mx-5 w-full flex items-center justify-between px-5 py-2.5 text-left transition first:pt-0 last:pb-0 hover:bg-[var(--bg-hover)] active:scale-[0.995] duration-150 ease-out"
+                    className="-mx-5 flex w-full items-center justify-between gap-4 px-5 py-2.5 text-left transition duration-150 ease-out hover:bg-[var(--bg-hover)] active:scale-[0.995]"
                   >
                     {innerContent}
                   </button>
@@ -476,7 +474,7 @@ export default function OverviewPage() {
                 <Link
                   key={item.key}
                   to={item.href}
-                  className="-mx-5 flex items-center justify-between px-5 py-2.5 transition first:pt-0 last:pb-0 hover:bg-[var(--bg-hover)] active:scale-[0.995] duration-150 ease-out"
+                  className="-mx-5 flex items-center justify-between gap-4 px-5 py-2.5 transition duration-150 ease-out hover:bg-[var(--bg-hover)] active:scale-[0.995]"
                 >
                   {innerContent}
                 </Link>
@@ -486,25 +484,25 @@ export default function OverviewPage() {
         ) : myFallbackTasks.length > 0 ? (
           <>
             <p className="mb-3 text-[12px] text-[var(--text-muted)]">Prochaines tâches assignées</p>
-            <div className="divide-y divide-[var(--border-color)]">
+            <div className="divide-y divide-[#F3F4F6]">
               {myFallbackTasks.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setSelectedTask(t)}
-                  className="-mx-5 w-full flex items-center justify-between px-5 py-2.5 text-left transition first:pt-0 last:pb-0 hover:bg-[var(--bg-hover)] active:scale-[0.995] duration-150 ease-out"
+                  className="-mx-5 flex w-full items-center justify-between gap-4 px-5 py-2.5 text-left transition duration-150 ease-out hover:bg-[var(--bg-hover)] active:scale-[0.995]"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="shrink-0 rounded-lg p-1.5 bg-violet-50">
-                      <CheckSquare size={13} className="text-violet-600" />
-                    </span>
-                    <span className="truncate text-[13px] text-[var(--text-primary)]">{t.title}</span>
-                  </div>
-                  <div className="ml-4 flex shrink-0 items-center gap-2">
-                    <span className="rounded-md border px-2 py-0.5 text-[11px] font-medium bg-gray-50 text-gray-500 border-gray-200">
-                      {t.due_date ?? 'Sans échéance'}
-                    </span>
-                    <ArrowRight size={12} className="text-[var(--text-muted)]" />
-                  </div>
+                  <CheckSquare
+                    size={16}
+                    strokeWidth={2}
+                    className="flex-shrink-0 text-[var(--memovia-violet)]"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-[var(--text-primary)]">
+                    {t.title}
+                  </span>
+                  <span className="flex-shrink-0 rounded-full bg-[#F3F4F6] px-2.5 py-1 text-xs font-medium text-[#6B7280]">
+                    {t.due_date ?? 'Sans échéance'}
+                  </span>
+                  <ArrowRight size={14} className="flex-shrink-0 text-[var(--text-muted)]" />
                 </button>
               ))}
             </div>
