@@ -23,35 +23,26 @@ export default function LoginPage() {
   const [magicLinkState, setMagicLinkState] = useState<MagicLinkState>('idle')
 
   const linkExpired = searchParams.get('error') === 'link_expired'
-  // Where to send user after login (supports post-login redirect)
   const from = (location.state as { from?: Location })?.from?.pathname ?? '/overview'
 
-  // Redirect once the AuthContext reports an authenticated user. Done in an
-  // effect (not during render) so we never trigger a router transition while
-  // rendering, and so login works the instant loadUserProfile resolves —
-  // even without a JWT role claim.
   useEffect(() => {
     if (!isLoading && user) {
       navigate(from, { replace: true })
     }
   }, [user, isLoading, navigate, from])
 
-  // ── Password submit ────────────────────────────────────────────────────────
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsPending(true)
     try {
       await signInWithPassword(email, password)
-      // Redirect is handled by the useEffect above once the session
-      // propagates to `user` via onAuthStateChange → loadUserProfile.
     } catch {
-      // Error is toasted inside AuthContext
+      // toast in AuthContext
     } finally {
       setIsPending(false)
     }
   }
 
-  // ── Magic link submit ──────────────────────────────────────────────────────
   async function handleMagicLinkSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsPending(true)
@@ -59,7 +50,7 @@ export default function LoginPage() {
       await signInWithMagicLink(email)
       setMagicLinkState('sent')
     } catch {
-      // Error is toasted inside AuthContext
+      // toast in AuthContext
     } finally {
       setIsPending(false)
     }
@@ -70,27 +61,27 @@ export default function LoginPage() {
     return (
       <LoginShell>
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--memovia-violet-light)]">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[8px] bg-[var(--memovia-violet-light)]">
             <Mail className="h-7 w-7 text-[var(--memovia-violet)]" />
           </div>
-          <h2 className="mb-2 text-xl font-semibold text-[var(--text-primary)]">
+          <h2 className="mb-2 text-[22px] font-bold tracking-tight text-[var(--text-primary)]">
             Vérifiez vos emails
           </h2>
-          <p className="mb-6 text-sm text-[var(--text-secondary)]">
+          <p className="mb-6 text-[13px] text-[var(--text-secondary)]">
             Un lien de connexion a été envoyé à <strong>{email}</strong>.
             <br />
             Le lien expire dans 60 minutes.
           </p>
-          <Button
-            variant="ghost"
-            className="text-sm text-[var(--text-secondary)]"
+          <button
+            type="button"
             onClick={() => {
               setMagicLinkState('idle')
               setMode('password')
             }}
+            className="text-[13px] font-medium text-[var(--memovia-violet)] hover:underline"
           >
             Retour à la connexion
-          </Button>
+          </button>
         </div>
       </LoginShell>
     )
@@ -98,54 +89,51 @@ export default function LoginPage() {
 
   return (
     <LoginShell>
-      {/* Expired link banner */}
-      {linkExpired && (
-        <div className="mb-6 rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/10 px-4 py-3 text-sm text-[var(--warning)]">
-          Ce lien de connexion a expiré. Demandez-en un nouveau ci-dessous.
-        </div>
-      )}
-
       {/* Logo + title */}
-      <div className="mb-8 text-center">
-        <h1 className="mb-1 text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-          MEMOVIA Dashboard
+      <div className="mb-8 flex items-center gap-2.5">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden
+        >
+          <path
+            d="M2 17V4.5a1.5 1.5 0 0 1 2.56-1.06L10 8.88l5.44-5.44A1.5 1.5 0 0 1 18 4.5V17"
+            stroke="#7C3AED"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="10" cy="15.5" r="1.3" fill="#7C3AED" />
+        </svg>
+        <span className="text-[15px] font-bold tracking-tight text-[var(--text-primary)]">
+          MEMOVIA
+        </span>
+      </div>
+
+      <div className="mb-8">
+        <h1 className="text-[24px] font-bold tracking-tight text-[var(--text-primary)]">
+          Bon retour <span aria-hidden>👋</span>
         </h1>
-        <p className="text-sm text-[var(--text-secondary)]">
-          Accès réservé aux administrateurs
+        <p className="mt-1.5 text-[13px] text-[var(--text-secondary)]">
+          Accès réservé aux administrateurs MEMOVIA.
         </p>
       </div>
 
-      {/* Mode toggle */}
-      <div className="mb-6 flex rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-1">
-        <button
-          type="button"
-          onClick={() => setMode('password')}
-          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
-            mode === 'password'
-              ? 'bg-white text-[var(--text-primary)] shadow-sm'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          Mot de passe
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('magic-link')}
-          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all ${
-            mode === 'magic-link'
-              ? 'bg-white text-[var(--text-primary)] shadow-sm'
-              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
-        >
-          Lien magique
-        </button>
-      </div>
+      {/* Expired link banner */}
+      {linkExpired && (
+        <div className="mb-6 rounded-[8px] border border-[var(--warning)]/20 bg-[var(--warning-bg)] px-4 py-3 text-[13px] text-[var(--warning)]">
+          Ce lien de connexion a expiré. Demandez-en un nouveau ci-dessous.
+        </div>
+      )}
 
       {/* Password form */}
       {mode === 'password' ? (
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-sm font-medium text-[var(--text-primary)]">
+            <Label htmlFor="email" className="text-[13px] font-medium text-[var(--text-primary)]">
               Email
             </Label>
             <div className="relative">
@@ -158,14 +146,14 @@ export default function LoginPage() {
                 placeholder="vous@memovia.io"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10 rounded-[8px]"
                 disabled={isPending}
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-sm font-medium text-[var(--text-primary)]">
+            <Label htmlFor="password" className="text-[13px] font-medium text-[var(--text-primary)]">
               Mot de passe
             </Label>
             <div className="relative">
@@ -178,7 +166,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10"
+                className="pl-10 pr-10 h-10 rounded-[8px]"
                 disabled={isPending}
               />
               <button
@@ -186,20 +174,16 @@ export default function LoginPage() {
                 onClick={() => setShowPassword((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 tabIndex={-1}
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
 
           <Button
             type="submit"
-            variant="brand"
-            className="w-full"
+            className="h-10 w-full rounded-[8px] bg-[var(--text-primary)] text-white hover:bg-[var(--text-primary)]/90"
             disabled={isPending}
           >
             {isPending ? (
@@ -211,12 +195,20 @@ export default function LoginPage() {
               'Se connecter'
             )}
           </Button>
+
+          <button
+            type="button"
+            onClick={() => setMode('magic-link')}
+            className="mt-3 block w-full text-center text-[12px] text-[var(--text-secondary)] transition-colors hover:text-[var(--memovia-violet)]"
+          >
+            Recevoir un lien magique à la place
+          </button>
         </form>
       ) : (
         /* Magic link form */
         <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="magic-email" className="text-sm font-medium text-[var(--text-primary)]">
+            <Label htmlFor="magic-email" className="text-[13px] font-medium text-[var(--text-primary)]">
               Email
             </Label>
             <div className="relative">
@@ -229,7 +221,7 @@ export default function LoginPage() {
                 placeholder="vous@memovia.io"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-10 rounded-[8px]"
                 disabled={isPending}
               />
             </div>
@@ -237,8 +229,7 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            variant="brand"
-            className="w-full"
+            className="h-10 w-full rounded-[8px] bg-[var(--text-primary)] text-white hover:bg-[var(--text-primary)]/90"
             disabled={isPending}
           >
             {isPending ? (
@@ -247,26 +238,78 @@ export default function LoginPage() {
                 Envoi…
               </>
             ) : (
-              'Envoyer un lien de connexion'
+              'Envoyer un lien magique'
             )}
           </Button>
+
+          <button
+            type="button"
+            onClick={() => setMode('password')}
+            className="mt-3 block w-full text-center text-[12px] text-[var(--text-secondary)] transition-colors hover:text-[var(--memovia-violet)]"
+          >
+            Se connecter avec un mot de passe
+          </button>
         </form>
       )}
     </LoginShell>
   )
 }
 
-// ── Shell layout ───────────────────────────────────────────────────────────────
+// ── Shell layout : 2 colonnes 55/45 ─────────────────────────────────────────────
 function LoginShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4">
-      <div className="w-full max-w-sm">
-        <div className="rounded-2xl border border-[var(--border-color)] bg-white p-8 shadow-sm">
-          {children}
+    <div className="flex min-h-screen bg-white">
+      {/* Left column — form */}
+      <div className="flex w-full items-center justify-center px-6 py-12 md:w-[55%] md:px-12">
+        <div className="w-full max-w-[380px]">{children}</div>
+      </div>
+
+      {/* Right column — visual/quote (hidden on mobile) */}
+      <div className="hidden md:flex md:w-[45%] md:items-center md:justify-center md:bg-[var(--bg-primary)] md:px-12">
+        <div className="max-w-[420px]">
+          <div className="mb-6 inline-flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--memovia-violet-light)]">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden
+            >
+              <path
+                d="M2 17V4.5a1.5 1.5 0 0 1 2.56-1.06L10 8.88l5.44-5.44A1.5 1.5 0 0 1 18 4.5V17"
+                stroke="#7C3AED"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="10" cy="15.5" r="1.3" fill="#7C3AED" />
+            </svg>
+          </div>
+          <p className="text-[20px] font-semibold leading-snug tracking-tight text-[var(--text-primary)]">
+            Le dashboard qui centralise tout
+            <span className="text-[var(--memovia-violet)]"> MEMOVIA AI</span>.
+          </p>
+          <p className="mt-3 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+            Finance, commercial, produit, plateforme et IA — une seule vue pour piloter
+            l'entreprise au quotidien.
+          </p>
+
+          <div className="mt-8 space-y-3 text-[13px] text-[var(--text-secondary)]">
+            <div className="flex items-center gap-2.5">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--memovia-violet)]" />
+              Métriques finance temps réel (Stripe, Qonto)
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--memovia-violet)]" />
+              CRM, contrats B2B, tâches et calendriers
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--memovia-violet)]" />
+              Monitoring, analytics et copilote IA
+            </div>
+          </div>
         </div>
-        <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
-          MEMOVIA AI — Dashboard interne
-        </p>
       </div>
     </div>
   )
