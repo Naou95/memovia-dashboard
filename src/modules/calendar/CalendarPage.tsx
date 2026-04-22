@@ -428,7 +428,7 @@ export default function CalendarPage() {
 
       {/* ── Google error ─────────────────────────────────────────────────────── */}
       {data?.google_error && (
-        <motion.div variants={staggerItem} className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
+        <motion.div variants={staggerItem} className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-[13px] text-[var(--danger)]">
           <span className="font-semibold">Erreur Google Calendar :</span> {data.google_error}
         </motion.div>
       )}
@@ -438,7 +438,7 @@ export default function CalendarPage() {
 
         {/* ── Left Sidebar ─────────────────────────────────────────────────── */}
         <aside className="w-[220px] flex-shrink-0">
-          <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border-color)] bg-white p-4">
+          <div className="flex flex-col gap-3 rounded-[8px] border border-[var(--border-color)] bg-white p-4">
 
             {/* Nouvel événement */}
             {data?.google_configured && (
@@ -502,15 +502,15 @@ export default function CalendarPage() {
 
           {/* Loading skeleton */}
           {isLoading && !data && (
-            <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border-color)] bg-white p-6">
+            <div className="flex flex-col gap-3 rounded-[8px] border border-[var(--border-color)] bg-white p-6">
               <div className="h-5 w-40 skeleton rounded-md" />
-              <div className="h-[600px] skeleton rounded-xl" />
+              <div className="h-[600px] skeleton rounded-lg" />
             </div>
           )}
 
           {/* Error state */}
           {error && !isLoading && (
-            <div className="flex flex-col items-center gap-4 rounded-2xl border border-[var(--border-color)] bg-white py-16 text-center">
+            <div className="flex flex-col items-center gap-4 rounded-[8px] border border-[var(--border-color)] bg-white py-16 text-center">
               <CalendarDays className="h-10 w-10 text-[var(--text-muted)]" />
               <div>
                 <p className="text-[15px] font-medium text-[var(--text-primary)]">
@@ -539,7 +539,7 @@ export default function CalendarPage() {
 
           {/* Calendar */}
           {data && data.google_configured && !isLoading && (
-            <div className="flex flex-col rounded-2xl border border-[var(--border-color)] bg-white overflow-hidden">
+            <div className="flex flex-col rounded-[8px] border border-[var(--border-color)] bg-white overflow-hidden">
               {/* Toolbar */}
               <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-3">
                 {/* Navigation */}

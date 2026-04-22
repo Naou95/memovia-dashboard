@@ -80,7 +80,7 @@ export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onC
         onClick={handleClose}
       />
 
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--border-color)] bg-white shadow-xl">
+      <div className="relative z-10 w-full max-w-md rounded-[8px] border border-[var(--border-color)] bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-4">
           <div className="flex items-center gap-2.5">
@@ -103,7 +103,7 @@ export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onC
           /* Success state */
           <div className="flex flex-col gap-5 p-5">
             <div className="flex flex-col items-center gap-3 py-2 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--trend-up-bg)]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[8px] bg-[var(--trend-up-bg)]">
                 <Calendar className="h-6 w-6 text-[var(--accent-mint)]" />
               </div>
               <div>
@@ -116,7 +116,7 @@ export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onC
             </div>
 
             {result.meetLink ? (
-              <div className="rounded-xl border border-[var(--memovia-violet)] bg-[var(--memovia-violet-light)] p-4">
+              <div className="rounded-lg border border-[var(--memovia-violet)] bg-[var(--memovia-violet-light)] p-4">
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--memovia-violet)]">
                   Lien Google Meet
                 </p>
@@ -143,7 +143,7 @@ export function CreateMeetModal({ isOpen, defaultStart, defaultEnd, onClose, onC
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-[13px] text-[var(--text-secondary)]">
+              <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-[13px] text-[var(--text-secondary)]">
                 Événement créé, mais aucun lien Meet généré par Google pour cet événement.
               </div>
             )}

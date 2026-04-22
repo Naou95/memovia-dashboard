@@ -25,8 +25,8 @@ export function CalendarEmptyState({ googleConfigured, canConnect, onConnect }: 
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 rounded-2xl border border-[var(--border-color)] bg-white py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--memovia-violet-light)]">
+    <div className="flex flex-col items-center gap-6 rounded-[8px] border border-[var(--border-color)] bg-white py-16 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-[8px] bg-[var(--memovia-violet-light)]">
         <Calendar className="h-7 w-7 text-[var(--memovia-violet)]" />
       </div>
 
@@ -59,7 +59,7 @@ export function CalendarEmptyState({ googleConfigured, canConnect, onConnect }: 
           <summary className="cursor-pointer text-[11px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] select-none">
             Variables d'environnement requises (développeur)
           </summary>
-          <div className="mt-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-4 text-left text-[11px] text-[var(--text-secondary)] space-y-2">
+          <div className="mt-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4 text-left text-[11px] text-[var(--text-secondary)] space-y-2">
             <ul className="space-y-1 font-mono list-disc list-inside">
               <li>GOOGLE_CLIENT_ID</li>
               <li>GOOGLE_CLIENT_SECRET</li>
