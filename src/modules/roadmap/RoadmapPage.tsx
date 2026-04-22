@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Map } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { Button } from '@/components/ui/button'
@@ -73,41 +73,35 @@ export default function RoadmapPage() {
     }
   }
 
-  if (error) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p style={{ color: 'var(--danger)' }}>{error}</p>
-      </div>
-    )
-  }
-
   return (
-    <motion.div className="flex flex-col gap-6 p-6" variants={staggerContainer} initial="hidden" animate="show">
+    <motion.div className="space-y-6" variants={staggerContainer} initial="hidden" animate="show">
       {/* Header */}
-      <motion.div variants={staggerItem} className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl"
-            style={{ backgroundColor: 'var(--accent-purple-bg)' }}
-          >
-            <Map size={20} style={{ color: 'var(--memovia-violet)' }} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-              Roadmap & Feedback
-            </h1>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Idées, demandes et avancement produit MEMOVIA
-            </p>
-          </div>
+      <motion.div variants={staggerItem} className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+            Roadmap & Feedback
+          </h2>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            Idées, demandes et avancement produit MEMOVIA.
+          </p>
         </div>
         {isAdmin && (
-          <Button variant="brand" size="sm" onClick={() => setFormOpen(true)}>
-            <Plus size={16} className="mr-1" />
+          <Button variant="brand" size="sm" onClick={() => setFormOpen(true)} className="h-8 gap-1.5 px-3 text-[13px]">
+            <Plus className="h-3.5 w-3.5" />
             Nouvelle idée
           </Button>
         )}
       </motion.div>
+
+      {/* Error banner */}
+      {error && !isLoading && (
+        <motion.div
+          variants={staggerItem}
+          className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
+        >
+          {error}
+        </motion.div>
+      )}
 
       {/* Stats */}
       <motion.div variants={staggerItem}>
@@ -116,7 +110,7 @@ export default function RoadmapPage() {
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="h-20 skeleton rounded-xl"
+                className="h-20 skeleton rounded-[8px]"
               />
             ))}
           </div>
@@ -158,7 +152,7 @@ export default function RoadmapPage() {
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="h-64 skeleton rounded-xl"
+                className="h-64 skeleton rounded-[8px]"
               />
             ))}
           </div>

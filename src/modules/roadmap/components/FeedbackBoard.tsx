@@ -103,7 +103,7 @@ function Column({
 
       <div
         ref={setNodeRef}
-        className="flex flex-col gap-2 min-h-[120px] rounded-xl p-2 transition-colors"
+        className="flex flex-col gap-2 min-h-[120px] rounded-[8px] p-2 transition-colors"
         style={{
           backgroundColor: isOver ? 'var(--accent-purple-bg)' : 'var(--bg-secondary)',
           border: `1px dashed ${isOver ? 'var(--memovia-violet)' : 'var(--border-color)'}`,

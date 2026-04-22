@@ -17,17 +17,16 @@ export function RoadmapStats({ items }: RoadmapStatsProps) {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid auto-rows-fr grid-cols-2 gap-4 lg:grid-cols-4">
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="rounded-xl border p-4"
-          style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}
+          className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
         >
-          <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-label)]">
             {stat.label}
           </p>
-          <p className="mt-1 text-2xl font-bold" style={{ color: stat.color }}>
+          <p className="mt-2 text-[28px] font-bold leading-none tracking-tight tabular-nums" style={{ color: stat.color }}>
             {stat.value}
           </p>
         </div>
