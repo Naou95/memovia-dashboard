@@ -33,7 +33,7 @@ function CustomTooltip({
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 shadow-lg">
+    <div className="rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-2 shadow-[var(--shadow-sm)]">
       <p className="text-[12px] text-[var(--text-muted)]">{label}</p>
       <p className="text-[14px] font-semibold text-[var(--memovia-violet)]">
         {payload[0].value.toLocaleString('fr-FR')} visiteurs

@@ -44,7 +44,7 @@ function AnalyticsContent({
       {activeError && (
         <motion.div
           variants={staggerItem}
-          className="rounded-xl border border-[var(--danger)] bg-[color-mix(in_oklab,var(--danger)_8%,white)] px-4 py-3 text-sm text-[var(--danger)]"
+          className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
         >
           {activeError}
         </motion.div>
@@ -110,13 +110,13 @@ function AnalyticsContent({
           {/* Generations chart */}
           <motion.section
             variants={staggerItem}
-            className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5"
+            className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
           >
             <h3 className="mb-4 text-[14px] font-semibold text-[var(--text-primary)]">
               Générations par jour — 7 jours
             </h3>
             {supabaseLoading ? (
-              <div className="h-[220px] skeleton rounded-xl" />
+              <div className="h-[220px] skeleton rounded-md" />
             ) : supabaseData?.generations.byDay.length ? (
               <GenerationsChart data={supabaseData.generations.byDay} />
             ) : (
@@ -128,7 +128,7 @@ function AnalyticsContent({
 
           {/* Tables row */}
           <motion.div variants={staggerItem} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5">
+            <section className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
               <h3 className="mb-4 text-[14px] font-semibold text-[var(--text-primary)]">Top pages</h3>
               {appLoading ? (
                 <div className="space-y-2">
@@ -140,7 +140,7 @@ function AnalyticsContent({
                 <TopPagesTable pages={appData?.topPages ?? []} />
               )}
             </section>
-            <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5">
+            <section className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
               <h3 className="mb-4 text-[14px] font-semibold text-[var(--text-primary)]">Sources de trafic</h3>
               {appLoading ? (
                 <div className="space-y-2">
@@ -194,12 +194,12 @@ function AnalyticsContent({
             {webLoading ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="skeleton h-16 rounded-xl" />
+                  <div key={i} className="skeleton h-16 rounded-[8px]" />
                 ))}
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3">
+                <div className="flex items-center gap-3 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]">
                   <div
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                     style={{ backgroundColor: 'var(--accent-purple-bg)' }}
@@ -213,7 +213,7 @@ function AnalyticsContent({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3">
+                <div className="flex items-center gap-3 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]">
                   <div
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                     style={{ backgroundColor: 'color-mix(in oklab, var(--accent-cyan, #06b6d4) 12%, transparent)' }}
@@ -227,7 +227,7 @@ function AnalyticsContent({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3">
+                <div className="flex items-center gap-3 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]">
                   <div
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                     style={{ backgroundColor: 'color-mix(in oklab, var(--accent-green, #22c55e) 12%, transparent)' }}
@@ -248,13 +248,13 @@ function AnalyticsContent({
           {/* Visitors chart */}
           <motion.section
             variants={staggerItem}
-            className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5"
+            className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
           >
             <h3 className="mb-4 text-[14px] font-semibold text-[var(--text-primary)]">
               Évolution des visiteurs uniques — 7 jours
             </h3>
             {webLoading ? (
-              <div className="h-[220px] skeleton rounded-xl" />
+              <div className="h-[220px] skeleton rounded-md" />
             ) : webData?.visitorsDaily.length ? (
               <VisitorsChart data={webData.visitorsDaily} />
             ) : (
@@ -266,7 +266,7 @@ function AnalyticsContent({
 
           {/* Tables row */}
           <motion.div variants={staggerItem} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5">
+            <section className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
               <h3 className="mb-4 text-[14px] font-semibold text-[var(--text-primary)]">Top pages</h3>
               {webLoading ? (
                 <div className="space-y-2">
@@ -278,7 +278,7 @@ function AnalyticsContent({
                 <TopPagesTable pages={webData?.topPages ?? []} />
               )}
             </section>
-            <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5">
+            <section className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
               <h3 className="mb-4 text-[14px] font-semibold text-[var(--text-primary)]">Sources de trafic</h3>
               {webLoading ? (
                 <div className="space-y-2">
@@ -321,7 +321,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Tab selector */}
-        <div className="flex gap-1 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] p-1">
+        <div className="flex gap-1 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-color)] p-1 shadow-[var(--shadow-xs)]">
           <button
             onClick={() => setActiveTab('app')}
             className={`flex-1 rounded-lg px-4 py-2 text-[13px] font-medium transition-colors ${
@@ -350,14 +350,14 @@ export default function AnalyticsPage() {
             href={POSTHOG_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent-purple-bg)] hover:text-[var(--memovia-violet)]"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-xs)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--memovia-violet)]"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             Voir dans PostHog
           </a>
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--accent-purple-bg)] hover:text-[var(--memovia-violet)]"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[13px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-xs)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--memovia-violet)]"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Rafraîchir
