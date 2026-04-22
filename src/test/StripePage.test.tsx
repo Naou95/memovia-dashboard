@@ -8,6 +8,18 @@ vi.mock('@/hooks/useStripeFinance', () => ({
   invalidateStripeFinanceCache: vi.fn(),
 }))
 
+vi.mock('@/contexts/PrivacyContext', () => ({
+  usePrivacy: vi.fn(() => ({ isPrivate: false })),
+}))
+
+// CountUp animates via framer-motion which doesn't run in JSDOM — render final value immediately
+vi.mock('@/components/motion/CountUp', () => ({
+  CountUp: ({ to, formatter }: { to: number; formatter?: (n: number) => string }) => {
+    const fmt = formatter ?? ((n: number) => n.toLocaleString('fr-FR'))
+    return <span>{fmt(to)}</span>
+  },
+}))
+
 // Recharts provoque des erreurs ResizeObserver en jsdom — on mock le module
 vi.mock('recharts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('recharts')>()
@@ -66,13 +78,13 @@ describe('StripePage', () => {
   })
 
   it('affiche les skeletons pendant le chargement', () => {
-    mockUseStripeFinance.mockReturnValue({ data: null, isLoading: true, error: null })
+    mockUseStripeFinance.mockReturnValue({ data: null, isLoading: true, error: null, lastFetchedAt: null })
     const { container } = render(<StripePage />)
-    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
+    expect(container.querySelectorAll('.skeleton').length).toBeGreaterThan(0)
   })
 
   it('affiche les 5 KPI cards avec les données', () => {
-    mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null })
+    mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null, lastFetchedAt: null })
     render(<StripePage />)
 
     expect(screen.getByText('MRR')).toBeInTheDocument()
@@ -83,26 +95,26 @@ describe('StripePage', () => {
   })
 
   it('affiche la valeur MRR correctement formatée', () => {
-    mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null })
+    mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null, lastFetchedAt: null })
     render(<StripePage />)
     // 360 formaté en fr-FR
     expect(screen.getByText('360')).toBeInTheDocument()
   })
 
   it("affiche l'email du client dans le tableau abonnements", () => {
-    mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null })
+    mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null, lastFetchedAt: null })
     render(<StripePage />)
-    expect(screen.getByText('client@exemple.com')).toBeInTheDocument()
+    expect(screen.getAllByText('client@exemple.com').length).toBeGreaterThanOrEqual(1)
   })
 
   it('affiche la description de la transaction', () => {
-    mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null })
+    mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null, lastFetchedAt: null })
     render(<StripePage />)
     expect(screen.getByText('Abonnement B2B')).toBeInTheDocument()
   })
 
   it('affiche "Indisponible" sur les KPI si erreur', () => {
-    mockUseStripeFinance.mockReturnValue({ data: null, isLoading: false, error: 'Erreur Stripe' })
+    mockUseStripeFinance.mockReturnValue({ data: null, isLoading: false, error: 'Erreur Stripe', lastFetchedAt: null })
     render(<StripePage />)
     const indispos = screen.getAllByText('Indisponible')
     expect(indispos.length).toBeGreaterThanOrEqual(1)

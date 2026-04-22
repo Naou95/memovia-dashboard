@@ -53,6 +53,9 @@ vi.mock('@/contexts/AuthContext', () => ({
     isLoading: false,
   })),
 }))
+vi.mock('@/contexts/PrivacyContext', () => ({
+  usePrivacy: vi.fn(() => ({ isPrivate: false })),
+}))
 
 import OverviewPage from '@/modules/overview/OverviewPage'
 import { useOverviewKpis } from '@/hooks/useOverviewKpis'
@@ -112,9 +115,10 @@ describe('OverviewPage', () => {
       stripeError: null,
       qontoError: null,
       isLoading: false,
+      lastFetchedAt: null,
     })
-    mockStripeFinance.mockReturnValue({ data: stripeFinance, isLoading: false, error: null })
-    mockQontoFinance.mockReturnValue({ data: qontoFinance, isLoading: false, error: null })
+    mockStripeFinance.mockReturnValue({ data: stripeFinance, isLoading: false, error: null, lastFetchedAt: null })
+    mockQontoFinance.mockReturnValue({ data: qontoFinance, isLoading: false, error: null, lastFetchedAt: null })
 
     render(<OverviewPage />)
 
@@ -138,9 +142,10 @@ describe('OverviewPage', () => {
       stripeError: null,
       qontoError: null,
       isLoading: false,
+      lastFetchedAt: null,
     })
-    mockStripeFinance.mockReturnValue({ data: stripeFinance, isLoading: false, error: null })
-    mockQontoFinance.mockReturnValue({ data: null, isLoading: true, error: null })
+    mockStripeFinance.mockReturnValue({ data: stripeFinance, isLoading: false, error: null, lastFetchedAt: null })
+    mockQontoFinance.mockReturnValue({ data: null, isLoading: true, error: null, lastFetchedAt: null })
 
     const { container } = render(<OverviewPage />)
     // At least one skeleton div inside the P&L card area
@@ -156,12 +161,14 @@ describe('OverviewPage', () => {
       stripeError: null,
       qontoError: null,
       isLoading: false,
+      lastFetchedAt: null,
     })
-    mockStripeFinance.mockReturnValue({ data: stripeFinance, isLoading: false, error: null })
+    mockStripeFinance.mockReturnValue({ data: stripeFinance, isLoading: false, error: null, lastFetchedAt: null })
     mockQontoFinance.mockReturnValue({
       data: null,
       isLoading: false,
       error: 'Impossible de charger les données Qonto',
+      lastFetchedAt: null,
     })
 
     render(<OverviewPage />)
@@ -182,9 +189,10 @@ describe('OverviewPage', () => {
       stripeError: null,
       qontoError: null,
       isLoading: false,
+      lastFetchedAt: null,
     })
-    mockStripeFinance.mockReturnValue({ data: null, isLoading: true, error: null })
-    mockQontoFinance.mockReturnValue({ data: qontoFinance, isLoading: false, error: null })
+    mockStripeFinance.mockReturnValue({ data: null, isLoading: true, error: null, lastFetchedAt: null })
+    mockQontoFinance.mockReturnValue({ data: qontoFinance, isLoading: false, error: null, lastFetchedAt: null })
 
     const { container } = render(<OverviewPage />)
     expect(screen.getByText('MRR')).toBeInTheDocument()
