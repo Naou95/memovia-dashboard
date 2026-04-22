@@ -18,7 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function ContractCard({ data }: { data: ContractCardData }) {
   return (
-    <div className="my-1 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 shadow-sm">
+    <div className="my-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 shadow-[var(--shadow-xs)]">
       <div className="flex items-start gap-2">
         <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--memovia-violet)]" strokeWidth={2} />
         <div className="flex-1 min-w-0">

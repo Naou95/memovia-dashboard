@@ -149,7 +149,7 @@ export function CopilotBubble() {
         aria-hidden={!open}
         className={cn(
           'fixed bottom-24 right-6 z-50 flex w-[380px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden',
-          'h-[min(560px,calc(100vh-8rem))] rounded-2xl border border-[var(--border-color)]',
+          'h-[min(560px,calc(100vh-8rem))] rounded-[12px] border border-[var(--border-color)]',
           'bg-[var(--bg-secondary)] shadow-2xl shadow-[var(--text-primary)]/10',
           'origin-bottom-right transition-all duration-200',
           open
