@@ -67,15 +67,21 @@ const mockStripeFinance = vi.mocked(useStripeFinance)
 const mockQontoFinance = vi.mocked(useQontoFinance)
 
 const stripeMetrics: StripeMetrics = {
-  mrr: 360,
+  mrr: 491,
+  mrr_stripe: 131,
+  mrr_contracts: 360,
+  mrr_total: 491,
   activeSubscribers: 30,
   cancelingAtPeriodEnd: 2,
   fetchedAt: new Date().toISOString(),
 }
 
 const stripeFinance: StripeFinanceData = {
-  mrr: 360,
-  arr: 4320,
+  mrr: 491,
+  mrr_stripe: 131,
+  mrr_contracts: 360,
+  mrr_total: 491,
+  arr: 5892,
   newThisMonth: 2,
   churnsThisMonth: 1,
   totalRevenue12mo: 3960,

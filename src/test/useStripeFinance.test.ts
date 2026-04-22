@@ -18,8 +18,11 @@ import type { StripeFinanceData } from '@/types/stripe'
 const mockInvoke = vi.mocked(supabase.functions.invoke)
 
 const mockData: StripeFinanceData = {
-  mrr: 360,
-  arr: 4320,
+  mrr: 491,
+  mrr_stripe: 131,
+  mrr_contracts: 360,
+  mrr_total: 491,
+  arr: 5892,
   newThisMonth: 2,
   churnsThisMonth: 0,
   totalRevenue12mo: 3960,

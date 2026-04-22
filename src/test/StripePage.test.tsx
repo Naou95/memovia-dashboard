@@ -37,8 +37,11 @@ import { useStripeFinance } from '@/hooks/useStripeFinance'
 const mockUseStripeFinance = vi.mocked(useStripeFinance)
 
 const mockData: StripeFinanceData = {
-  mrr: 360,
-  arr: 4320,
+  mrr: 491,
+  mrr_stripe: 131,
+  mrr_contracts: 360,
+  mrr_total: 491,
+  arr: 5892,
   newThisMonth: 2,
   churnsThisMonth: 1,
   totalRevenue12mo: 3960,
@@ -83,22 +86,23 @@ describe('StripePage', () => {
     expect(container.querySelectorAll('.skeleton').length).toBeGreaterThan(0)
   })
 
-  it('affiche les 5 KPI cards avec les données', () => {
+  it('affiche les 6 KPI cards avec les données', () => {
     mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null, lastFetchedAt: null })
     render(<StripePage />)
 
     expect(screen.getByText('MRR')).toBeInTheDocument()
+    expect(screen.getByText('MRR B2B')).toBeInTheDocument()
     expect(screen.getByText('ARR')).toBeInTheDocument()
     expect(screen.getByText('Nouveaux ce mois')).toBeInTheDocument()
     expect(screen.getByText('Churns ce mois')).toBeInTheDocument()
     expect(screen.getByText('Revenus 12 mois')).toBeInTheDocument()
   })
 
-  it('affiche la valeur MRR correctement formatée', () => {
+  it('affiche la valeur MRR total correctement formatée', () => {
     mockUseStripeFinance.mockReturnValue({ data: mockData, isLoading: false, error: null, lastFetchedAt: null })
     render(<StripePage />)
-    // 360 formaté en fr-FR
-    expect(screen.getByText('360')).toBeInTheDocument()
+    // mrr_total=491 affiché sur la card MRR
+    expect(screen.getByText('491')).toBeInTheDocument()
   })
 
   it("affiche l'email du client dans le tableau abonnements", () => {
