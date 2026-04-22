@@ -40,7 +40,7 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 rounded-xl p-3"
+            className="flex items-center gap-3 rounded-[8px] p-3"
             style={{ backgroundColor: 'var(--bg-secondary)' }}
           >
             <div
@@ -81,7 +81,7 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
           <button
             key={msg.uid}
             onClick={() => onSelect(msg.uid)}
-            className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors"
+            className="flex w-full items-start gap-3 rounded-[8px] px-3 py-2.5 text-left transition-colors"
             style={{
               backgroundColor: isSelected
                 ? 'var(--accent-purple-bg)'

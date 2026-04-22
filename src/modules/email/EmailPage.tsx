@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Mail, RefreshCw, Pencil, Inbox, Zap, X } from 'lucide-react'
+import { RefreshCw, Pencil, Inbox, Zap, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { Button } from '@/components/ui/button'
@@ -94,24 +94,16 @@ export default function EmailPage() {
   const unseenCount = messages.filter((m) => !m.seen).length
 
   return (
-    <motion.div className="flex h-full flex-col gap-4 p-6" style={{ overflow: 'hidden' }} variants={staggerContainer} initial="hidden" animate="show">
+    <motion.div className="flex h-full flex-col gap-4" style={{ overflow: 'hidden' }} variants={staggerContainer} initial="hidden" animate="show">
       {/* Header */}
-      <motion.div variants={staggerItem} className="flex shrink-0 items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl"
-            style={{ backgroundColor: 'var(--accent-purple-bg)' }}
-          >
-            <Mail size={20} style={{ color: 'var(--memovia-violet)' }} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-              Email Hostinger
-            </h1>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {isLoading ? 'Chargement…' : `${total} message${total !== 1 ? 's' : ''}${unseenCount > 0 ? ` · ${unseenCount} non lu${unseenCount !== 1 ? 's' : ''}` : ''}`}
-            </p>
-          </div>
+      <motion.div variants={staggerItem} className="flex shrink-0 items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+            Email Hostinger
+          </h2>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            {isLoading ? 'Chargement…' : `${total} message${total !== 1 ? 's' : ''}${unseenCount > 0 ? ` · ${unseenCount} non lu${unseenCount !== 1 ? 's' : ''}` : ''}`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -156,13 +148,13 @@ export default function EmailPage() {
       {detectionResult !== null && (
         <motion.div
           variants={staggerItem}
-          className="shrink-0 flex items-center justify-between rounded-xl border px-4 py-3 text-sm"
+          className="shrink-0 flex items-center justify-between rounded-[8px] border px-4 py-3 text-sm shadow-[var(--shadow-xs)]"
           style={
             detectionResult.inserted > 0
-              ? { backgroundColor: '#dcfce7', borderColor: '#bbf7d0', color: '#166534' }
+              ? { backgroundColor: 'var(--success-bg)', borderColor: 'color-mix(in oklab, var(--success) 25%, transparent)', color: 'var(--success)' }
               : detectionResult.inserted === 0
               ? { backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', color: 'var(--text-muted)' }
-              : { backgroundColor: '#fee2e2', borderColor: '#fecaca', color: '#991b1b' }
+              : { backgroundColor: 'var(--danger-bg)', borderColor: 'color-mix(in oklab, var(--danger) 25%, transparent)', color: 'var(--danger)' }
           }
         >
           <span>
@@ -192,7 +184,7 @@ export default function EmailPage() {
         <motion.div
           variants={staggerItem}
           role="alert"
-          className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="shrink-0 rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
         >
           {error} — Vérifiez les secrets Supabase (HOSTINGER_EMAIL, HOSTINGER_IMAP_PASSWORD)
         </motion.div>
@@ -201,8 +193,7 @@ export default function EmailPage() {
       {/* Main panel */}
       <motion.div
         variants={staggerItem}
-        className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border"
-        style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}
+        className="flex min-h-0 flex-1 overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]"
       >
         {/* Left: folder + list */}
         <div
