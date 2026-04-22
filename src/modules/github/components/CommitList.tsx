@@ -17,10 +17,7 @@ interface Props {
 
 export function CommitList({ commits }: Props) {
   return (
-    <div
-      className="rounded-2xl border overflow-hidden"
-      style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
-    >
+    <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <div
         className="flex items-center gap-2 border-b px-4 py-3"
         style={{ borderColor: 'var(--border-color)' }}

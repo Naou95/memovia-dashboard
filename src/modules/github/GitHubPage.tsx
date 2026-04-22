@@ -1,4 +1,4 @@
-import { Github, RefreshCw, Star, GitFork, CircleDot, GitPullRequest, Code2 } from 'lucide-react'
+import { RefreshCw, Star, GitFork, CircleDot, GitPullRequest, Code2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { useGithub, invalidateGithubCache } from '@/hooks/useGithub'
@@ -21,11 +21,10 @@ function StatCard({
 }) {
   return (
     <div
-      className="flex items-center gap-3 rounded-2xl border px-4 py-3"
-      style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
+      className="flex items-center gap-3 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
     >
       <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
         style={{ backgroundColor: `${accent}18` }}
       >
         <span style={{ color: accent }}>{icon}</span>
@@ -44,10 +43,7 @@ function StatCard({
 
 function SkeletonCard({ lines = 4 }: { lines?: number }) {
   return (
-    <div
-      className="rounded-2xl border"
-      style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
-    >
+    <div className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <div
         className="flex items-center gap-2 border-b px-4 py-3"
         style={{ borderColor: 'var(--border-color)' }}
@@ -79,38 +75,27 @@ export default function GitHubPage() {
   }
 
   return (
-    <motion.div className="flex h-full flex-col gap-4 overflow-y-auto p-6" variants={staggerContainer} initial="hidden" animate="show">
+    <motion.div className="space-y-6" variants={staggerContainer} initial="hidden" animate="show">
       {/* Header */}
-      <motion.div variants={staggerItem} className="flex shrink-0 items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl"
-            style={{ backgroundColor: 'var(--memovia-violet-light)' }}
-          >
-            <Github size={20} style={{ color: 'var(--memovia-violet)' }} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-              GitHub
-            </h1>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              naou95/memovia-ia-notes
-              {data?.stats.description ? ` — ${data.stats.description}` : ''}
-              {lastFetchedAt && <> · <CacheFreshness timestamp={lastFetchedAt} /></>}
-            </p>
-          </div>
+      <motion.div variants={staggerItem} className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+            GitHub
+          </h2>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            naou95/memovia-ia-notes
+            {data?.stats.description ? ` — ${data.stats.description}` : ''}
+            {lastFetchedAt && <> · <CacheFreshness timestamp={lastFetchedAt} /></>}
+          </p>
         </div>
         <button
           onClick={handleRefresh}
           disabled={isLoading}
-          className="rounded-lg p-2 transition-colors hover:bg-[var(--bg-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 text-[12px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-xs)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
           aria-label="Rafraîchir les données GitHub"
         >
-          <RefreshCw
-            size={16}
-            style={{ color: 'var(--text-muted)' }}
-            className={isLoading ? 'animate-spin' : ''}
-          />
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          Rafraîchir
         </button>
       </motion.div>
 
@@ -119,7 +104,7 @@ export default function GitHubPage() {
         <motion.div
           variants={staggerItem}
           role="alert"
-          className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
         >
           {error} — Vérifiez le secret Supabase GITHUB_TOKEN
         </motion.div>
@@ -131,8 +116,7 @@ export default function GitHubPage() {
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-16 skeleton rounded-2xl border"
-              style={{ borderColor: 'var(--border-color)' }}
+              className="h-16 skeleton rounded-[8px] border border-[var(--border-color)]"
             />
           ))}
         </motion.div>
