@@ -87,7 +87,7 @@ function ProfileModal({ profile, onClose, onSaved }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
-      <div className="w-full max-w-md rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 id="profile-modal-title" className="text-base font-semibold text-[var(--text-primary)]">
             {isEdit ? 'Modifier le collaborateur' : 'Inviter un collaborateur'}
@@ -141,14 +141,14 @@ function ProfileModal({ profile, onClose, onSaved }: ModalProps) {
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
+            <p className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-3 py-2 text-xs text-[var(--danger)]">{error}</p>
           )}
 
           <div className="flex justify-end gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]"
+              className="rounded-lg px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
             >
               Annuler
             </button>
@@ -187,7 +187,7 @@ function DeleteConfirm({ profile, onClose, onDeleted }: DeleteConfirmProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
-      <div className="w-full max-w-sm rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
+      <div className="w-full max-w-sm rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
         <h2 id="delete-confirm-title" className="mb-2 text-base font-semibold text-[var(--text-primary)]">Supprimer ce collaborateur ?</h2>
         <p className="mb-5 text-sm text-[var(--text-muted)]">
           <strong>{profile.full_name}</strong> ({profile.email}) sera retiré du dashboard. Cette action est irréversible.
@@ -195,14 +195,14 @@ function DeleteConfirm({ profile, onClose, onDeleted }: DeleteConfirmProps) {
         <div className="flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]"
+            className="rounded-lg px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
           >
             Annuler
           </button>
           <button
             onClick={handleDelete}
             disabled={loading}
-            className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-lg bg-[var(--danger)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
           >
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
             Supprimer
@@ -237,26 +237,26 @@ export default function AdminPage() {
 
   return (
     <>
-      <div className="flex h-full flex-col gap-6 p-6">
+      <div className="space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Gestion admins</h1>
+            <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Gestion admins</h2>
             <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              {profiles.length} collaborateur{profiles.length !== 1 ? 's' : ''}
+              {loading ? 'Chargement…' : `${profiles.length} collaborateur${profiles.length !== 1 ? 's' : ''}`}
             </p>
           </div>
           <button
             onClick={() => setModal('add')}
-            className="inline-flex items-center gap-2 rounded-xl bg-[var(--memovia-violet)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--memovia-violet)] px-3 text-[13px] font-medium text-white shadow-[var(--shadow-xs)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             Ajouter un collaborateur
           </button>
         </div>
 
         {/* Table */}
-        <div className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] overflow-hidden">
+        <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
           {loading ? (
             <div className="flex h-40 items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin text-[var(--memovia-violet)]" />
@@ -267,7 +267,14 @@ export default function AdminPage() {
               <p className="text-sm">Aucun collaborateur</p>
             </div>
           ) : (
-            <table className="w-full text-sm" aria-label="Liste des collaborateurs admins">
+            <table className="w-full table-fixed text-sm" aria-label="Liste des collaborateurs admins">
+              <colgroup>
+                <col className="w-[38%]" />
+                <col className="w-[20%]" />
+                <col className="w-[18%]" />
+                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-[var(--border-color)] bg-[var(--bg-primary)]">
                   <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">Collaborateur</th>
@@ -279,9 +286,9 @@ export default function AdminPage() {
               </thead>
               <tbody className="divide-y divide-[var(--border-color)]">
                 {profiles.map((p) => (
-                  <tr key={p.id} className="group hover:bg-[var(--bg-primary)]/60 transition-colors">
+                  <tr key={p.id} className="group transition-colors hover:bg-[var(--bg-hover)]">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <div
                           className={cn(
                             'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
@@ -290,37 +297,37 @@ export default function AdminPage() {
                         >
                           {initials(p.full_name)}
                         </div>
-                        <div>
-                          <p className="font-medium text-[var(--text-primary)]">{p.full_name}</p>
-                          <p className="text-xs text-[var(--text-muted)]">{p.email}</p>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-[var(--text-primary)]">{p.full_name}</p>
+                          <p className="truncate text-xs text-[var(--text-muted)]">{p.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <span
                         className={cn(
-                          'rounded-full px-2.5 py-0.5 text-xs font-medium',
+                          'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium',
                           ROLE_STYLES[p.role]
                         )}
                       >
                         {ROLE_LABELS[p.role]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-[var(--text-secondary)]">{formatDate(p.created_at)}</td>
-                    <td className="px-4 py-3 tabular-nums text-[var(--text-muted)]">{formatDate(p.updated_at)}</td>
+                    <td className="truncate px-4 py-3 tabular-nums text-[var(--text-secondary)]">{formatDate(p.created_at)}</td>
+                    <td className="truncate px-4 py-3 tabular-nums text-[var(--text-muted)]">{formatDate(p.updated_at)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                         <button
                           onClick={() => setModal(p)}
                           aria-label={`Modifier ${p.full_name}`}
-                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
+                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--memovia-violet)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => setToDelete(p)}
                           aria-label={`Supprimer ${p.full_name}`}
-                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-1"
+                          className="rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)] focus-visible:ring-offset-1"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
