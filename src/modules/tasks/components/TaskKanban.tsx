@@ -92,7 +92,7 @@ function CardContent({ task, onView, isOverlay, isPlaceholder }: CardContentProp
       ].join(' ')}
       style={isOverlay ? { transform: 'rotate(1.5deg)' } : undefined}
     >
-      <div className="p-4 space-y-2" style={{ minHeight: 120 }}>
+      <div className="px-5 py-4 space-y-2" style={{ minHeight: 140 }}>
         {/* Row 1: priority badge + ··· */}
         <div className="flex items-center justify-between min-h-[20px]">
           <span
@@ -115,7 +115,7 @@ function CardContent({ task, onView, isOverlay, isPlaceholder }: CardContentProp
         {/* Row 2: title */}
         <p
           className={[
-            'text-[14px] font-semibold leading-tight',
+            'text-[15px] font-semibold leading-snug',
             task.status === 'done'
               ? 'line-through text-[var(--text-muted)]'
               : 'text-[var(--text-primary)]',
@@ -275,7 +275,7 @@ function DroppableColumn({ status, tasks, isLoading, onView, onNewTask, activeTa
   const dot = COLUMN_DOT[status]
 
   return (
-    <div className="flex w-[280px] shrink-0 flex-col rounded-[10px] bg-[var(--bg-primary)] p-2.5">
+    <div className="flex min-w-[280px] flex-1 flex-col rounded-[10px] bg-[var(--bg-primary)] p-2.5">
       {/* Column header — transparent, inside grey column */}
       <div className="mb-2 flex items-center justify-between px-0.5">
         <div className="flex items-center gap-2">
@@ -363,7 +363,7 @@ export function TaskKanban({ tasks, isLoading, onView, onStatusChange, onNewTask
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="overflow-x-auto pb-4">
-        <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
+        <div className="flex gap-4">
           {TASK_STATUS_ORDER.map((status) => (
             <DroppableColumn
               key={status}
