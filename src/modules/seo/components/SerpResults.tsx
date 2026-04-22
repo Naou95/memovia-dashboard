@@ -10,7 +10,7 @@ export function SerpResults({ serp }: SerpResultsProps) {
 
   return (
     <div
-      className="rounded-2xl border p-5"
+      className="rounded-[8px] border p-5"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       <div className="mb-4 flex items-center gap-2">

@@ -44,13 +44,13 @@ export function ArticlesList({
   if (isLoading) {
     return (
       <div
-        className="rounded-2xl border p-5"
+        className="rounded-[8px] border p-5"
         style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
       >
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex animate-pulse gap-3">
-              <div className="h-14 flex-1 rounded-xl" style={{ backgroundColor: 'var(--bg-primary)' }} />
+              <div className="h-14 flex-1 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)' }} />
             </div>
           ))}
         </div>
@@ -61,7 +61,7 @@ export function ArticlesList({
   return (
     <>
       <div
-        className="rounded-2xl border"
+        className="rounded-[8px] border"
         style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
       >
         {/* Header */}
@@ -205,12 +205,12 @@ export function ArticlesList({
           onClick={() => setDeletingId(null)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-[8px] border p-6 shadow-2xl"
             style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: '#fef2f2' }}>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: '#fef2f2' }}>
                 <AlertTriangle className="h-5 w-5" style={{ color: '#ef4444' }} />
               </div>
               <div>
@@ -223,7 +223,7 @@ export function ArticlesList({
               </div>
             </div>
             <p
-              className="mb-5 rounded-xl px-3 py-2 text-[12px] font-medium"
+              className="mb-5 rounded-lg px-3 py-2 text-[12px] font-medium"
               style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-secondary)' }}
             >
               {articleToDelete.title}
@@ -231,14 +231,14 @@ export function ArticlesList({
             <div className="flex gap-2">
               <button
                 onClick={() => setDeletingId(null)}
-                className="flex-1 rounded-xl border px-4 py-2 text-[13px] font-medium transition-colors"
+                className="flex-1 rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors"
                 style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
               >
                 Annuler
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 rounded-xl px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+                className="flex-1 rounded-lg px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
                 style={{ backgroundColor: '#ef4444' }}
               >
                 Supprimer

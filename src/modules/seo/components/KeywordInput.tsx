@@ -40,7 +40,7 @@ export function KeywordInput({ step, onGenerate, defaultKeyword, onDefaultKeywor
 
   return (
     <div
-      className="rounded-2xl border p-6"
+      className="rounded-[8px] border p-6"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       <h2
@@ -67,7 +67,7 @@ export function KeywordInput({ step, onGenerate, defaultKeyword, onDefaultKeywor
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="Mot-clé cible · ex : logiciel de gestion pédagogique"
             disabled={isLoading}
-            className="h-10 w-full rounded-xl border bg-transparent pl-9 pr-4 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)] disabled:opacity-50"
+            className="h-10 w-full rounded-lg border bg-transparent pl-9 pr-4 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)] disabled:opacity-50"
             style={{
               borderColor: 'var(--border-color)',
               color: 'var(--text-primary)',
@@ -87,7 +87,7 @@ export function KeywordInput({ step, onGenerate, defaultKeyword, onDefaultKeywor
             onChange={(e) => setTheme(e.target.value)}
             placeholder="Thème / angle · ex : comparatif pour responsables pédagogiques (optionnel)"
             disabled={isLoading}
-            className="h-10 w-full rounded-xl border bg-transparent pl-9 pr-4 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)] disabled:opacity-50"
+            className="h-10 w-full rounded-lg border bg-transparent pl-9 pr-4 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)] disabled:opacity-50"
             style={{
               borderColor: 'var(--border-color)',
               color: 'var(--text-primary)',
@@ -98,7 +98,7 @@ export function KeywordInput({ step, onGenerate, defaultKeyword, onDefaultKeywor
         <button
           type="submit"
           disabled={!keyword.trim() || isLoading}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
           style={{ backgroundColor: 'var(--memovia-violet)' }}
         >
           {isLoading ? (

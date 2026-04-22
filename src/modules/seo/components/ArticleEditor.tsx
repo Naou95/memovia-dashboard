@@ -179,7 +179,7 @@ export function ArticleEditor({
 
   return (
     <div
-      className="flex flex-col gap-4 rounded-2xl border p-5"
+      className="flex flex-col gap-4 rounded-[8px] border p-5"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       {/* Header */}
@@ -284,7 +284,7 @@ export function ArticleEditor({
             alt="Aperçu image de couverture"
             onError={(e) => { e.currentTarget.style.display = 'none' }}
             onLoad={(e) => { e.currentTarget.style.display = 'block' }}
-            className="mt-2 h-24 w-full rounded-xl object-cover"
+            className="mt-2 h-24 w-full rounded-lg object-cover"
             style={{ border: '1px solid var(--border-color)', display: 'none' }}
           />
         )}
@@ -318,7 +318,7 @@ export function ArticleEditor({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={22}
-            className="w-full resize-y rounded-xl border bg-transparent px-3 py-2.5 font-mono text-[12px] leading-relaxed outline-none transition-colors focus:border-[var(--memovia-violet)]"
+            className="w-full resize-y rounded-lg border bg-transparent px-3 py-2.5 font-mono text-[12px] leading-relaxed outline-none transition-colors focus:border-[var(--memovia-violet)]"
             style={{
               borderColor: 'var(--border-color)',
               color: 'var(--text-primary)',
@@ -326,7 +326,7 @@ export function ArticleEditor({
           />
         ) : (
           <div
-            className="prose prose-sm max-h-[440px] max-w-none overflow-y-auto rounded-xl border px-4 py-3"
+            className="prose prose-sm max-h-[440px] max-w-none overflow-y-auto rounded-lg border px-4 py-3"
             style={{
               borderColor: 'var(--border-color)',
               color: 'var(--text-primary)',
@@ -377,7 +377,7 @@ export function ArticleEditor({
           <button
             onClick={() => onSave(buildPayload('draft'))}
             disabled={isSaving || !title || !slug}
-            className="flex items-center gap-2 rounded-xl border px-4 py-2 text-[13px] font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors disabled:opacity-50"
             style={{
               borderColor: 'var(--border-color)',
               color: 'var(--text-secondary)',
@@ -391,7 +391,7 @@ export function ArticleEditor({
               onClick={() => onUpdate?.(articleId!, buildUpdatePayload())}
               disabled={isSaving || !title || !slug || !canPublish}
               title={!canPublish ? `Score SEO insuffisant (${seo.score}/100)` : undefined}
-              className="flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
               style={{ backgroundColor: 'var(--memovia-violet)' }}
             >
               <Save className="h-3.5 w-3.5" />
@@ -408,7 +408,7 @@ export function ArticleEditor({
                   ? `Score SEO insuffisant (${seo.score}/100)`
                   : undefined
               }
-              className="flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
               style={{ backgroundColor: 'var(--memovia-violet)' }}
             >
               <Globe className="h-3.5 w-3.5" />
@@ -428,7 +428,7 @@ function isHtmlContent(str: string): boolean {
 }
 
 const inputClass =
-  'h-9 w-full rounded-xl border bg-transparent px-3 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)]'
+  'h-9 w-full rounded-lg border bg-transparent px-3 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)]'
 
 const inputStyle: React.CSSProperties = {
   borderColor: 'var(--border-color)',
@@ -470,11 +470,11 @@ function SeoScoreBadge({ score, checks }: { score: number; checks: SeoCheck[] })
       : { bg: '#fef2f2', text: '#dc2626' }
 
   return (
-    <div className="rounded-xl border" style={{ borderColor: 'var(--border-color)' }}>
+    <div className="rounded-lg border" style={{ borderColor: 'var(--border-color)' }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between rounded-xl px-3 py-2"
+        className="flex w-full items-center justify-between rounded-lg px-3 py-2"
       >
         <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
           Score SEO

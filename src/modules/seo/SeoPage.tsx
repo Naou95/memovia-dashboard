@@ -101,32 +101,24 @@ export default function SeoPage() {
   }
 
   return (
-    <motion.div className="flex h-full flex-col gap-4 overflow-y-auto p-6" variants={staggerContainer} initial="hidden" animate="show">
+    <motion.div className="space-y-5" variants={staggerContainer} initial="hidden" animate="show">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <motion.div variants={staggerItem} className="flex shrink-0 items-center gap-3">
-        <div
-          className="flex h-9 w-9 items-center justify-center rounded-xl"
-          style={{ backgroundColor: 'var(--memovia-violet-light)' }}
-        >
-          <BarChart3 className="h-5 w-5" style={{ color: 'var(--memovia-violet)' }} />
-        </div>
-        <div>
-          <h1 className="text-[18px] font-bold" style={{ color: 'var(--text-primary)' }}>
-            SEO & Blog
-          </h1>
-          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-            Génération d&apos;articles via Claude + DataForSEO · publication sur memovia.io
-          </p>
-        </div>
+      <motion.div variants={staggerItem}>
+        <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+          SEO & Blog
+        </h2>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          Génération d&apos;articles via Claude + DataForSEO · publication sur memovia.io.
+        </p>
       </motion.div>
 
       {/* ── Stats bar ──────────────────────────────────────────────────────── */}
       <motion.div variants={staggerItem} className="grid shrink-0 grid-cols-3 gap-3">
         {isLoading ? (
           <>
-            <div className="skeleton h-[60px] rounded-2xl" />
-            <div className="skeleton h-[60px] rounded-2xl" />
-            <div className="skeleton h-[60px] rounded-2xl" />
+            <div className="skeleton h-[60px] rounded-[8px]" />
+            <div className="skeleton h-[60px] rounded-[8px]" />
+            <div className="skeleton h-[60px] rounded-[8px]" />
           </>
         ) : (
           <>
@@ -140,7 +132,7 @@ export default function SeoPage() {
       {/* ── Tabs ───────────────────────────────────────────────────────────── */}
       <motion.div
         variants={staggerItem}
-        className="flex shrink-0 gap-1 rounded-xl border p-1"
+        className="flex shrink-0 gap-1 rounded-lg border p-1"
         style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
       >
         {([
@@ -232,7 +224,7 @@ export default function SeoPage() {
 
               {generationStep === 'error' && (
                 <div
-                  className="rounded-2xl border px-5 py-4 text-[13px]"
+                  className="rounded-[8px] border px-5 py-4 text-[13px]"
                   style={{
                     borderColor: '#fca5a5',
                     backgroundColor: '#fef2f2',
@@ -308,7 +300,7 @@ function SuggestionsTab({ seeds, suggestions, isLoading, onAddSeed, onDeleteSeed
   return (
     <div className="flex flex-col gap-4">
       {/* Seeds management */}
-      <div className="rounded-2xl border p-5" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+      <div className="rounded-[8px] border p-5" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
         <h2 className="mb-3 text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
           Sujets de base
         </h2>
@@ -317,13 +309,13 @@ function SuggestionsTab({ seeds, suggestions, isLoading, onAddSeed, onDeleteSeed
             value={newSeed}
             onChange={(e) => setNewSeed(e.target.value)}
             placeholder="Ajouter un sujet..."
-            className="h-9 flex-1 rounded-xl border bg-transparent px-3 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)]"
+            className="h-9 flex-1 rounded-lg border bg-transparent px-3 text-[13px] outline-none transition-colors focus:border-[var(--memovia-violet)]"
             style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
           />
           <button
             type="submit"
             disabled={!newSeed.trim()}
-            className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-[13px] font-medium text-white disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-medium text-white disabled:opacity-50"
             style={{ backgroundColor: 'var(--memovia-violet)' }}
           >
             <Plus className="h-3.5 w-3.5" />
@@ -354,7 +346,7 @@ function SuggestionsTab({ seeds, suggestions, isLoading, onAddSeed, onDeleteSeed
       <button
         onClick={onGenerate}
         disabled={isLoading || seeds.length === 0}
-        className="flex h-10 w-full items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
+        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-[13px] font-medium text-white transition-opacity disabled:opacity-50"
         style={{ backgroundColor: 'var(--memovia-violet)' }}
       >
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -388,7 +380,7 @@ function SuggestionCard({ suggestion, onSelect }: { suggestion: SeoSuggestion; o
 
   return (
     <div
-      className="flex flex-col gap-2 rounded-2xl border p-4"
+      className="flex flex-col gap-2 rounded-[8px] border p-4"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -443,11 +435,11 @@ function StatCard({
 }) {
   return (
     <div
-      className="flex items-center gap-3 rounded-2xl border px-4 py-3"
+      className="flex items-center gap-3 rounded-[8px] border px-4 py-3"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
         style={{ backgroundColor: `${accent}18` }}
       >
         <BarChart3 className="h-4 w-4" style={{ color: accent }} />
