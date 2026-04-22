@@ -60,12 +60,12 @@ const messages = {
 
 function computeAvailableSlots(
   allEvents: CalendarEvent[],
+  referenceDate = new Date(),
   daysAhead = 7,
 ): AvailabilitySlot[] {
   const slots: AvailabilitySlot[] = []
-  const today = startOfDay(new Date())
   let dayCount = 0
-  let cursor = today
+  let cursor = addDays(startOfWeek(referenceDate, { locale: fr }), -1)
 
   while (dayCount < daysAhead) {
     cursor = addDays(cursor, 1)
@@ -326,7 +326,7 @@ export default function CalendarPage() {
   const ownEvents = useMemo(() => {
     if (needsAllUsers && allUsersData?.events) {
       return allUsersData.events.filter(
-        (ev) => !ev.owner || ev.owner.name.toLowerCase().includes('naoufel'),
+        (ev) => !ev.owner || ev.owner.color !== COLOR_EMIR,
       )
     }
     return data?.events ?? []
@@ -335,14 +335,14 @@ export default function CalendarPage() {
   const emirEvents = useMemo(() => {
     if (!allUsersData?.events) return []
     return allUsersData.events.filter(
-      (ev) => ev.owner?.name.toLowerCase().includes('emir'),
+      (ev) => ev.owner?.color === COLOR_EMIR,
     )
   }, [allUsersData?.events])
 
   const availableSlots = useMemo(() => {
     if (!showAvailability || !allUsersData?.events) return []
-    return computeAvailableSlots(allUsersData.events)
-  }, [showAvailability, allUsersData?.events])
+    return computeAvailableSlots(allUsersData.events, currentDate)
+  }, [showAvailability, allUsersData?.events, currentDate])
 
   const rbcEvents = useMemo(
     () => toRBCEvents(ownEvents, emirEvents, availableSlots, showEmir, showAvailability),
