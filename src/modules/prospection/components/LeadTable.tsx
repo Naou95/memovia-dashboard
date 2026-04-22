@@ -54,8 +54,21 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
   }
 
   return (
-    <div className="overflow-x-auto rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
-      <table className="w-full text-sm" aria-label="Liste des leads commerciaux">
+    <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
+      <table className="w-full table-fixed text-sm" aria-label="Liste des leads commerciaux">
+        <colgroup>
+          <col className="w-[14%]" />
+          <col className="w-[11%]" />
+          <col className="w-[7%]" />
+          <col className="w-[8%]" />
+          <col className="w-[9%]" />
+          <col className="w-[9%]" />
+          <col className="w-[9%]" />
+          <col className="w-[14%]" />
+          <col className="w-[8%]" />
+          <col className="w-[6%]" />
+          <col className="w-[5%]" />
+        </colgroup>
         <thead>
           <tr className="border-b border-[var(--border-color)]">
             {['Organisation', 'Contact', 'Type', 'Canal', 'Statut', 'Maturité', 'Assigné', 'Prochaine action', 'Dernier contact', 'Relances', 'Actions'].map(
@@ -98,22 +111,22 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
                 className="transition-colors hover:bg-[var(--accent-purple-bg)]"
               >
                 {/* Organisation */}
-                <td className="px-4 py-3">
+                <td className="truncate px-4 py-3">
                   <span className="font-medium text-[var(--text-primary)]">{lead.name}</span>
                 </td>
 
                 {/* Contact */}
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {lead.contact_name ?? '—'}
                 </td>
 
                 {/* Type */}
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {LEAD_TYPE_LABELS[lead.type]}
                 </td>
 
                 {/* Canal */}
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {LEAD_CANAL_LABELS[lead.canal]}
                 </td>
 
@@ -132,22 +145,22 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
                 </td>
 
                 {/* Assigné */}
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {lead.assigned_to ? LEAD_ASSIGNEE_LABELS[lead.assigned_to] : '—'}
                 </td>
 
                 {/* Prochaine action */}
-                <td className="max-w-[200px] px-4 py-3 text-[var(--text-secondary)]">
-                  <span className="line-clamp-1">{lead.next_action ?? '—'}</span>
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
+                  {lead.next_action ?? '—'}
                 </td>
 
                 {/* Dernier contact */}
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {formatDate(lead.last_contact_date)}
                 </td>
 
                 {/* Relances */}
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {lead.relance_count > 0 ? lead.relance_count : '—'}
                 </td>
 

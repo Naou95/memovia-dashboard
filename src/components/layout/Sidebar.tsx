@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Sparkles } from 'lucide-react'
 import { motion, LayoutGroup } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { getNavForRole } from '@/config/navigation'
@@ -31,22 +30,36 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'flex w-[220px] flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)]',
+        'flex h-full w-[220px] flex-col overflow-hidden border-r border-[var(--border-color)] bg-[var(--bg-sidebar)]',
         className
       )}
       data-testid="sidebar"
     >
-      {/* Logo */}
+      {/* Logo — monogramme M custom MEMOVIA */}
       <motion.div
         className="flex h-14 shrink-0 items-center gap-2.5 px-5"
         initial={{ opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
       >
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--memovia-violet)]">
-          <Sparkles className="h-4 w-4 text-white" strokeWidth={2.5} />
-        </div>
-        <span className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden
+        >
+          <path
+            d="M2 17V4.5a1.5 1.5 0 0 1 2.56-1.06L10 8.88l5.44-5.44A1.5 1.5 0 0 1 18 4.5V17"
+            stroke="#7C3AED"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="10" cy="15.5" r="1.3" fill="#7C3AED" />
+        </svg>
+        <span className="text-[14px] font-bold tracking-tight text-[var(--text-primary)]">
           MEMOVIA
         </span>
       </motion.div>
@@ -54,7 +67,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Navigation — staggered mount + sliding active pill via LayoutGroup */}
       <LayoutGroup>
         <motion.nav
-          className="min-h-0 flex-1 overflow-y-auto px-3 pb-2"
+          className="min-h-0 flex-1 overflow-hidden px-3 pb-2"
           aria-label="Navigation principale"
           variants={sidebarContainer}
           initial="hidden"
@@ -126,11 +139,11 @@ function SidebarNavItem({ item, isActive }: SidebarNavItemProps) {
   const content = (
     <span
       className={cn(
-        'relative flex h-7 items-center gap-2 rounded-lg px-2.5 text-[12px] font-medium',
+        'relative flex h-7 items-center gap-2 rounded-lg px-2.5 text-[12px] font-medium transition-transform duration-150 ease-out',
         isActive
           ? 'text-[var(--memovia-violet)]'
           : !isSoon
-          ? 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+          ? 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] active:scale-[0.98]'
           : 'cursor-default text-[var(--text-muted)]',
       )}
       aria-current={isActive ? 'page' : undefined}

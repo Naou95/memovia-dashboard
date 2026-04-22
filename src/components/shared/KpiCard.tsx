@@ -64,10 +64,9 @@ export function KpiCard({
 
   return (
     <motion.article
-      className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5"
-      style={{ boxShadow: 'var(--shadow-xs)' }}
-      whileHover={{ boxShadow: 'var(--shadow-sm)' }}
-      transition={{ type: 'spring', duration: 0.25, bounce: 0 }}
+      className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)] transition-shadow duration-200 hover:shadow-[var(--shadow-sm)]"
+      whileHover={{ y: -1 }}
+      transition={{ type: 'spring', stiffness: 240, damping: 20 }}
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -109,22 +108,33 @@ export function KpiCard({
             )}
           </p>
 
-          {delta !== undefined && (
-            <span
-              className="mb-0.5 flex items-center gap-0.5 text-[12px] font-medium"
-              style={{
-                color: hasPositiveDelta
-                  ? 'var(--success)'
-                  : hasNegativeDelta
-                  ? 'var(--trend-down-text)'
-                  : 'var(--text-muted)',
-              }}
-            >
-              {hasPositiveDelta && <TrendingUp className="h-3 w-3" />}
-              {hasNegativeDelta && <TrendingDown className="h-3 w-3" />}
-              {delta > 0 ? '+' : ''}{delta}%
-            </span>
-          )}
+        </div>
+      )}
+
+      {!isLoading && !error && delta !== undefined && (
+        <div className="mt-2">
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums"
+            style={{
+              backgroundColor: hasPositiveDelta
+                ? '#F0FDF4'
+                : hasNegativeDelta
+                ? '#FEF2F2'
+                : 'var(--bg-primary)',
+              color: hasPositiveDelta
+                ? '#16A34A'
+                : hasNegativeDelta
+                ? '#DC2626'
+                : 'var(--text-muted)',
+            }}
+          >
+            {hasPositiveDelta ? (
+              <TrendingUp className="h-3 w-3" strokeWidth={2.5} />
+            ) : hasNegativeDelta ? (
+              <TrendingDown className="h-3 w-3" strokeWidth={2.5} />
+            ) : null}
+            {delta > 0 ? '+' : ''}{delta}% vs M-1
+          </span>
         </div>
       )}
 

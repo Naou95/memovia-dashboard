@@ -57,8 +57,17 @@ export function ContractTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
-      <table className="w-full text-sm" aria-label="Liste des contrats B2B">
+    <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
+      <table className="w-full table-fixed text-sm" aria-label="Liste des contrats B2B">
+        <colgroup>
+          <col className="w-[24%]" />
+          <col className="w-[13%]" />
+          <col className="w-[9%]" />
+          <col className="w-[10%]" />
+          <col className="w-[18%]" />
+          <col className="w-[14%]" />
+          <col className="w-[12%]" />
+        </colgroup>
         <thead>
           <tr className="border-b border-[var(--border-color)]">
             <th scope="col" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
@@ -110,11 +119,11 @@ export function ContractTable({
               >
                 {/* Organisation */}
                 <td className="px-4 py-3">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-medium text-[var(--text-primary)]">
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="truncate font-medium text-[var(--text-primary)]">
                       {contract.organization_name}
                     </span>
-                    <span className="text-[11px] text-[var(--text-muted)]">
+                    <span className="truncate text-[11px] text-[var(--text-muted)]">
                       {ORG_TYPE_LABELS[contract.organization_type]}
                     </span>
                   </div>
@@ -136,12 +145,12 @@ export function ContractTable({
                 </td>
 
                 {/* Contact */}
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {contract.contact_name ?? '—'}
                 </td>
 
                 {/* Renouvellement */}
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {formatDate(contract.renewal_date)}
                 </td>
 

@@ -27,8 +27,16 @@ export function SubscriptionTable({ subscriptions }: SubscriptionTableProps) {
   })
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm" aria-label="Liste des abonnements Stripe actifs">
+    <div className="overflow-hidden">
+      <table className="w-full table-fixed text-sm" aria-label="Liste des abonnements Stripe actifs">
+        <colgroup>
+          <col className="w-[26%]" />
+          <col className="w-[18%]" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
+        </colgroup>
         <thead>
           <tr className="border-b border-[var(--border-color)]">
             <th scope="col" className="pb-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
@@ -60,12 +68,12 @@ export function SubscriptionTable({ subscriptions }: SubscriptionTableProps) {
                 (i % 2 === 0 ? '' : ' bg-[var(--bg-primary)]')
               }
             >
-              <td className="py-3 pr-4 font-mono text-[13px] text-[var(--text-primary)]">
+              <td className="truncate py-3 pr-4 font-mono text-[13px] text-[var(--text-primary)]">
                 {sub.customerEmail || (
                   <span className="text-[var(--text-muted)] italic">—</span>
                 )}
               </td>
-              <td className="py-3 pr-4 text-[13px] text-[var(--text-secondary)]">
+              <td className="truncate py-3 pr-4 text-[13px] text-[var(--text-secondary)]">
                 {sub.planName}
                 {sub.interval === 'year' && (
                   <span className="ml-1.5 text-[11px] text-[var(--text-muted)]">(annuel)</span>

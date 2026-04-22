@@ -4,7 +4,7 @@ import {
   Calendar, Mail, CheckSquare, Phone, UserPlus, CreditCard, Sun, ArrowRight, RefreshCw,
 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useOverviewKpis } from '@/hooks/useOverviewKpis'
 import { useStripeFinance } from '@/hooks/useStripeFinance'
@@ -89,10 +89,43 @@ interface DayItem {
   href: string
 }
 
+// ── Alert row — actionable ────────────────────────────────────────────────────
+
+interface AlertRowProps {
+  color: string
+  icon: React.ElementType
+  label: string
+  onClick: () => void
+}
+
+function AlertRow({ color, icon: Icon, label, onClick }: AlertRowProps) {
+  return (
+    <div
+      className="flex items-center gap-3 rounded-r-md bg-[var(--bg-secondary)] px-4 py-3"
+      style={{ borderLeft: `3px solid ${color}` }}
+    >
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+        style={{ backgroundColor: `color-mix(in oklab, ${color} 14%, transparent)`, color }}
+      >
+        <Icon size={14} strokeWidth={2.25} />
+      </span>
+      <span className="flex-1 text-[13px] text-[var(--text-primary)]">{label}</span>
+      <button
+        onClick={onClick}
+        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+      >
+        Voir <ArrowRight size={12} />
+      </button>
+    </div>
+  )
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function OverviewPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [deferSecondary, setDeferSecondary] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -132,6 +165,16 @@ export default function OverviewPage() {
 
   const revenueLast6Months = stripeFinance?.revenueByMonth?.slice(-6) ?? []
   const mrrTrend = revenueLast6Months.map((m) => m.revenue)
+
+  // Delta MoM approximatif basé sur le chiffre d'affaires facturé des 2 derniers mois
+  const mrrDeltaMoM = useMemo<number | undefined>(() => {
+    const series = stripeFinance?.revenueByMonth ?? []
+    if (series.length < 2) return undefined
+    const curr = series[series.length - 1]?.revenue ?? 0
+    const prev = series[series.length - 2]?.revenue ?? 0
+    if (prev <= 0) return undefined
+    return Math.round(((curr - prev) / prev) * 100)
+  }, [stripeFinance])
 
   const today = useMemo(() => {
     const d = new Date()
@@ -227,17 +270,6 @@ export default function OverviewPage() {
       .filter((e) => toLocalDate(e.start) === today)
       .sort((a, b) => a.start.localeCompare(b.start))
   }, [calendarData, today])
-
-  // Debug: log data for "Votre journée" in dev to identify empty sources
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('[Overview/journée] myAssignee:', myAssignee)
-      console.log('[Overview/journée] tasks total:', tasks?.length, '| sample due_date:', tasks?.[0]?.due_date, '| sample assigned_to:', tasks?.[0]?.assigned_to)
-      console.log('[Overview/journée] myTodayTasks:', myTodayTasks.length, myTodayTasks)
-      console.log('[Overview/journée] leads total:', leads?.length, '| sample follow_up_date:', leads?.[0]?.follow_up_date, '| today:', today)
-      console.log('[Overview/journée] myUrgentLeads:', myUrgentLeads.length, myUrgentLeads)
-    }
-  }, [myAssignee, tasks, leads, myTodayTasks, myUrgentLeads, today])
 
   const myDayItems = useMemo<DayItem[]>(() => {
     const items: DayItem[] = []
@@ -372,156 +404,6 @@ export default function OverviewPage() {
         </p>
       </motion.header>
 
-      {/* ── Votre journée ── */}
-      <ErrorBoundary>
-      <motion.div
-        variants={staggerItem}
-        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
-      >
-        <div className="mb-4 flex items-center gap-2">
-          <Sun size={15} className="text-amber-500" />
-          <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Votre journée</h3>
-          {(myDayItems.length > 0 || myFallbackTasks.length > 0) && (
-            <span className="rounded-full bg-[var(--memovia-violet)] px-2 py-0.5 text-[11px] font-semibold text-white">
-              {myDayItems.length || myFallbackTasks.length}
-            </span>
-          )}
-        </div>
-
-        {dayLoading ? (
-          <div className="space-y-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="skeleton h-9 rounded-md" />
-            ))}
-          </div>
-        ) : myDayItems.length > 0 ? (
-          <div className="divide-y divide-[var(--border-color)]">
-            {myDayItems.map((item) => {
-              const isTaskItem = item.key.startsWith('task-')
-              const taskId = isTaskItem ? item.key.slice(5) : null
-              const innerContent = (
-                <>
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className={`shrink-0 rounded-lg p-1.5 ${item.iconBg}`}>
-                      <item.Icon size={13} className={item.iconColor} />
-                    </span>
-                    <div className="min-w-0">
-                      <span className="block truncate text-[13px] text-[var(--text-primary)]">
-                        {item.label}
-                      </span>
-                      {item.subtitle && (
-                        <span className="block truncate text-[11px] text-[var(--text-muted)]">
-                          {item.subtitle}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="ml-4 flex shrink-0 items-center gap-2">
-                    {item.badge && (
-                      <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${item.badgeClass}`}>
-                        {item.badge}
-                      </span>
-                    )}
-                    <ArrowRight size={12} className="text-[var(--text-muted)]" />
-                  </div>
-                </>
-              )
-              if (isTaskItem) {
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => {
-                      const task = tasks.find((t) => t.id === taskId)
-                      if (task) setSelectedTask(task)
-                    }}
-                    className="-mx-5 w-full flex items-center justify-between px-5 py-2.5 text-left transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
-                  >
-                    {innerContent}
-                  </button>
-                )
-              }
-              return (
-                <Link
-                  key={item.key}
-                  to={item.href}
-                  className="-mx-5 flex items-center justify-between px-5 py-2.5 transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
-                >
-                  {innerContent}
-                </Link>
-              )
-            })}
-          </div>
-        ) : myFallbackTasks.length > 0 ? (
-          <>
-            <p className="mb-3 text-[12px] text-[var(--text-muted)]">Prochaines tâches assignées</p>
-            <div className="divide-y divide-[var(--border-color)]">
-              {myFallbackTasks.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setSelectedTask(t)}
-                  className="-mx-5 w-full flex items-center justify-between px-5 py-2.5 text-left transition-colors first:pt-0 last:pb-0 hover:bg-[var(--surface-hover,#f9f9f9)]"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="shrink-0 rounded-lg p-1.5 bg-violet-50">
-                      <CheckSquare size={13} className="text-violet-600" />
-                    </span>
-                    <span className="truncate text-[13px] text-[var(--text-primary)]">{t.title}</span>
-                  </div>
-                  <div className="ml-4 flex shrink-0 items-center gap-2">
-                    <span className="rounded-md border px-2 py-0.5 text-[11px] font-medium bg-gray-50 text-gray-500 border-gray-200">
-                      {t.due_date ?? 'Sans échéance'}
-                    </span>
-                    <ArrowRight size={12} className="text-[var(--text-muted)]" />
-                  </div>
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          <p className="text-[13px] text-[var(--text-muted)]">Rien de prévu aujourd'hui.</p>
-        )}
-      </motion.div>
-      </ErrorBoundary>
-
-      {/* ── Briefing IA du jour ── */}
-      <motion.div
-        variants={staggerItem}
-        className="rounded-[8px] border border-[var(--memovia-violet-light)] bg-[var(--memovia-violet-light)]/60 p-5"
-      >
-        <div className="mb-3 flex items-center gap-2">
-          <Bot size={15} className="text-[var(--memovia-violet)]" />
-          <span className="text-[13px] font-semibold text-[var(--memovia-violet)]">Briefing IA du jour</span>
-          {briefingStreaming && (
-            <span
-              className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--memovia-violet)]"
-              role="status"
-              aria-label="Génération du briefing en cours"
-            />
-          )}
-          <button
-            onClick={regenerateBriefing}
-            disabled={briefingLoading || briefingStreaming}
-            className="ml-auto rounded-lg p-1 text-[var(--memovia-violet)] opacity-50 transition-opacity hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-20"
-            title="Régénérer le briefing"
-            aria-label="Régénérer le briefing IA"
-          >
-            <RefreshCw size={13} className={briefingStreaming ? 'animate-spin' : ''} />
-          </button>
-        </div>
-
-        {briefingLoading && !briefing ? (
-          <div className="space-y-2">
-            <div className="skeleton h-3 w-full rounded-full" />
-            <div className="skeleton h-3 w-5/6 rounded-full" />
-            <div className="skeleton h-3 w-3/5 rounded-full" />
-          </div>
-        ) : briefing ? (
-          <p className="text-[14px] leading-relaxed text-[var(--text-primary)]">{briefing}</p>
-        ) : (
-          <p className="text-[13px] text-[var(--text-muted)]">Chargement du briefing…</p>
-        )}
-      </motion.div>
-
       {/* ── Bento : KPIs (2×2) à gauche + P&L chart à droite ── */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
         {/* Colonne KPI : 4 cards en 2×2 */}
@@ -542,6 +424,7 @@ export default function OverviewPage() {
               error={stripeError}
               trend={mrrTrend.length >= 2 ? mrrTrend : undefined}
               sensitive
+              delta={mrrDeltaMoM}
               footer={
                 stripe && (stripe.mrr_contracts ?? 0) > 0
                   ? `dont ${formatEur(stripe.mrr_contracts)}€ B2B`
@@ -663,7 +546,157 @@ export default function OverviewPage() {
         )}
       </motion.div>
 
-      {/* ── Alertes prioritaires ── */}
+      {/* ── Votre journée ── */}
+      <ErrorBoundary>
+      <motion.div
+        variants={staggerItem}
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+      >
+        <div className="mb-4 flex items-center gap-2">
+          <Sun size={15} className="text-amber-500" />
+          <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Votre journée</h3>
+          {(myDayItems.length > 0 || myFallbackTasks.length > 0) && (
+            <span className="rounded-full bg-[var(--memovia-violet)] px-2 py-0.5 text-[11px] font-semibold text-white">
+              {myDayItems.length || myFallbackTasks.length}
+            </span>
+          )}
+        </div>
+
+        {dayLoading ? (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="skeleton h-9 rounded-md" />
+            ))}
+          </div>
+        ) : myDayItems.length > 0 ? (
+          <div className="divide-y divide-[var(--border-color)]">
+            {myDayItems.map((item) => {
+              const isTaskItem = item.key.startsWith('task-')
+              const taskId = isTaskItem ? item.key.slice(5) : null
+              const innerContent = (
+                <>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className={`shrink-0 rounded-lg p-1.5 ${item.iconBg}`}>
+                      <item.Icon size={13} className={item.iconColor} />
+                    </span>
+                    <div className="min-w-0">
+                      <span className="block truncate text-[13px] text-[var(--text-primary)]">
+                        {item.label}
+                      </span>
+                      {item.subtitle && (
+                        <span className="block truncate text-[11px] text-[var(--text-muted)]">
+                          {item.subtitle}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ml-4 flex shrink-0 items-center gap-2">
+                    {item.badge && (
+                      <span className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${item.badgeClass}`}>
+                        {item.badge}
+                      </span>
+                    )}
+                    <ArrowRight size={12} className="text-[var(--text-muted)]" />
+                  </div>
+                </>
+              )
+              if (isTaskItem) {
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => {
+                      const task = tasks.find((t) => t.id === taskId)
+                      if (task) setSelectedTask(task)
+                    }}
+                    className="-mx-5 w-full flex items-center justify-between px-5 py-2.5 text-left transition first:pt-0 last:pb-0 hover:bg-[var(--bg-hover)] active:scale-[0.995] duration-150 ease-out"
+                  >
+                    {innerContent}
+                  </button>
+                )
+              }
+              return (
+                <Link
+                  key={item.key}
+                  to={item.href}
+                  className="-mx-5 flex items-center justify-between px-5 py-2.5 transition first:pt-0 last:pb-0 hover:bg-[var(--bg-hover)] active:scale-[0.995] duration-150 ease-out"
+                >
+                  {innerContent}
+                </Link>
+              )
+            })}
+          </div>
+        ) : myFallbackTasks.length > 0 ? (
+          <>
+            <p className="mb-3 text-[12px] text-[var(--text-muted)]">Prochaines tâches assignées</p>
+            <div className="divide-y divide-[var(--border-color)]">
+              {myFallbackTasks.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedTask(t)}
+                  className="-mx-5 w-full flex items-center justify-between px-5 py-2.5 text-left transition first:pt-0 last:pb-0 hover:bg-[var(--bg-hover)] active:scale-[0.995] duration-150 ease-out"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="shrink-0 rounded-lg p-1.5 bg-violet-50">
+                      <CheckSquare size={13} className="text-violet-600" />
+                    </span>
+                    <span className="truncate text-[13px] text-[var(--text-primary)]">{t.title}</span>
+                  </div>
+                  <div className="ml-4 flex shrink-0 items-center gap-2">
+                    <span className="rounded-md border px-2 py-0.5 text-[11px] font-medium bg-gray-50 text-gray-500 border-gray-200">
+                      {t.due_date ?? 'Sans échéance'}
+                    </span>
+                    <ArrowRight size={12} className="text-[var(--text-muted)]" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-[13px] text-[var(--text-muted)]">Rien de prévu aujourd'hui.</p>
+        )}
+      </motion.div>
+      </ErrorBoundary>
+
+      {/* ── Briefing IA du jour ── */}
+      <motion.div
+        variants={staggerItem}
+        className="rounded-[8px] border border-[var(--memovia-violet-light)] bg-[var(--memovia-violet-light)]/60 p-5"
+      >
+        <div className="mb-3 flex items-center gap-2">
+          <Bot size={15} className="text-[var(--memovia-violet)]" />
+          <span className="text-[13px] font-semibold text-[var(--memovia-violet)]">Briefing IA du jour</span>
+          {briefingStreaming && (
+            <span
+              className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--memovia-violet)]"
+              role="status"
+              aria-label="Génération du briefing en cours"
+            />
+          )}
+          <button
+            onClick={regenerateBriefing}
+            disabled={briefingLoading || briefingStreaming}
+            className="ml-auto rounded-lg p-1 text-[var(--memovia-violet)] opacity-50 transition-opacity hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-20"
+            title="Régénérer le briefing"
+            aria-label="Régénérer le briefing IA"
+          >
+            <RefreshCw size={13} className={briefingStreaming ? 'animate-spin' : ''} />
+          </button>
+        </div>
+
+        {briefingLoading && !briefing ? (
+          <div className="space-y-2">
+            <div className="skeleton h-3 w-full rounded-full" />
+            <div className="skeleton h-3 w-5/6 rounded-full" />
+            <div className="skeleton h-3 w-3/5 rounded-full" />
+          </div>
+        ) : briefing ? (
+          <p className="text-[14px] leading-relaxed text-[var(--text-primary)]">{briefing}</p>
+        ) : (
+          <p className="text-[13px] text-[var(--text-muted)]">Chargement du briefing…</p>
+        )}
+      </motion.div>
+
+      {/* ── Alertes prioritaires — format actionnable ── */}
       <motion.div
         variants={staggerItem}
         className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
@@ -676,34 +709,39 @@ export default function OverviewPage() {
         </div>
 
         {dataLoading ? (
-          <div className="flex flex-wrap gap-2">
-            <div className="skeleton h-8 w-40 rounded-md" />
-            <div className="skeleton h-8 w-36 rounded-md" />
+          <div className="space-y-2">
+            <div className="skeleton h-10 rounded-md" />
+            <div className="skeleton h-10 rounded-md" />
           </div>
         ) : !hasAlerts ? (
           <p className="text-[13px] text-[var(--text-muted)]">
             Aucune alerte — tout est en ordre.
           </p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {(stripe?.cancelingAtPeriodEnd ?? 0) > 0 && (
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-3 py-1 text-[12px] font-medium text-[var(--danger)]">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--danger)]" />
-                {stripe!.cancelingAtPeriodEnd} abonné
-                {stripe!.cancelingAtPeriodEnd > 1 ? 's annulent' : ' annule'}
-              </span>
+              <AlertRow
+                color="var(--danger)"
+                icon={UserMinus}
+                label={`${stripe!.cancelingAtPeriodEnd} abonné${stripe!.cancelingAtPeriodEnd > 1 ? 's annulent' : ' annule'} en fin de période`}
+                onClick={() => navigate('/stripe')}
+              />
             )}
             {overdueTasks.length > 0 && (
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--warning)]/20 bg-[var(--warning-bg)] px-3 py-1 text-[12px] font-medium text-[var(--warning)]">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--warning)]" />
-                {overdueTasks.length} tâche{overdueTasks.length > 1 ? 's' : ''} en retard
-              </span>
+              <AlertRow
+                color="var(--warning)"
+                icon={CheckSquare}
+                label={`${overdueTasks.length} tâche${overdueTasks.length > 1 ? 's' : ''} en retard`}
+                onClick={() => navigate('/taches')}
+              />
             )}
             {overdueLeads.length > 0 && (
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--warning)]/20 bg-[var(--warning-bg)] px-3 py-1 text-[12px] font-medium text-[var(--warning)]">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--warning)]" />
-                {overdueLeads.length} lead{overdueLeads.length > 1 ? 's' : ''} à relancer
-              </span>
+              <AlertRow
+                color="var(--warning)"
+                icon={Phone}
+                label={`${overdueLeads.length} lead${overdueLeads.length > 1 ? 's' : ''} à relancer`}
+                onClick={() => navigate('/prospection')}
+              />
             )}
           </div>
         )}
