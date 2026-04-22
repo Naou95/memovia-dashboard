@@ -148,7 +148,11 @@ export function TopBar() {
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-64 p-0" sideOffset={8}>
+          <DropdownMenuContent
+            align="end"
+            className="z-50 w-64 rounded-[8px] border border-[#E5E7EB] bg-white p-0 shadow-md"
+            sideOffset={8}
+          >
             {/* Header : avatar + nom + email + badge rôle */}
             <DropdownMenuLabel className="font-normal px-3 py-3">
               <div className="flex items-center gap-2.5">
@@ -180,7 +184,7 @@ export function TopBar() {
 
             {/* Liens */}
             <DropdownMenuItem asChild className="cursor-pointer px-3 py-2 text-[13px]">
-              <Link to="/parametres">
+              <Link to="/admin">
                 <Settings className="mr-2 h-4 w-4 text-[var(--text-muted)]" />
                 Paramètres
               </Link>
