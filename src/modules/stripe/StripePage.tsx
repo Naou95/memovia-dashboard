@@ -1,4 +1,4 @@
-import { DollarSign, TrendingUp, UserPlus, UserMinus, BarChart2, RefreshCw } from 'lucide-react'
+import { DollarSign, TrendingUp, UserPlus, UserMinus, BarChart2, RefreshCw, Building2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useStripeFinance, invalidateStripeFinanceCache } from '@/hooks/useStripeFinance'
 import { KpiCard } from '@/components/shared/KpiCard'
@@ -53,20 +53,35 @@ export default function StripePage() {
         </button>
       </motion.header>
 
-      {/* 5 KPI cards */}
+      {/* 6 KPI cards */}
       <motion.div
         variants={cardGridContainer}
-        className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5"
+        className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"
       >
         <motion.div variants={staggerCard}>
           <KpiCard
             label="MRR"
-            value={data ? formatEur(data.mrr) : null}
-            rawValue={data?.mrr}
+            value={data ? formatEur(data.mrr_total ?? data.mrr) : null}
+            rawValue={data ? (data.mrr_total ?? data.mrr) : undefined}
             formatter={formatEur}
             unit="€"
             accent="violet"
             icon={DollarSign}
+            isLoading={isLoading}
+            error={error}
+            sensitive
+            footer="B2B inclus"
+          />
+        </motion.div>
+        <motion.div variants={staggerCard}>
+          <KpiCard
+            label="MRR B2B"
+            value={data ? formatEur(data.mrr_contracts ?? 0) : null}
+            rawValue={data ? (data.mrr_contracts ?? 0) : undefined}
+            formatter={formatEur}
+            unit="€"
+            accent="blue"
+            icon={Building2}
             isLoading={isLoading}
             error={error}
             sensitive

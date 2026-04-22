@@ -37,9 +37,15 @@ export interface TransactionRow {
 }
 
 export interface StripeFinanceData {
-  /** MRR en euros */
+  /** MRR total (Stripe + contrats B2B actifs) */
   mrr: number
-  /** ARR = MRR × 12 */
+  /** MRR Stripe seul */
+  mrr_stripe: number
+  /** MRR contrats B2B actifs */
+  mrr_contracts: number
+  /** mrr_stripe + mrr_contracts */
+  mrr_total: number
+  /** ARR = mrr_total × 12 */
   arr: number
   /** Nouveaux abonnés payants créés ce mois civil */
   newThisMonth: number

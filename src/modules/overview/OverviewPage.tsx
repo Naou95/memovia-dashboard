@@ -532,8 +532,8 @@ export default function OverviewPage() {
           <motion.div variants={staggerCard}>
             <KpiCard
               label="MRR"
-              value={stripe ? formatEur(stripe.mrr) : null}
-              rawValue={stripe?.mrr}
+              value={stripe ? formatEur(stripe.mrr_total ?? stripe.mrr) : null}
+              rawValue={stripe ? (stripe.mrr_total ?? stripe.mrr) : undefined}
               formatter={formatEur}
               unit="€"
               accent="violet"
@@ -542,6 +542,11 @@ export default function OverviewPage() {
               error={stripeError}
               trend={mrrTrend.length >= 2 ? mrrTrend : undefined}
               sensitive
+              footer={
+                stripe && (stripe.mrr_contracts ?? 0) > 0
+                  ? `dont ${formatEur(stripe.mrr_contracts)}€ B2B`
+                  : undefined
+              }
             />
           </motion.div>
           <motion.div variants={staggerCard}>

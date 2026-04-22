@@ -1,6 +1,12 @@
 export interface StripeMetrics {
-  /** MRR en euros, ex : 360 */
+  /** MRR total (Stripe + contrats B2B actifs) */
   mrr: number
+  /** MRR Stripe seul */
+  mrr_stripe: number
+  /** MRR contrats B2B actifs (SUM contracts.mrr_eur WHERE status='actif') */
+  mrr_contracts: number
+  /** mrr_stripe + mrr_contracts */
+  mrr_total: number
   /** Abonnements payants actifs (cancel_at_period_end=false), ex : 28 */
   activeSubscribers: number
   /** Abonnements payants qui ne se renouvelleront pas (cancel_at_period_end=true), ex : 2 */

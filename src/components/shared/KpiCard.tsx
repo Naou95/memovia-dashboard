@@ -25,6 +25,8 @@ export interface KpiCardProps {
   trend?: number[]
   /** Mask value with •••• when privacy mode is active */
   sensitive?: boolean
+  /** Small text rendered below the value (e.g. "dont 360€ B2B") */
+  footer?: React.ReactNode
 }
 
 export const ACCENT_MAP: Record<AccentKey, { bg: string; fg: string }> = {
@@ -50,6 +52,7 @@ export function KpiCard({
   delta,
   trend,
   sensitive = false,
+  footer,
 }: KpiCardProps) {
   const { isPrivate } = usePrivacy()
   const masked = sensitive && isPrivate
@@ -125,6 +128,10 @@ export function KpiCard({
             </span>
           )}
         </div>
+      )}
+
+      {!isLoading && !error && footer && (
+        <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">{footer}</p>
       )}
 
       {/* Sparkline — rendered only when trend series is provided (≥2 values) */}

@@ -1,4 +1,5 @@
 import Stripe from 'npm:stripe@17'
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
 
 Deno.serve(async (req) => {
@@ -53,8 +54,29 @@ Deno.serve(async (req) => {
       (sub) => sub.cancel_at_period_end
     ).length
 
+    // MRR contrats B2B actifs
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
+    const { data: contractRows } = await supabase
+      .from('contracts')
+      .select('mrr_eur')
+      .eq('status', 'actif')
+
+    const mrrContracts = (contractRows ?? []).reduce(
+      (sum: number, row: { mrr_eur: number | null }) => sum + (row.mrr_eur ?? 0),
+      0,
+    )
+    const mrrStripe = Math.round(mrr * 100) / 100
+    const mrrContractsRounded = Math.round(mrrContracts * 100) / 100
+    const mrrTotal = Math.round((mrrStripe + mrrContractsRounded) * 100) / 100
+
     return Response.json({
-      mrr: Math.round(mrr * 100) / 100,
+      mrr: mrrTotal,
+      mrr_stripe: mrrStripe,
+      mrr_contracts: mrrContractsRounded,
+      mrr_total: mrrTotal,
       activeSubscribers,
       cancelingAtPeriodEnd,
       fetchedAt: new Date().toISOString(),
