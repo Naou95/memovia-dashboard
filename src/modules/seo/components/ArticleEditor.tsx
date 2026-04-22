@@ -18,6 +18,14 @@ interface ArticleEditorProps {
 
 type PreviewTab = 'edit' | 'preview'
 
+// ── Scoring shared types ──────────────────────────────────────────────────────
+
+interface ScoreCheck {
+  label: string
+  pass: boolean
+  points: number
+}
+
 // ── SEO Scoring ───────────────────────────────────────────────────────────────
 
 const FR_STOPWORDS = new Set([
@@ -45,18 +53,12 @@ function extractKeywordFromH1(content: string): string {
     .join(' ')
 }
 
-interface SeoCheck {
-  label: string
-  pass: boolean
-  points: number
-}
-
 function calculateSeoScore(
   content: string,
   metaDescription: string,
   excerpt: string,
   coverImageUrl: string,
-): { score: number; checks: SeoCheck[] } {
+): { score: number; checks: ScoreCheck[] } {
   const kw = extractKeywordFromH1(content)
 
   const textContent = content
@@ -73,7 +75,7 @@ function calculateSeoScore(
   const h2MdCount = (content.match(/^## /gm) ?? []).length
   const h2Count = h2HtmlCount + h2MdCount
 
-  const checks: SeoCheck[] = [
+  const checks: ScoreCheck[] = [
     {
       label: 'Mot-clé présent dans le H1',
       pass: kw.length > 0,
@@ -115,6 +117,57 @@ function calculateSeoScore(
   return { score, checks }
 }
 
+// ── GEO Scoring ───────────────────────────────────────────────────────────────
+
+function calculateGeoScore(content: string): { score: number; checks: ScoreCheck[] } {
+  const text = content
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const words = text ? text.split(/\s+/) : []
+  const wordCount = words.length
+
+  // H3 questions: HTML <h3> or Markdown ### containing "?" or interrogative words
+  const h3HtmlCount = (content.match(/<h3[\s>]/gi) ?? []).length
+  const h3MdCount = (content.match(/^### .+/gm) ?? []).length
+  const h3Total = h3HtmlCount + h3MdCount
+  const hasQA = h3Total >= 2
+
+  // Factual citations: numbers/stats/% in text
+  const factualMatches = (text.match(/\b\d[\d\s,.]*(%|€|\$|milliard|million|million|k\b|md\b)/gi) ?? [])
+  const hasFactualCitations = factualMatches.length >= 3
+
+  // Schema JSON-LD
+  const hasSchema = /<script[^>]+type=["']application\/ld\+json["']/i.test(content)
+
+  // Optimal length
+  const optimalLength = wordCount >= 800 && wordCount <= 1400
+
+  // Definitions: "X est " or "X se définit" or "X désigne" patterns
+  const definitionMatches = (text.match(/\b\w+ (est |se définit|désigne|correspond à)/g) ?? [])
+  const hasDefinitions = definitionMatches.length >= 2
+
+  // Conversational: no jargon overload — check ratio of long words
+  const longWords = words.filter((w) => w.length > 12).length
+  const longWordRatio = wordCount > 0 ? longWords / wordCount : 1
+  const isConversational = wordCount > 0 && longWordRatio < 0.08
+
+  const checks: ScoreCheck[] = [
+    { label: 'Structure Q&A (≥2 sous-titres H3 avec questions)', pass: hasQA, points: 20 },
+    { label: 'Citations factuelles avec chiffres concrets (≥3)', pass: hasFactualCitations, points: 20 },
+    { label: 'Schema markup JSON-LD présent', pass: hasSchema, points: 15 },
+    { label: 'Longueur optimale (800-1400 mots)', pass: optimalLength, points: 15 },
+    { label: 'Définitions des concepts clés (≥2)', pass: hasDefinitions, points: 15 },
+    { label: 'Langage naturel (mots longs <8% du texte)', pass: isConversational, points: 15 },
+  ]
+
+  const score = checks.reduce((sum, c) => sum + (c.pass ? c.points : 0), 0)
+  return { score, checks }
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function ArticleEditor({
@@ -146,7 +199,10 @@ export function ArticleEditor({
     [content, metaDescription, excerpt, coverImageUrl],
   )
 
-  const canPublish = seo.score >= 60
+  const geo = useMemo(() => calculateGeoScore(content), [content])
+
+  // In edit mode, GEO is informational — only SEO gates the update button
+  const canPublish = isEditMode ? seo.score >= 60 : seo.score >= 60 && geo.score >= 60
 
   function buildPayload(status: 'draft' | 'published'): ArticleCreatePayload {
     return {
@@ -290,8 +346,15 @@ export function ArticleEditor({
         )}
       </Field>
 
-      {/* SEO Score */}
-      <SeoScoreBadge score={seo.score} checks={seo.checks} />
+      {/* Scores SEO + GEO */}
+      <div className="flex flex-col gap-2">
+        <ScoreBadge label="Score SEO" score={seo.score} checks={seo.checks} />
+        <ScoreBadge
+          label={`Score GEO${isEditMode ? ' (informatif)' : ''}`}
+          score={geo.score}
+          checks={geo.checks}
+        />
+      </div>
 
       {/* Content — edit / preview tabs */}
       <div>
@@ -370,7 +433,9 @@ export function ArticleEditor({
       <div className="flex flex-col gap-2 border-t pt-4" style={{ borderColor: 'var(--border-color)' }}>
         {!canPublish && (
           <p className="text-[12px]" style={{ color: '#dc2626' }}>
-            Score SEO insuffisant ({seo.score}/100). Corrigez les points manquants avant de publier.
+            {seo.score < 60
+              ? `Score SEO insuffisant (${seo.score}/100). Corrigez les points manquants avant de publier.`
+              : `Score GEO insuffisant (${geo.score}/100). Enrichissez l'article (Q&A, chiffres, schema) avant de publier.`}
           </p>
         )}
         <div className="flex gap-2">
@@ -459,7 +524,7 @@ function Field({
   )
 }
 
-function SeoScoreBadge({ score, checks }: { score: number; checks: SeoCheck[] }) {
+function ScoreBadge({ label, score, checks }: { label: string; score: number; checks: ScoreCheck[] }) {
   const [open, setOpen] = useState(false)
 
   const color =
@@ -477,7 +542,7 @@ function SeoScoreBadge({ score, checks }: { score: number; checks: SeoCheck[] })
         className="flex w-full items-center justify-between rounded-lg px-3 py-2"
       >
         <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-          Score SEO
+          {label}
         </span>
         <div className="flex items-center gap-2">
           <span

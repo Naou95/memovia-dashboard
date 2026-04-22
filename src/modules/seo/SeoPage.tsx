@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BarChart3, Layers, ArrowLeft, Lightbulb, Plus, X, Sparkles, ArrowRight, Loader2 } from 'lucide-react'
+import { BarChart3, Layers, ArrowLeft, Lightbulb, Plus, X, Sparkles, ArrowRight, Loader2, Map } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { useSeo } from '@/hooks/useSeo'
@@ -7,9 +7,10 @@ import { KeywordInput } from './components/KeywordInput'
 import { SerpResults } from './components/SerpResults'
 import { ArticleEditor } from './components/ArticleEditor'
 import { ArticlesList } from './components/ArticlesList'
+import { StrategyTab } from './components/StrategyTab'
 import type { ArticleCreatePayload, BlogArticle, SeoSeed, SeoSuggestion } from '@/types/seo'
 
-type Tab = 'generator' | 'articles' | 'suggestions'
+type Tab = 'generator' | 'articles' | 'suggestions' | 'strategy'
 
 function blogArticleToGenerated(a: BlogArticle) {
   return {
@@ -89,6 +90,11 @@ export default function SeoPage() {
     setActiveTab('generator')
   }
 
+  function handleStrategyKeyword(keyword: string) {
+    setPendingKeyword(keyword)
+    setActiveTab('generator')
+  }
+
   function cancelEdit() {
     setEditingArticle(null)
     resetGeneration()
@@ -139,6 +145,7 @@ export default function SeoPage() {
           { id: 'generator', label: 'Générateur IA', icon: <BarChart3 className="h-3.5 w-3.5" /> },
           { id: 'articles', label: 'Articles', icon: <Layers className="h-3.5 w-3.5" />, badge: stats.total },
           { id: 'suggestions', label: 'Suggestions', icon: <Lightbulb className="h-3.5 w-3.5" /> },
+          { id: 'strategy', label: 'Stratégie', icon: <Map className="h-3.5 w-3.5" /> },
         ] as const).map((tab) => (
           <button
             key={tab.id}
@@ -267,6 +274,13 @@ export default function SeoPage() {
             onGenerate={generateSuggestions}
             onSelectSuggestion={handleSelectSuggestion}
           />
+        </motion.div>
+      )}
+
+      {/* ── Strategy tab ───────────────────────────────────────────────────── */}
+      {activeTab === 'strategy' && (
+        <motion.div variants={staggerItem}>
+          <StrategyTab onKeywordSelect={handleStrategyKeyword} />
         </motion.div>
       )}
 

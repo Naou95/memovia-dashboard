@@ -101,3 +101,66 @@ export interface SeoSeed {
 export interface SeoSuggestionsResponse {
   suggestions: SeoSuggestion[]
 }
+
+// ── Keyword Research ──────────────────────────────────────────────────────────
+
+export interface KeywordTrend {
+  year: number
+  month: number
+  search_volume: number
+}
+
+export interface KeywordResearchResult {
+  keyword: string
+  search_volume: number
+  competition: number | null     // 0-1 from Google Ads
+  competition_level: 'LOW' | 'MEDIUM' | 'HIGH' | null
+  cpc: number | null             // CPC en €
+  keyword_difficulty: number     // estimé 0-100
+  trend: KeywordTrend[]          // 12 derniers mois
+  related_keywords: RelatedKeyword[]
+}
+
+export interface RelatedKeyword {
+  keyword: string
+  search_volume: number
+  competition_level: 'LOW' | 'MEDIUM' | 'HIGH' | null
+  cpc: number | null
+}
+
+// ── Competitor Analysis ───────────────────────────────────────────────────────
+
+export interface CompetitorPage {
+  url: string
+  title: string
+  traffic_share: number         // % du trafic organique du domaine
+  etv: number | null            // estimated traffic value
+}
+
+export interface ContentGap {
+  topic: string
+  why: string                   // pourquoi c'est une opportunité pour MEMOVIA
+  estimated_volume: number | null
+}
+
+export interface CompetitorAnalysisResult {
+  domain: string
+  top_pages: CompetitorPage[]
+  content_gaps: ContentGap[]
+}
+
+// ── Backlinks ─────────────────────────────────────────────────────────────────
+
+export interface BacklinkTopPage {
+  url: string
+  backlinks_count: number
+  referring_domains: number
+}
+
+export interface BacklinksResult {
+  domain: string
+  total_backlinks: number
+  referring_domains: number
+  domain_rank: number | null    // DR estimé
+  top_pages: BacklinkTopPage[]
+}
