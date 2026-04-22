@@ -142,13 +142,13 @@ export default function StripePage() {
       {/* Graphique — Revenus facturés 12 mois */}
       <motion.section
         variants={staggerItem}
-        className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5"
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <h3 className="mb-4 text-[14px] font-semibold text-[var(--text-primary)]">
           Revenus facturés — 12 derniers mois
         </h3>
         {isLoading ? (
-          <div className="skeleton h-[220px] rounded-xl" />
+          <div className="skeleton h-[220px] rounded-md" />
         ) : error ? (
           <div className="flex h-[220px] items-center justify-center text-sm text-[var(--text-muted)]">
             Données indisponibles
@@ -168,7 +168,7 @@ export default function StripePage() {
       {/* Abonnements actifs */}
       <motion.section
         variants={staggerItem}
-        className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5"
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
@@ -201,7 +201,7 @@ export default function StripePage() {
       {/* Transactions récentes */}
       <motion.section
         variants={staggerItem}
-        className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5"
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">

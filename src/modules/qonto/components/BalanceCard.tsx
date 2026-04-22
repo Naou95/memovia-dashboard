@@ -27,7 +27,7 @@ export function BalanceCard({
   const isAlert = threshold !== null && threshold > 0 && balance < threshold
 
   return (
-    <article className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5">
+    <article className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div

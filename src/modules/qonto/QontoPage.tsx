@@ -64,7 +64,7 @@ export default function QontoPage() {
 
       {/* Erreur globale */}
       {error && !isLoading && (
-        <motion.div variants={staggerItem} className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <motion.div variants={staggerItem} className="rounded-md border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]">
           {error}
         </motion.div>
       )}
@@ -84,7 +84,7 @@ export default function QontoPage() {
       </motion.div>
 
       {/* Graphique trésorerie */}
-      <motion.section variants={staggerItem} className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5">
+      <motion.section variants={staggerItem} className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
             Trésorerie mensuelle
@@ -93,14 +93,14 @@ export default function QontoPage() {
         </div>
 
         {isLoading ? (
-          <div className="h-[260px] skeleton rounded-xl" />
+          <div className="h-[260px] skeleton rounded-md" />
         ) : (
           <CashFlowChart data={data?.monthlyCashFlow ?? []} />
         )}
       </motion.section>
 
       {/* Transactions */}
-      <motion.section variants={staggerItem} className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5">
+      <motion.section variants={staggerItem} className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
         <h3 className="mb-4 text-[14px] font-semibold text-[var(--text-primary)]">
           Transactions
         </h3>

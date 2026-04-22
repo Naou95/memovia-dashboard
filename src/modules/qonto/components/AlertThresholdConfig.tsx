@@ -62,7 +62,7 @@ export function AlertThresholdConfig({ onSaved }: AlertThresholdConfigProps) {
   }
 
   return (
-    <article className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5">
+    <article className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
       <div className="mb-4 flex items-center gap-2.5">
         <div
           className="flex h-8 w-8 items-center justify-center rounded-full"

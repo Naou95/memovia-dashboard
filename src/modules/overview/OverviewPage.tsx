@@ -376,7 +376,7 @@ export default function OverviewPage() {
       <ErrorBoundary>
       <motion.div
         variants={staggerItem}
-        className="rounded-2xl border border-[var(--border-color)] bg-white p-5"
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center gap-2">
           <Sun size={15} className="text-amber-500" />
@@ -391,7 +391,7 @@ export default function OverviewPage() {
         {dayLoading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="skeleton h-9 rounded-xl" />
+              <div key={i} className="skeleton h-9 rounded-md" />
             ))}
           </div>
         ) : myDayItems.length > 0 ? (
@@ -486,7 +486,7 @@ export default function OverviewPage() {
       {/* ── Briefing IA du jour ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-2xl border border-[var(--memovia-violet-light)] bg-[var(--memovia-violet-light)]/60 p-5"
+        className="rounded-[8px] border border-[var(--memovia-violet-light)] bg-[var(--memovia-violet-light)]/60 p-5"
       >
         <div className="mb-3 flex items-center gap-2">
           <Bot size={15} className="text-[var(--memovia-violet)]" />
@@ -590,7 +590,7 @@ export default function OverviewPage() {
         {/* Colonne P&L chart : hauteur alignée sur 2×2 KPI */}
         <motion.div
           variants={staggerItem}
-          className="rounded-2xl border border-[var(--border-color)] bg-white p-5 xl:col-span-5"
+          className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)] xl:col-span-5"
         >
           <div className="mb-2 flex items-start justify-between">
             <div>
@@ -619,7 +619,7 @@ export default function OverviewPage() {
           </div>
 
           {qontoFinanceLoading ? (
-            <div className="skeleton h-[260px] rounded-xl" />
+            <div className="skeleton h-[260px] rounded-md" />
           ) : qontoError ? (
             <div
               className="flex items-center justify-center text-sm text-[var(--text-muted)]"
@@ -636,7 +636,7 @@ export default function OverviewPage() {
       {/* ── Alertes prioritaires ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-2xl border border-[var(--border-color)] bg-white p-5"
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center gap-2">
           <AlertTriangle size={15} className="text-[var(--text-secondary)]" />
@@ -647,8 +647,8 @@ export default function OverviewPage() {
 
         {dataLoading ? (
           <div className="flex flex-wrap gap-2">
-            <div className="skeleton h-8 w-40 rounded-xl" />
-            <div className="skeleton h-8 w-36 rounded-xl" />
+            <div className="skeleton h-8 w-40 rounded-md" />
+            <div className="skeleton h-8 w-36 rounded-md" />
           </div>
         ) : !hasAlerts ? (
           <p className="text-[13px] text-[var(--text-muted)]">
@@ -657,21 +657,21 @@ export default function OverviewPage() {
         ) : (
           <div className="flex flex-wrap gap-2">
             {(stripe?.cancelingAtPeriodEnd ?? 0) > 0 && (
-              <span className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-[13px] font-medium text-red-700">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-3 py-1 text-[12px] font-medium text-[var(--danger)]">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--danger)]" />
                 {stripe!.cancelingAtPeriodEnd} abonné
                 {stripe!.cancelingAtPeriodEnd > 1 ? 's annulent' : ' annule'}
               </span>
             )}
             {overdueTasks.length > 0 && (
-              <span className="inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-1.5 text-[13px] font-medium text-orange-700">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--warning)]/20 bg-[var(--warning-bg)] px-3 py-1 text-[12px] font-medium text-[var(--warning)]">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--warning)]" />
                 {overdueTasks.length} tâche{overdueTasks.length > 1 ? 's' : ''} en retard
               </span>
             )}
             {overdueLeads.length > 0 && (
-              <span className="inline-flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-1.5 text-[13px] font-medium text-orange-700">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--warning)]/20 bg-[var(--warning-bg)] px-3 py-1 text-[12px] font-medium text-[var(--warning)]">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--warning)]" />
                 {overdueLeads.length} lead{overdueLeads.length > 1 ? 's' : ''} à relancer
               </span>
             )}
@@ -682,7 +682,7 @@ export default function OverviewPage() {
       {/* ── Revenue chart (capsule bars, Adminix-style) ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-2xl border border-[var(--border-color)] bg-white p-5"
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-end justify-between">
           <div>
@@ -703,7 +703,7 @@ export default function OverviewPage() {
         </div>
 
         {stripeFinanceLoading ? (
-          <div className="skeleton h-[160px] rounded-xl" />
+          <div className="skeleton h-[160px] rounded-md" />
         ) : (
           <RevenueBarChart data={revenueLast6Months} variant="mini" rounded="capsule" />
         )}
@@ -712,7 +712,7 @@ export default function OverviewPage() {
       {/* ── Activité récente ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-2xl border border-[var(--border-color)] bg-white p-5"
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center gap-2">
           <Activity size={15} className="text-[var(--text-secondary)]" />
@@ -724,7 +724,7 @@ export default function OverviewPage() {
         {contractsLoading || leadsLoading || tasksLoading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="skeleton h-9 rounded-xl" />
+              <div key={i} className="skeleton h-9 rounded-md" />
             ))}
           </div>
         ) : recentActivity.length === 0 ? (
@@ -769,7 +769,7 @@ export default function OverviewPage() {
       {/* ── Actus MEMOVIA du matin — 24h ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-2xl border border-[var(--border-color)] bg-white p-5"
+        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center gap-2">
           <UserPlus size={15} className="text-[var(--text-secondary)]" />
@@ -787,8 +787,8 @@ export default function OverviewPage() {
             </p>
             {newUsersLoading ? (
               <div className="space-y-2">
-                <div className="skeleton h-8 rounded-xl" />
-                <div className="skeleton h-8 rounded-xl" />
+                <div className="skeleton h-8 rounded-md" />
+                <div className="skeleton h-8 rounded-md" />
               </div>
             ) : newUsers24h.length === 0 ? (
               <p className="text-[13px] text-[var(--text-muted)]">Aucune inscription.</p>
@@ -797,7 +797,7 @@ export default function OverviewPage() {
                 {newUsers24h.slice(0, 6).map((u) => (
                   <div
                     key={u.id}
-                    className="flex items-center justify-between rounded-xl bg-[var(--surface-subtle,#f8f8f8)] px-3 py-2"
+                    className="flex items-center justify-between rounded-md bg-[var(--bg-primary)] px-3 py-2"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-medium text-[var(--text-primary)]">
@@ -834,8 +834,8 @@ export default function OverviewPage() {
             </p>
             {stripeFinanceLoading ? (
               <div className="space-y-2">
-                <div className="skeleton h-8 rounded-xl" />
-                <div className="skeleton h-8 rounded-xl" />
+                <div className="skeleton h-8 rounded-md" />
+                <div className="skeleton h-8 rounded-md" />
               </div>
             ) : newStripe24h.length === 0 ? (
               <p className="text-[13px] text-[var(--text-muted)]">Aucun abonnement.</p>
@@ -844,7 +844,7 @@ export default function OverviewPage() {
                 {newStripe24h.slice(0, 6).map((s) => (
                   <div
                     key={s.id}
-                    className="flex items-center justify-between rounded-xl bg-[var(--surface-subtle,#f8f8f8)] px-3 py-2"
+                    className="flex items-center justify-between rounded-md bg-[var(--bg-primary)] px-3 py-2"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-medium text-[var(--text-primary)]">
