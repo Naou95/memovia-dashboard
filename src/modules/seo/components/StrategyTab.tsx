@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Search, Globe, ExternalLink, TrendingUp, Link2, Loader2, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import type {
