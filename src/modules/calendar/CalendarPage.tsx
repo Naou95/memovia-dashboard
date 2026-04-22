@@ -6,7 +6,6 @@ import {
   startOfWeek,
   getDay,
   addDays,
-  startOfDay,
 } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { RefreshCw, ChevronLeft, ChevronRight, CalendarDays, Plus } from 'lucide-react'
