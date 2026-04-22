@@ -1,5 +1,5 @@
-import { useLocation } from 'react-router-dom'
-import { LogOut, ChevronDown, Eye, EyeOff, Bell, CheckCheck, AlertCircle, Mail, UserPlus, XCircle } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { LogOut, ChevronDown, Eye, EyeOff, Bell, CheckCheck, AlertCircle, Mail, UserPlus, XCircle, Settings, Users as UsersIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import {
@@ -133,19 +133,55 @@ export function TopBar() {
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-52">
-            <DropdownMenuLabel className="font-normal">
-              <div className="text-[13px] font-medium text-[var(--text-primary)]">
-                {user?.profile.full_name}
-              </div>
-              <div className="truncate text-[11px] text-[var(--text-muted)]">
-                {user?.profile.email}
+          <DropdownMenuContent align="end" className="w-64 p-0" sideOffset={8}>
+            {/* Header : avatar + nom + email + badge rôle */}
+            <DropdownMenuLabel className="font-normal px-3 py-3">
+              <div className="flex items-center gap-2.5">
+                <Avatar className="h-9 w-9 shrink-0">
+                  <AvatarImage
+                    src={user?.profile.avatar_url ?? undefined}
+                    alt={user?.profile.full_name ?? ''}
+                  />
+                  <AvatarFallback className="bg-[var(--memovia-violet-light)] text-[var(--memovia-violet)] text-[12px] font-semibold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-[13px] font-semibold text-[var(--text-primary)]">
+                      {user?.profile.full_name ?? 'Admin'}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-[var(--memovia-violet-light)] px-1.5 py-px text-[10px] font-semibold text-[var(--memovia-violet)]">
+                      {formatRole(user?.role)}
+                    </span>
+                  </div>
+                  <div className="truncate text-[11px] text-[var(--text-muted)]">
+                    {user?.profile.email}
+                  </div>
+                </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+
+            {/* Liens */}
+            <DropdownMenuItem asChild className="cursor-pointer px-3 py-2 text-[13px]">
+              <Link to="/parametres">
+                <Settings className="mr-2 h-4 w-4 text-[var(--text-muted)]" />
+                Paramètres
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="cursor-pointer px-3 py-2 text-[13px]">
+              <Link to="/admin">
+                <UsersIcon className="mr-2 h-4 w-4 text-[var(--text-muted)]" />
+                Gestion admins
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+
+            {/* Déconnexion */}
             <DropdownMenuItem
               onClick={signOut}
-              className="cursor-pointer text-[var(--danger)] focus:bg-[var(--danger)]/10 focus:text-[var(--danger)]"
+              className="cursor-pointer px-3 py-2 text-[13px] text-[var(--danger)] focus:bg-[var(--danger-bg)] focus:text-[var(--danger)]"
             >
               <LogOut className="mr-2 h-4 w-4" />
               Se déconnecter
