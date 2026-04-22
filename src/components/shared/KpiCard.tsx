@@ -31,10 +31,10 @@ export interface KpiCardProps {
 
 export const ACCENT_MAP: Record<AccentKey, { bg: string; fg: string }> = {
   violet: { bg: 'var(--accent-purple-bg)', fg: 'var(--accent-purple)' },
-  cyan:   { bg: 'color-mix(in oklab, var(--memovia-cyan) 20%, white)', fg: 'var(--memovia-cyan)' },
-  blue:   { bg: 'var(--accent-blue-bg)', fg: 'var(--accent-blue)' },
-  red:    { bg: 'var(--trend-down-bg)', fg: 'var(--trend-down-text)' },
-  green:  { bg: 'color-mix(in oklab, var(--success) 15%, white)', fg: 'var(--success)' },
+  cyan:   { bg: 'var(--accent-blue-bg)',   fg: 'var(--accent-blue)' },
+  blue:   { bg: 'var(--accent-blue-bg)',   fg: 'var(--accent-blue)' },
+  red:    { bg: 'var(--danger-bg)',         fg: 'var(--danger)' },
+  green:  { bg: 'var(--success-bg)',        fg: 'var(--success)' },
 }
 
 const frFormatter = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
@@ -64,12 +64,10 @@ export function KpiCard({
 
   return (
     <motion.article
-      className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5"
-      whileHover={{
-        y: -2,
-        boxShadow: '0 8px 24px -4px rgba(0,0,0,0.06), 0 2px 8px -2px rgba(124,58,237,0.04)',
-      }}
-      transition={{ type: 'spring', duration: 0.3, bounce: 0.05 }}
+      className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5"
+      style={{ boxShadow: 'var(--shadow-xs)' }}
+      whileHover={{ boxShadow: 'var(--shadow-sm)' }}
+      transition={{ type: 'spring', duration: 0.25, bounce: 0 }}
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -98,7 +96,7 @@ export function KpiCard({
         <p className="text-sm text-[var(--text-muted)]">Indisponible</p>
       ) : (
         <div className="flex items-end justify-between gap-2">
-          <p className="text-[26px] font-semibold leading-none tracking-tight text-[var(--text-primary)] tabular-nums">
+          <p className="text-[28px] font-bold leading-none tracking-tight text-[var(--text-primary)] tabular-nums">
             {masked ? (
               <span className="tracking-widest text-[var(--text-muted)]">••••</span>
             ) : rawValue !== undefined ? (

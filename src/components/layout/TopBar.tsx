@@ -37,7 +37,7 @@ export function TopBar() {
         <button
           type="button"
           onClick={togglePrivacy}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-white/10 hover:text-white"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--border-subtle)] hover:text-[var(--text-primary)]"
           aria-label={isPrivate ? 'Afficher les chiffres' : 'Masquer les chiffres'}
           title={isPrivate ? 'Afficher les chiffres sensibles' : 'Masquer les chiffres sensibles'}
         >
@@ -49,7 +49,7 @@ export function TopBar() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-white/10 hover:text-white"
+              className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--border-subtle)] hover:text-[var(--text-primary)]"
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
@@ -109,7 +109,7 @@ export function TopBar() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2 rounded-lg px-1 py-1 hover:bg-white/10 transition-colors ml-1"
+              className="flex items-center gap-2 rounded-lg px-1 py-1 hover:bg-[var(--border-subtle)] transition-colors ml-1"
               aria-label="Menu utilisateur"
             >
               <Avatar className="h-8 w-8">

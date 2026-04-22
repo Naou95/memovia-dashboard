@@ -1,6 +1,21 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
+/* Tailwind v4 — expose design tokens as utility classes */
+@theme {
+  --color-memovia-violet: #7C3AED;
+  --color-memovia-violet-light: #EDE9FF;
+  --color-app-bg: #F8F8F8;
+  --color-card: #FFFFFF;
+  --color-sidebar: #FFFFFF;
+  --color-border-subtle: #F3F4F6;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-success-bar: #4ADE80;
+  --color-danger-bar: #F87171;
+}
+
 /* shadcn/ui CSS variables (Tailwind v4 compatible) */
 @layer base {
   :root {
@@ -27,46 +42,49 @@
   }
 }
 
-/* MEMOVIA brand tokens — Nexus-inspired light palette */
+/* MEMOVIA brand tokens — Style Qonto */
 :root {
-  /* Surfaces (light theme, everywhere) */
-  --bg-primary: #F5F5F8;
+  /* Surfaces */
+  --bg-primary: #F8F8F8;
   --bg-secondary: #FFFFFF;
   --bg-sidebar: #FFFFFF;
   --bg-elevated: #FFFFFF;
   --bg-card: #FFFFFF;
+  --bg-hover: #F4F3FF;
+  --bg-active: #EDE9FF;
 
   /* Borders */
-  --border-color: #EDEDF0;
-  --border-strong: #E0E0E5;
+  --border-color: #E5E7EB;
+  --border-strong: #D1D5DB;
+  --border-subtle: #F3F4F6;
 
   /* Text */
-  --text-primary: #0F0F1A;
-  --text-secondary: #6B6B7A;
-  --text-muted: #9E9EAB;
-  --text-label: #8E8EA0;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --text-label: #9CA3AF;
 
-  /* Brand (primary violet from Nexus) */
+  /* Brand */
   --memovia-violet: #7C3AED;
-  --memovia-violet-light: #F3F0FE;
+  --memovia-violet-light: #EDE9FF;
   --memovia-violet-hover: #6D28D9;
   --memovia-cyan: #00E5CC;
 
-  /* Trend badges (pill with bg + text) */
-  --trend-up-bg: #E8F7EE;
-  --trend-up-text: #059669;
-  --trend-down-bg: #FDE8E8;
+  /* Trend badges */
+  --trend-up-bg: #F0FDF4;
+  --trend-up-text: #16A34A;
+  --trend-down-bg: #FEF2F2;
   --trend-down-text: #DC2626;
 
   /* KPI card accent circles */
   --accent-blue: #3B82F6;
-  --accent-blue-bg: #DBEAFE;
-  --accent-mint: #10B981;
-  --accent-mint-bg: #D1FAE5;
+  --accent-blue-bg: #EFF6FF;
+  --accent-mint: #16A34A;
+  --accent-mint-bg: #F0FDF4;
   --accent-purple: #7C3AED;
-  --accent-purple-bg: #EDE9FE;
+  --accent-purple-bg: #EDE9FF;
 
-  /* Chart purple scale (stacked bars) */
+  /* Chart purple scale */
   --chart-purple-100: #DDD6FE;
   --chart-purple-200: #C4B5FD;
   --chart-purple-300: #A78BFA;
@@ -74,16 +92,28 @@
   --chart-purple-500: #7C3AED;
   --chart-purple-600: #6D28D9;
 
-  /* CTA dark button (Export) */
-  --cta-dark-bg: #0F0F1A;
+  /* CTA dark button */
+  --cta-dark-bg: #111827;
   --cta-dark-text: #FFFFFF;
-  --cta-dark-hover: #1F1F2E;
+  --cta-dark-hover: #1F2937;
 
   /* Semantic */
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
+  --success: #16A34A;
+  --success-bg: #F0FDF4;
+  --success-bar: #4ADE80;
+  --warning: #D97706;
+  --warning-bg: #FFFBEB;
+  --danger: #DC2626;
+  --danger-bg: #FEF2F2;
+  --danger-bar: #F87171;
   --info: #3B82F6;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+
+  /* Border radius */
+  --radius-card: 8px;
 }
 
 /* ── Animation foundation ─────────────────────────────────────────────────── */

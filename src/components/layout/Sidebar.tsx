@@ -31,7 +31,7 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'flex w-[240px] flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)]',
+        'flex w-[220px] flex-col border-r border-[var(--border-color)] bg-[var(--bg-sidebar)]',
         className
       )}
       data-testid="sidebar"
@@ -128,9 +128,9 @@ function SidebarNavItem({ item, isActive }: SidebarNavItemProps) {
       className={cn(
         'relative flex h-8 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium',
         isActive
-          ? 'text-[var(--text-primary)]'
+          ? 'text-[var(--memovia-violet)]'
           : !isSoon
-          ? 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]'
+          ? 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
           : 'cursor-default text-[var(--text-muted)]',
       )}
       aria-current={isActive ? 'page' : undefined}
