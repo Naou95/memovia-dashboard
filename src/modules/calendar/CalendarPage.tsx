@@ -323,13 +323,13 @@ export default function CalendarPage() {
   }, [searchParams, setSearchParams, refetch])
 
   const ownEvents = useMemo(() => {
-    if (needsAllUsers && allUsersData?.events) {
+    if (allUsersData?.events) {
       return allUsersData.events.filter(
-        (ev) => !ev.owner || ev.owner.color !== COLOR_EMIR,
+        (ev) => ev.owner?.color !== COLOR_EMIR,
       )
     }
     return data?.events ?? []
-  }, [data?.events, allUsersData?.events, needsAllUsers])
+  }, [data?.events, allUsersData?.events])
 
   const emirEvents = useMemo(() => {
     if (!allUsersData?.events) return []
