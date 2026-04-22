@@ -45,9 +45,9 @@ function SkeletonRow() {
 
 export function ActivityFeed({ users, isLoading }: ActivityFeedProps) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+    <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-3.5">
-        <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+        <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
           Dernières connexions — 24h
         </h3>
         <span className="rounded-full bg-[var(--accent-purple-bg)] px-2.5 py-0.5 text-[12px] font-semibold text-[var(--memovia-violet)]">
@@ -55,13 +55,20 @@ export function ActivityFeed({ users, isLoading }: ActivityFeedProps) {
         </span>
       </div>
 
-      <table className="w-full text-sm">
+      <table className="w-full table-fixed text-sm">
+        <colgroup>
+          <col className="w-[36%]" />
+          <col className="w-[16%]" />
+          <col className="w-[26%]" />
+          <col className="w-[22%]" />
+        </colgroup>
         <thead>
-          <tr className="border-b border-[var(--border-color)]">
+          <tr className="border-b border-[var(--border-color)] bg-[var(--bg-primary)]">
             {['Utilisateur', 'Type', 'Organisation', 'Dernière connexion'].map((h) => (
               <th
                 key={h}
-                className="px-4 py-3 text-left text-[12px] font-semibold uppercase tracking-wider text-[var(--text-label)]"
+                scope="col"
+                className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]"
               >
                 {h}
               </th>
@@ -92,15 +99,15 @@ export function ActivityFeed({ users, isLoading }: ActivityFeedProps) {
             users.map((user) => (
               <tr
                 key={user.id}
-                className="transition-colors hover:bg-[var(--accent-purple-bg)]"
+                className="transition-colors hover:bg-[var(--bg-hover)]"
               >
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div
                       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
                       style={{
-                        backgroundColor: 'color-mix(in oklab, var(--memovia-cyan) 15%, white)',
-                        color: 'var(--memovia-cyan)',
+                        backgroundColor: 'var(--accent-blue-bg)',
+                        color: 'var(--accent-blue)',
                       }}
                     >
                       {getInitials(user.first_name, user.last_name, user.email)}
@@ -117,13 +124,13 @@ export function ActivityFeed({ users, isLoading }: ActivityFeedProps) {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {formatAccountType(user.account_type)}
                 </td>
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {user.organization_name ?? '—'}
                 </td>
-                <td className="px-4 py-3 tabular-nums text-[var(--text-secondary)]">
+                <td className="truncate px-4 py-3 tabular-nums text-[var(--text-secondary)]">
                   {user.last_sign_in_at ? formatRelative(user.last_sign_in_at) : '—'}
                 </td>
               </tr>

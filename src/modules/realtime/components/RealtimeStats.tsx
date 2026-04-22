@@ -37,7 +37,7 @@ export function RealtimeStats({ stats, users, period, isLoading, error }: Realti
   ).length
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>*]:min-h-[160px] [&>article]:h-full">
       <KpiCard
         label="Actifs — 30 min"
         value={stats ? String(stats.activeLast30m) : null}

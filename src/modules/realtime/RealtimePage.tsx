@@ -81,7 +81,10 @@ export default function RealtimePage() {
 
       {/* ── Error ─────────────────────────────────────────────────────────────── */}
       {error && !isLoading && (
-        <motion.div variants={staggerItem} className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <motion.div
+          variants={staggerItem}
+          className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
+        >
           {error}
         </motion.div>
       )}
@@ -89,8 +92,7 @@ export default function RealtimePage() {
       {/* ── Period filter ─────────────────────────────────────────────────────── */}
       <motion.div
         variants={staggerItem}
-        className="flex items-center gap-2 rounded-xl px-4 py-3"
-        style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}
+        className="flex items-center gap-2 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
       >
         <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
           Période
