@@ -61,22 +61,28 @@ export function TopBar() {
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
+          <DropdownMenuContent
+            align="end"
+            className="w-[360px] p-0 rounded-[12px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[0_8px_24px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.04)]"
+            sideOffset={8}
+          >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)]">
-              <span className="text-[13px] font-semibold text-[var(--text-primary)]">
-                Notifications
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] font-semibold text-[var(--text-primary)]">
+                  Notifications
+                </span>
                 {unreadCount > 0 && (
-                  <span className="ml-2 rounded-full bg-[var(--danger)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  <span className="rounded-full bg-[var(--memovia-violet-light)] px-1.5 py-px text-[10px] font-bold text-[var(--memovia-violet)]">
                     {unreadCount}
                   </span>
                 )}
-              </span>
+              </div>
               {unreadCount > 0 && (
                 <button
                   type="button"
                   onClick={markAllAsRead}
-                  className="flex items-center gap-1 text-[11px] text-[var(--memovia-violet)] hover:underline"
+                  className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--memovia-violet)]"
                 >
                   <CheckCheck className="h-3 w-3" />
                   Tout marquer lu
@@ -85,11 +91,20 @@ export function TopBar() {
             </div>
 
             {/* List */}
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-[420px] overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-8 text-center">
-                  <Bell className="h-8 w-8 text-[var(--text-muted)] opacity-40" />
-                  <p className="text-[13px] text-[var(--text-muted)]">Aucune notification</p>
+                <div className="flex flex-col items-center gap-3 py-12 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-primary)]">
+                    <Bell className="h-5 w-5 text-[var(--text-muted)]" strokeWidth={1.75} />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-medium text-[var(--text-primary)]">
+                      Aucune notification
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+                      Tout est à jour — rien à traiter pour le moment.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 notifications.map(notif => (
@@ -219,29 +234,32 @@ function NotificationItem({
     <button
       type="button"
       onClick={() => !n.read && onRead(n.id)}
-      className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--bg-primary)] border-b border-[var(--border-color)] last:border-0 ${
-        !n.read ? 'bg-[var(--memovia-violet-light)]/30' : ''
+      className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-hover)] ${
+        !n.read ? 'bg-[var(--bg-hover)]/50' : ''
       }`}
     >
       <div
-        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+        className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
         style={{ backgroundColor: cfg.iconBg }}
       >
-        <Icon className="h-3.5 w-3.5" style={{ color: cfg.iconColor }} />
+        <Icon className="h-4 w-4" style={{ color: cfg.iconColor }} strokeWidth={2.25} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-[12px] leading-snug ${n.read ? 'font-normal text-[var(--text-secondary)]' : 'font-semibold text-[var(--text-primary)]'}`}>
+          <p className={`text-[13px] leading-snug ${n.read ? 'font-normal text-[var(--text-secondary)]' : 'font-semibold text-[var(--text-primary)]'}`}>
             {n.title}
           </p>
           {!n.read && (
-            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--memovia-violet)]" />
+            <span
+              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--accent-blue)]"
+              aria-label="Non lu"
+            />
           )}
         </div>
-        <p className="mt-0.5 text-[11px] text-[var(--text-muted)] leading-relaxed">
+        <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-muted)]">
           {n.message}
         </p>
-        <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+        <p className="mt-1 text-[11px] tabular-nums text-[var(--text-muted)]">
           {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: fr })}
         </p>
       </div>
