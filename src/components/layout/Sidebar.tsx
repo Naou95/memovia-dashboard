@@ -37,7 +37,7 @@ export function Sidebar({ className }: SidebarProps) {
     >
       {/* Logo — monogramme M custom MEMOVIA */}
       <motion.div
-        className="flex h-14 shrink-0 items-center gap-2.5 px-5"
+        className="flex h-12 shrink-0 items-center gap-2.5 px-5"
         initial={{ opacity: 0, x: -12 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.35, ease: [0.25, 1, 0.5, 1] }}
@@ -74,8 +74,8 @@ export function Sidebar({ className }: SidebarProps) {
           animate="show"
         >
           {sections.map((section) => (
-            <div key={section.id} className="mb-2.5">
-              <div className="mb-0.5 px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-label)]">
+            <div key={section.id} className="mb-1.5">
+              <div className="mb-px px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-label)]">
                 {section.label}
               </div>
               <ul className="space-y-px">
@@ -95,13 +95,13 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* User card */}
       <motion.div
-        className="shrink-0 border-t border-[var(--border-color)] p-2"
+        className="shrink-0 border-t border-[var(--border-color)] p-1.5"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4, duration: 0.3 }}
       >
-        <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-          <Avatar className="h-8 w-8">
+        <div className="flex items-center gap-2.5 rounded-lg px-2 py-1">
+          <Avatar className="h-7 w-7">
             <AvatarImage
               src={user?.profile.avatar_url ?? undefined}
               alt={user?.profile.full_name ?? ''}
@@ -139,7 +139,7 @@ function SidebarNavItem({ item, isActive }: SidebarNavItemProps) {
   const content = (
     <span
       className={cn(
-        'relative flex h-7 items-center gap-2 rounded-lg px-2.5 text-[12px] font-medium transition-transform duration-150 ease-out',
+        'relative flex h-6 items-center gap-2 rounded-lg px-2.5 text-[12px] font-medium transition-transform duration-150 ease-out',
         isActive
           ? 'text-[var(--memovia-violet)]'
           : !isSoon
