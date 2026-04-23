@@ -570,7 +570,13 @@ function checkSecret(req: Request): boolean {
   const fromAuth = authHeader.toLowerCase().startsWith('bearer ')
     ? authHeader.slice(7)
     : null
-  const provided = fromHeader ?? fromAuth
+  let fromQuery: string | null = null
+  try {
+    fromQuery = new URL(req.url).searchParams.get('secret')
+  } catch {
+    fromQuery = null
+  }
+  const provided = fromHeader ?? fromAuth ?? fromQuery
   return provided !== null && provided === expected
 }
 
