@@ -1,8 +1,10 @@
-import { useState } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LeadStatusBadge } from './LeadStatusBadge'
 import { LeadMaturityBadge } from './LeadMaturityBadge'
+import { LeadScoreBadge } from './LeadScoreBadge'
+import { computeLeadScore } from '@/lib/leadScoring'
 import type { Lead } from '@/types/leads'
 import {
   LEAD_TYPE_LABELS,
@@ -18,6 +20,8 @@ interface LeadTableProps {
   canDelete: boolean
 }
 
+type SortDir = 'asc' | 'desc'
+
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('fr-FR', {
@@ -30,7 +34,7 @@ function formatDate(dateStr: string | null): string {
 function SkeletonRow() {
   return (
     <tr>
-      {[...Array(11)].map((_, i) => (
+      {[...Array(12)].map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
         </td>
@@ -42,6 +46,14 @@ function SkeletonRow() {
 export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: LeadTableProps) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+  const scoredLeads = useMemo(() => {
+    const now = new Date()
+    return leads
+      .map((l) => ({ lead: l, score: computeLeadScore(l, now) }))
+      .sort((a, b) => (sortDir === 'desc' ? b.score - a.score : a.score - b.score))
+  }, [leads, sortDir])
 
   async function handleDelete(id: string) {
     setDeletingId(id)
@@ -53,37 +65,75 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
     }
   }
 
+  function toggleSort() {
+    setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))
+  }
+
+  const HEADERS: { label: string; align?: 'right' }[] = [
+    { label: 'Organisation' },
+    { label: 'Contact' },
+    { label: 'Type' },
+    { label: 'Canal' },
+    { label: 'Statut' },
+    { label: 'Maturité' },
+    { label: 'Score' },
+    { label: 'Assigné' },
+    { label: 'Prochaine action' },
+    { label: 'Dernier contact' },
+    { label: 'Relances' },
+    { label: 'Actions', align: 'right' },
+  ]
+
   return (
     <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <table className="w-full table-fixed text-sm" aria-label="Liste des leads commerciaux">
         <colgroup>
-          <col className="w-[14%]" />
-          <col className="w-[11%]" />
+          <col className="w-[13%]" />
+          <col className="w-[10%]" />
+          <col className="w-[6%]" />
           <col className="w-[7%]" />
           <col className="w-[8%]" />
-          <col className="w-[9%]" />
-          <col className="w-[9%]" />
-          <col className="w-[9%]" />
-          <col className="w-[14%]" />
+          <col className="w-[8%]" />
+          <col className="w-[7%]" />
+          <col className="w-[8%]" />
+          <col className="w-[13%]" />
           <col className="w-[8%]" />
           <col className="w-[6%]" />
-          <col className="w-[5%]" />
+          <col className="w-[6%]" />
         </colgroup>
         <thead>
           <tr className="border-b border-[var(--border-color)]">
-            {['Organisation', 'Contact', 'Type', 'Canal', 'Statut', 'Maturité', 'Assigné', 'Prochaine action', 'Dernier contact', 'Relances', 'Actions'].map(
-              (h, i) => (
+            {HEADERS.map((h) => {
+              const isScore = h.label === 'Score'
+              const alignClass = h.align === 'right' ? 'text-right' : 'text-left'
+              return (
                 <th
-                  key={h}
+                  key={h.label}
                   scope="col"
-                  className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] ${
-                    i === 10 ? 'text-right' : 'text-left'
-                  }`}
+                  aria-sort={
+                    isScore ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined
+                  }
+                  className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)] ${alignClass}`}
                 >
-                  {h}
+                  {isScore ? (
+                    <button
+                      onClick={toggleSort}
+                      className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-[var(--memovia-violet)] focus-visible:outline-none focus-visible:text-[var(--memovia-violet)]"
+                      aria-label={`Trier par score ${sortDir === 'desc' ? 'croissant' : 'décroissant'}`}
+                    >
+                      {h.label}
+                      {sortDir === 'desc' ? (
+                        <ArrowDown className="h-3 w-3" />
+                      ) : (
+                        <ArrowUp className="h-3 w-3" />
+                      )}
+                    </button>
+                  ) : (
+                    h.label
+                  )}
                 </th>
               )
-            )}
+            })}
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--border-color)]">
@@ -93,9 +143,9 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
               <SkeletonRow />
               <SkeletonRow />
             </>
-          ) : leads.length === 0 ? (
+          ) : scoredLeads.length === 0 ? (
             <tr>
-              <td colSpan={11} className="px-4 py-12 text-center">
+              <td colSpan={12} className="px-4 py-12 text-center">
                 <p className="text-[15px] font-medium text-[var(--text-primary)]">
                   Aucun lead trouvé
                 </p>
@@ -105,7 +155,7 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
               </td>
             </tr>
           ) : (
-            leads.map((lead) => (
+            scoredLeads.map(({ lead, score }) => (
               <tr
                 key={lead.id}
                 className="transition-colors hover:bg-[var(--accent-purple-bg)]"
@@ -142,6 +192,11 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
                   ) : (
                     <span className="text-[var(--text-muted)]">—</span>
                   )}
+                </td>
+
+                {/* Score */}
+                <td className="px-4 py-3">
+                  <LeadScoreBadge score={score} />
                 </td>
 
                 {/* Assigné */}

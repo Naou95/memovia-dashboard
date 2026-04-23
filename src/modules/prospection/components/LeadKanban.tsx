@@ -13,6 +13,8 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Pencil, CalendarClock } from 'lucide-react'
 import { LeadMaturityBadge } from './LeadMaturityBadge'
+import { LeadScoreBadge } from './LeadScoreBadge'
+import { computeLeadScore } from '@/lib/leadScoring'
 import type { Lead, LeadStatus } from '@/types/leads'
 import {
   LEAD_STATUS_LABELS,
@@ -100,15 +102,18 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
                 <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">{lead.contact_name}</p>
               )}
             </div>
-            {!isOverlay && !isPlaceholder && onEdit && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit(lead) }}
-                className="shrink-0 rounded p-0.5 text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--memovia-violet)]"
-                aria-label="Modifier"
-              >
-                <Pencil className="h-3 w-3" />
-              </button>
-            )}
+            <div className="flex shrink-0 items-center gap-1">
+              <LeadScoreBadge score={computeLeadScore(lead)} size="sm" />
+              {!isOverlay && !isPlaceholder && onEdit && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEdit(lead) }}
+                  className="rounded p-0.5 text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-[var(--memovia-violet)]"
+                  aria-label="Modifier"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
