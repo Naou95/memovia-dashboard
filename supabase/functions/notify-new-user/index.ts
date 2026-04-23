@@ -6,12 +6,44 @@ interface WebhookPayload {
   table: string
   record: {
     first_name?: string
+    last_name?: string
     plan?: string
+    account_type?: string
     created_at?: string
     user_id?: string
   }
   schema: string
   old_record: null | Record<string, unknown>
+}
+
+function formatParisDate(iso?: string): string {
+  const date = iso ? new Date(iso) : new Date()
+  const parts = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'Europe/Paris',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
+  return `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')}`
+}
+
+function formatAccountType(accountType?: string): string {
+  switch (accountType) {
+    case 'student':
+      return '🎓 Étudiant'
+    case 'teacher':
+    case 'teacher_b2c':
+      return '👨‍🏫 Formateur'
+    case 'school_admin':
+      return '🏫 Admin B2B'
+    default:
+      return '❔ Inconnu'
+  }
 }
 
 Deno.serve(async (req) => {
@@ -26,7 +58,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { first_name, plan, created_at, user_id } = payload.record
+    const { first_name, last_name, plan, account_type, created_at, user_id } = payload.record
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: 'missing user_id in payload' }), { status: 400 })
@@ -44,32 +76,18 @@ Deno.serve(async (req) => {
     }
 
     const email = authUser.user.email ?? 'email inconnu'
-
-    const dateLabel = created_at
-      ? new Date(created_at).toLocaleDateString('fr-FR', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : new Date().toLocaleDateString('fr-FR', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
+    const fullName = [first_name, last_name].filter(Boolean).join(' ') || 'Utilisateur'
+    const dateLabel = formatParisDate(created_at)
+    const typeLabel = formatAccountType(account_type)
 
     const message = [
       '🎉 Nouvel inscrit sur MEMOVIA !',
       '',
-      `👤 ${first_name || 'Utilisateur'}`,
-      `📧 ${email}`,
-      `📅 ${dateLabel}`,
-      `🎯 Plan : ${plan || 'Free'}`,
+      `👤 Nom : ${fullName}`,
+      `📧 Email : ${email}`,
+      `📅 Inscrit le : ${dateLabel}`,
+      `🎓 Type : ${typeLabel}`,
+      `💳 Plan : ${plan || 'Free'}`,
     ].join('\n')
 
     const chatIds = [
