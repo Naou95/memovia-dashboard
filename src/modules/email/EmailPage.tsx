@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { RefreshCw, Pencil, Inbox, Zap, X } from 'lucide-react'
+import { RefreshCw, Pencil, Inbox, Zap, X, FileText } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { Button } from '@/components/ui/button'
@@ -8,10 +8,11 @@ import { EmailAlerts } from './components/EmailAlerts'
 import { EmailList } from './components/EmailList'
 import { EmailDetail } from './components/EmailDetail'
 import { EmailCompose } from './components/EmailCompose'
+import { EmailTemplates, type EmailTemplate } from './components/EmailTemplates'
 import type { EmailMessageDetail } from '@/types/email'
 import { supabase } from '@/lib/supabase'
 
-type RightPanelMode = 'detail' | 'compose'
+type RightPanelMode = 'detail' | 'compose' | 'templates'
 
 const FOLDERS = [
   { id: 'INBOX', label: 'Boîte de réception' },
@@ -30,6 +31,7 @@ export default function EmailPage() {
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [mode, setMode] = useState<RightPanelMode>('detail')
   const [replyTarget, setReplyTarget] = useState<EmailMessageDetail | null>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null)
   const [dismissedAlerts, setDismissedAlerts] = useState(false)
   const [isDetecting, setIsDetecting] = useState(false)
   const [detectionResult, setDetectionResult] = useState<{ inserted: number } | null>(null)
@@ -57,17 +59,30 @@ export default function EmailPage() {
 
   const handleCompose = () => {
     setReplyTarget(null)
+    setSelectedTemplate(null)
     setMode('compose')
   }
 
   const handleReply = (email: EmailMessageDetail) => {
     setReplyTarget(email)
+    setSelectedTemplate(null)
     setMode('compose')
   }
 
   const handleCancelCompose = () => {
     setMode('detail')
     setReplyTarget(null)
+    setSelectedTemplate(null)
+  }
+
+  const handleOpenTemplates = () => {
+    setMode('templates')
+  }
+
+  const handleSelectTemplate = (template: EmailTemplate) => {
+    setReplyTarget(null)
+    setSelectedTemplate(template)
+    setMode('compose')
   }
 
   const handleDetectLeads = async () => {
@@ -125,6 +140,10 @@ export default function EmailPage() {
               <Zap size={14} className="mr-1.5" />
             )}
             {isDetecting ? 'Analyse en cours…' : 'Détecter les leads'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleOpenTemplates}>
+            <FileText size={14} className="mr-1.5" />
+            Templates
           </Button>
           <Button variant="brand" size="sm" onClick={handleCompose}>
             <Pencil size={14} className="mr-1.5" />
@@ -245,10 +264,13 @@ export default function EmailPage() {
           {mode === 'compose' ? (
             <EmailCompose
               replyTo={replyTarget}
+              initialTemplate={selectedTemplate ? { subject: selectedTemplate.subject, body: selectedTemplate.body } : null}
               isSending={isSending}
               onSend={sendEmail}
               onCancel={handleCancelCompose}
             />
+          ) : mode === 'templates' ? (
+            <EmailTemplates onSelect={handleSelectTemplate} />
           ) : (
             <EmailDetail
               email={emailDetail}

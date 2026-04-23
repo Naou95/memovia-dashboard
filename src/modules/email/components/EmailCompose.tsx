@@ -14,12 +14,13 @@ const FROM_ALIASES = [
 
 interface EmailComposeProps {
   replyTo?: EmailMessageDetail | null
+  initialTemplate?: { subject: string; body: string } | null
   isSending: boolean
   onSend: (payload: EmailSendPayload) => Promise<boolean>
   onCancel: () => void
 }
 
-export function EmailCompose({ replyTo, isSending, onSend, onCancel }: EmailComposeProps) {
+export function EmailCompose({ replyTo, initialTemplate, isSending, onSend, onCancel }: EmailComposeProps) {
   const [from, setFrom] = useState(FROM_ALIASES[0])
   const [to, setTo] = useState('')
   const [cc, setCc] = useState('')
@@ -35,8 +36,11 @@ export function EmailCompose({ replyTo, isSending, onSend, onCancel }: EmailComp
       )
       const originalHeader = `Le ${new Date(replyTo.date).toLocaleString('fr-FR')}, ${replyTo.from.address} a écrit :`
       setBody(`\n\n---\n${originalHeader}\n${replyTo.text || ''}`)
+    } else if (initialTemplate) {
+      setSubject(initialTemplate.subject)
+      setBody(initialTemplate.body)
     }
-  }, [replyTo])
+  }, [replyTo, initialTemplate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
