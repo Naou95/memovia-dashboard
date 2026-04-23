@@ -5,14 +5,6 @@ import { sendTelegramMessage } from '../_shared/telegram.ts'
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
 
-  const authHeader = req.headers.get('Authorization') ?? ''
-  const token = authHeader.replace('Bearer ', '')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-
-  if (!token || token !== serviceRoleKey) {
-    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
-  }
-
   const chatId = Deno.env.get('TELEGRAM_CHAT_ID_NAOUFEL')
   if (!chatId) {
     return new Response(JSON.stringify({ error: 'TELEGRAM_CHAT_ID_NAOUFEL not configured' }), { status: 500 })
@@ -38,19 +30,36 @@ Deno.serve(async (req) => {
     const sevenDaysAgoISO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
     const sevenDaysAgoDate = sevenDaysAgoISO.split('T')[0]
 
-    const [stripeResult, followUpResult, staleLeadsResult, overdueTasksResult, newUsersResult] = await Promise.allSettled([
-      // MRR Stripe
+    const [mrrResult, followUpResult, staleLeadsResult, overdueTasksResult, newUsersResult] = await Promise.allSettled([
+      // MRR total (Stripe actifs non-annulés + contrats B2B actifs) — mêmes règles que get-stripe-metrics
       (async () => {
         const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
-        if (!stripeKey) return null
-        const stripe = new Stripe(stripeKey)
-        const subs = await stripe.subscriptions.list({ status: 'active', limit: 100 }, { timeout: 8000 })
-        const mrr = subs.data.reduce((sum, sub) => {
-          const plan = sub.items.data[0]?.plan
-          if (!plan?.amount) return sum
-          return sum + (plan.interval === 'year' ? plan.amount / 12 : plan.amount) / 100
-        }, 0)
-        return { mrr }
+        let mrrStripe = 0
+        if (stripeKey) {
+          const stripe = new Stripe(stripeKey)
+          const subs = await stripe.subscriptions.list({ status: 'active', limit: 100 }, { timeout: 8000 })
+          mrrStripe = subs.data.reduce((sum, sub) => {
+            if (sub.cancel_at_period_end) return sum
+            const plan = sub.items.data[0]?.plan
+            if (!plan?.amount) return sum
+            return sum + (plan.interval === 'year' ? plan.amount / 12 : plan.amount) / 100
+          }, 0)
+        }
+
+        const { data: contractRows } = await supabase
+          .from('contracts')
+          .select('mrr_eur')
+          .eq('status', 'actif')
+        const mrrContracts = (contractRows ?? []).reduce(
+          (sum: number, row: { mrr_eur: number | null }) => sum + (row.mrr_eur ?? 0),
+          0,
+        )
+
+        return {
+          mrrStripe: Math.round(mrrStripe * 100) / 100,
+          mrrContracts: Math.round(mrrContracts * 100) / 100,
+          mrrTotal: Math.round((mrrStripe + mrrContracts) * 100) / 100,
+        }
       })(),
 
       // Leads à relancer cette semaine
@@ -91,16 +100,27 @@ Deno.serve(async (req) => {
       const d = new Date(iso)
       return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
     }
+    const accountTypeLabel = (type: string | null | undefined) => {
+      switch (type) {
+        case 'student': return '🎓 Étudiant'
+        case 'teacher':
+        case 'teacher_b2c': return '👨‍🏫 Formateur'
+        case 'school_admin': return '🏫 Admin B2B'
+        default: return '👤 Inconnu'
+      }
+    }
     const weekLabel = `${monday.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })} → ${sunday.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}`
 
     const lines: string[] = [`📊 *Rapport hebdomadaire MEMOVIA*`, `_Semaine du ${weekLabel}_`, '']
 
     // MRR
     lines.push('💰 *MRR actuel*')
-    if (stripeResult.status === 'fulfilled' && stripeResult.value) {
-      lines.push(`• *${Math.round(stripeResult.value.mrr).toLocaleString('fr-FR')} €* / mois`)
+    if (mrrResult.status === 'fulfilled' && mrrResult.value) {
+      const { mrrTotal, mrrStripe, mrrContracts } = mrrResult.value
+      lines.push(`• *${Math.round(mrrTotal).toLocaleString('fr-FR')} €* / mois`)
+      lines.push(`  _Stripe : ${Math.round(mrrStripe).toLocaleString('fr-FR')} € · Contrats B2B : ${Math.round(mrrContracts).toLocaleString('fr-FR')} €_`)
     } else {
-      lines.push('• Données Stripe indisponibles')
+      lines.push('• Données MRR indisponibles')
     }
     lines.push('')
 
@@ -157,8 +177,7 @@ Deno.serve(async (req) => {
       lines.push(`🎉 *Nouveaux inscrits (${newUsers.length})*`)
       for (const u of newUsers.slice(0, 10)) {
         const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email || 'Anonyme'
-        const type = u.account_type ? ` _(${u.account_type})_` : ''
-        lines.push(`• ${name}${type}`)
+        lines.push(`• ${name} — ${accountTypeLabel(u.account_type)}`)
       }
       if (newUsers.length > 10) lines.push(`_…et ${newUsers.length - 10} autres_`)
     } else {
