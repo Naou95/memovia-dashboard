@@ -8,6 +8,7 @@
 
 import Stripe from 'npm:stripe@17'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
 
@@ -571,12 +572,8 @@ function checkSecret(req: Request): boolean {
     ? authHeader.slice(7)
     : null
   const provided = fromHeader ?? fromAuth
-  if (!provided || provided.length !== expected.length) return false
-  let result = 0
-  for (let i = 0; i < expected.length; i++) {
-    result |= expected.charCodeAt(i) ^ provided.charCodeAt(i)
-  }
-  return result === 0
+  if (!provided) return false
+  return timingSafeEqual(provided, expected)
 }
 
 // ── Handler MCP ────────────────────────────────────────────────────────────────

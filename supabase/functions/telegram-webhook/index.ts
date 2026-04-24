@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@17'
 import nodemailer from 'npm:nodemailer'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 // verify_jwt: false — configured in supabase/config.toml
 // Security: X-Telegram-Bot-Api-Secret-Token header verification + chat_id allowlist
@@ -10,12 +11,7 @@ function verifyTelegramSecret(req: Request): boolean {
   const expected = Deno.env.get('TELEGRAM_WEBHOOK_SECRET')
   if (!expected) return false
   const provided = req.headers.get('X-Telegram-Bot-Api-Secret-Token') ?? ''
-  if (provided.length !== expected.length) return false
-  let result = 0
-  for (let i = 0; i < expected.length; i++) {
-    result |= expected.charCodeAt(i) ^ provided.charCodeAt(i)
-  }
-  return result === 0
+  return timingSafeEqual(provided, expected)
 }
 
 // ── Telegram types ─────────────────────────────────────────────────────────────

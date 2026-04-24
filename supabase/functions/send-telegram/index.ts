@@ -1,4 +1,5 @@
 import { sendTelegramMessage } from '../_shared/telegram.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 // Internal Edge Function — protected by service role key
 // Called by other Edge Functions or external services to send Telegram notifications
@@ -17,8 +18,7 @@ Deno.serve(async (req) => {
   const token = authHeader.replace('Bearer ', '')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
-  if (!token || !serviceRoleKey || token.length !== serviceRoleKey.length ||
-      (() => { let r = 0; for (let i = 0; i < serviceRoleKey.length; i++) r |= serviceRoleKey.charCodeAt(i) ^ token.charCodeAt(i); return r !== 0 })()) {
+  if (!token || !serviceRoleKey || !timingSafeEqual(token, serviceRoleKey)) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },

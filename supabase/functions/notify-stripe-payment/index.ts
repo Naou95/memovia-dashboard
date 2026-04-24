@@ -1,4 +1,5 @@
 import { sendTelegramMessage } from '../_shared/telegram.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
 
@@ -32,7 +33,7 @@ async function verifyStripeSignature(body: string, header: string | null): Promi
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 
-  return computed === v1
+  return timingSafeEqual(computed, v1)
 }
 
 function formatParisDT(ts: number): string {
