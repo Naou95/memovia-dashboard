@@ -11,9 +11,11 @@ function verifyTelegramSecret(req: Request): boolean {
   if (!expected) return false
   const provided = req.headers.get('X-Telegram-Bot-Api-Secret-Token') ?? ''
   if (provided.length !== expected.length) return false
-  const a = new TextEncoder().encode(provided)
-  const b = new TextEncoder().encode(expected)
-  return crypto.subtle.timingSafeEqual(a, b)
+  let result = 0
+  for (let i = 0; i < expected.length; i++) {
+    result |= expected.charCodeAt(i) ^ provided.charCodeAt(i)
+  }
+  return result === 0
 }
 
 // ── Telegram types ─────────────────────────────────────────────────────────────
