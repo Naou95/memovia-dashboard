@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import DOMPurify from 'dompurify'
 import { Save, Globe, FileText, Clock, Tag, Layers, Image, ChevronDown, Link2 } from 'lucide-react'
 import type { GeneratedArticle, ArticleCreatePayload, BlogCategory } from '@/types/seo'
 
@@ -397,7 +398,7 @@ export function ArticleEditor({
             } as React.CSSProperties}
           >
             {isHtmlContent(content) ? (
-              <div dangerouslySetInnerHTML={{ __html: content }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />
             ) : (
               <MarkdownPreview content={content} />
             )}

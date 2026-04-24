@@ -4,7 +4,17 @@ import nodemailer from 'npm:nodemailer'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
 
 // verify_jwt: false — configured in supabase/config.toml
-// Security enforced by chat_id allowlist
+// Security: X-Telegram-Bot-Api-Secret-Token header verification + chat_id allowlist
+
+function verifyTelegramSecret(req: Request): boolean {
+  const expected = Deno.env.get('TELEGRAM_WEBHOOK_SECRET')
+  if (!expected) return false
+  const provided = req.headers.get('X-Telegram-Bot-Api-Secret-Token') ?? ''
+  if (provided.length !== expected.length) return false
+  const a = new TextEncoder().encode(provided)
+  const b = new TextEncoder().encode(expected)
+  return crypto.subtle.timingSafeEqual(a, b)
+}
 
 // ── Telegram types ─────────────────────────────────────────────────────────────
 
@@ -650,6 +660,10 @@ function identifyUser(chatId: string): string {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
+
+  if (!verifyTelegramSecret(req)) {
+    return new Response('ok', { status: 200 })
+  }
 
   const allowedChatIds = new Set(
     [Deno.env.get('TELEGRAM_CHAT_ID_NAOUFEL'), Deno.env.get('TELEGRAM_CHAT_ID_EMIR')].filter(Boolean),

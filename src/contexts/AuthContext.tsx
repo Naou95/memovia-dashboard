@@ -9,7 +9,6 @@ import { toast } from 'sonner'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { AuthContextValue, AuthUser, DashboardProfile } from '@/types/auth'
-import { DEFAULT_ROLE, getRoleFromSession } from '@/types/auth'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GET_SESSION_TIMEOUT_MS = 5000
@@ -41,8 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // ── Single auth listener — handles INITIAL_SESSION + future changes ────
     // onAuthStateChange fires AFTER the SDK has applied the session internally,
     // so DB queries inside loadUserProfile have the correct auth headers.
-    // Using getSession().then() in parallel caused a race where the query ran
-    // before auth headers were set, returning null → synthesizeProfile fallback.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
         if (!isMountedRef.current) return
@@ -66,15 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // ── loadUserProfile ──────────────────────────────────────────────────────
-  // Tries to fetch the dashboard_profiles row. If it's missing or the query
-  // fails/times out (e.g. the custom_access_token_hook is disabled and RLS
-  // can't resolve), we still admit the user with a synthesized profile so the
-  // login flow doesn't hang. The session on its own is treated as enough to
-  // enter the dashboard — the DB row only enriches the profile.
+  // Fetches the dashboard_profiles row. If missing or query fails/times out,
+  // access is denied (fail closed). Only users with an explicit DB profile
+  // are admitted to the dashboard.
   async function loadUserProfile(currentSession: Session): Promise<void> {
     if (!isMountedRef.current) return
-
-    const jwtRole = getRoleFromSession(currentSession)
 
     // Bounded profile query: never let a stuck request block the login flow.
     const profilePromise = supabase
@@ -103,23 +96,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const profile = (profileData as DashboardProfile | null) ?? null
 
-    if (profileError) {
-      console.warn(
-        '[auth] dashboard_profiles query failed — falling back to auth metadata',
+    if (profileError || !profile) {
+      console.error(
+        '[auth] dashboard_profiles query failed or profile missing — denying access',
         profileError
       )
+      setError('Profil introuvable. Accès refusé.')
+      await supabase.auth.signOut()
+      setSession(null)
+      setUser(null)
+      setIsLoading(false)
+      return
     }
-
-    // DB profile is source of truth for role; JWT then user_metadata as fallback
-    const metaRole = currentSession.user?.user_metadata?.role as DashboardProfile['role'] | undefined
-    const effectiveRole = profile?.role ?? jwtRole ?? metaRole ?? DEFAULT_ROLE
-    const effectiveProfile: DashboardProfile = profile ?? synthesizeProfile(currentSession, effectiveRole)
 
     setSession(currentSession)
     setUser({
       supabaseUser: currentSession.user,
-      profile: effectiveProfile,
-      role: effectiveRole,
+      profile,
+      role: profile.role,
     })
     setIsLoading(false)
   }
@@ -177,26 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function synthesizeProfile(session: Session, role: DashboardProfile['role']): DashboardProfile {
-  const { user: authUser } = session
-  const fullName =
-    (authUser.user_metadata?.full_name as string | undefined) ??
-    (authUser.user_metadata?.name as string | undefined) ??
-    authUser.email?.split('@')[0] ??
-    'Utilisateur'
-
-  return {
-    id: authUser.id,
-    email: authUser.email ?? '',
-    full_name: fullName,
-    role,
-    avatar_url: (authUser.user_metadata?.avatar_url as string | undefined) ?? null,
-    created_at: authUser.created_at ?? new Date().toISOString(),
-    updated_at: authUser.updated_at ?? new Date().toISOString(),
-  }
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────

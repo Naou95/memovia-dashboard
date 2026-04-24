@@ -570,14 +570,11 @@ function checkSecret(req: Request): boolean {
   const fromAuth = authHeader.toLowerCase().startsWith('bearer ')
     ? authHeader.slice(7)
     : null
-  let fromQuery: string | null = null
-  try {
-    fromQuery = new URL(req.url).searchParams.get('secret')
-  } catch {
-    fromQuery = null
-  }
-  const provided = fromHeader ?? fromAuth ?? fromQuery
-  return provided !== null && provided === expected
+  const provided = fromHeader ?? fromAuth
+  if (!provided || provided.length !== expected.length) return false
+  const a = new TextEncoder().encode(provided)
+  const b = new TextEncoder().encode(expected)
+  return crypto.subtle.timingSafeEqual(a, b)
 }
 
 // ── Handler MCP ────────────────────────────────────────────────────────────────
