@@ -141,7 +141,7 @@ function ThreadCard({ email, isExpanded: defaultExpanded, isSent, showDivider }:
                 srcDoc={email.html}
                 className="w-full rounded-lg border-0"
                 style={{ minHeight: '220px' }}
-                sandbox="allow-same-origin"
+                sandbox=""
                 title="Email content"
               />
             ) : (
@@ -278,7 +278,7 @@ export function EmailDetail({ email, isLoading, onReply }: EmailDetailProps) {
                 srcDoc={email.html}
                 className="h-full w-full rounded-lg border-0"
                 style={{ minHeight: '400px' }}
-                sandbox="allow-same-origin"
+                sandbox=""
                 title="Email content"
               />
             ) : (
