@@ -499,13 +499,89 @@ const TOOLS = [
   },
 ]
 
-// ── Tool execution ─────────────────────────────────────────────────────────────
+// ── Rate limiting ─────────────────────────────────────────────────────────────
 
-async function executeTool(name: string, input: Record<string, unknown>): Promise<string> {
-  const supabase = createClient(
+const RATE_LIMIT_MAX = 20
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 heure
+
+function getSupabaseAdmin() {
+  return createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
+}
+
+async function checkRateLimit(chatId: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin()
+  const oneHourAgo = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString()
+  const { count } = await supabase
+    .from('telegram_rate_limit')
+    .select('id', { count: 'exact', head: true })
+    .eq('chat_id', chatId)
+    .gte('action_timestamp', oneHourAgo)
+  return (count ?? 0) < RATE_LIMIT_MAX
+}
+
+async function recordAction(chatId: string): Promise<void> {
+  const supabase = getSupabaseAdmin()
+  await supabase.from('telegram_rate_limit').insert({ chat_id: chatId })
+}
+
+// ── Email domain whitelist ────────────────────────────────────────────────────
+
+const SAFE_DOMAINS = new Set(['memovia.io', 'memovia.ai'])
+
+async function isEmailWhitelisted(email: string): Promise<boolean> {
+  const domain = email.split('@')[1]?.toLowerCase()
+  if (!domain) return false
+  if (SAFE_DOMAINS.has(domain)) return true
+
+  // Vérifier si le domaine appartient à un contact existant (leads ou contracts)
+  const supabase = getSupabaseAdmin()
+  const domainPattern = `%@${domain}`
+  const [leadsRes, contractsRes] = await Promise.all([
+    supabase.from('leads').select('id', { count: 'exact', head: true }).ilike('contact_email', domainPattern),
+    supabase.from('contracts').select('id', { count: 'exact', head: true }).ilike('contact_email', domainPattern),
+  ])
+  return ((leadsRes.count ?? 0) + (contractsRes.count ?? 0)) > 0
+}
+
+// ── Pending action (confirmation send_email) ──────────────────────────────────
+
+async function storePendingAction(chatId: string, payload: Record<string, unknown>): Promise<void> {
+  const supabase = getSupabaseAdmin()
+  // Supprimer toute action en attente précédente pour ce chat
+  await supabase.from('pending_telegram_actions').delete().eq('chat_id', chatId)
+  await supabase.from('pending_telegram_actions').insert({
+    chat_id: chatId,
+    action_type: 'send_email',
+    payload,
+    expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+  })
+}
+
+async function getPendingAction(chatId: string): Promise<{ id: string; payload: Record<string, unknown> } | null> {
+  const supabase = getSupabaseAdmin()
+  const { data } = await supabase
+    .from('pending_telegram_actions')
+    .select('id, payload')
+    .eq('chat_id', chatId)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data as { id: string; payload: Record<string, unknown> } | null
+}
+
+async function deletePendingAction(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin()
+  await supabase.from('pending_telegram_actions').delete().eq('id', id)
+}
+
+// ── Tool execution ─────────────────────────────────────────────────────────────
+
+async function executeTool(name: string, input: Record<string, unknown>): Promise<string> {
+  const supabase = getSupabaseAdmin()
 
   if (name === 'create_task') {
     // Normalize assigned_to: accept string or array
@@ -705,7 +781,35 @@ Deno.serve(async (req) => {
     return new Response('ok', { status: 200 })
   }
 
+  // ── Gestion des confirmations OUI/NON pour actions en attente ─────────
+  const upperText = userText.toUpperCase()
+  if (upperText === 'OUI' || upperText === 'NON') {
+    const pending = await getPendingAction(chatId)
+    if (pending) {
+      await deletePendingAction(pending.id)
+      if (upperText === 'OUI') {
+        try {
+          const result = await executeTool('send_email', pending.payload)
+          await recordAction(chatId)
+          await sendTelegramMessage(chatId, `✅ ${result}`)
+        } catch (err) {
+          await sendTelegramMessage(chatId, `❌ ${err instanceof Error ? err.message : 'Erreur lors de l\'envoi.'}`)
+        }
+      } else {
+        await sendTelegramMessage(chatId, '❌ Envoi annulé.')
+      }
+      return new Response('ok', { status: 200 })
+    }
+    // Pas d'action en attente → continue vers Claude normalement
+  }
+
   try {
+    // ── Rate limit check ────────────────────────────────────────────────
+    if (!(await checkRateLimit(chatId))) {
+      await sendTelegramMessage(chatId, '⚠️ Limite atteinte : max 20 actions par heure. Réessaie plus tard.')
+      return new Response('ok', { status: 200 })
+    }
+
     // Charge le contexte complet du dashboard
     const ctx = await loadContext()
     const systemPrompt = buildSystemPrompt(ctx, callerName)
@@ -735,7 +839,7 @@ Deno.serve(async (req) => {
     const phase1 = await phase1Resp.json() as { stop_reason: string; content: AnthropicContent[] }
     const toolUseBlock = phase1.content.find((b) => b.type === 'tool_use')
 
-    // Pas de tool use → réponse texte
+    // Pas de tool use → réponse texte (pas de rate limit consommé)
     if (phase1.stop_reason !== 'tool_use' || !toolUseBlock) {
       const text = phase1.content.filter((b) => b.type === 'text').map((b) => b.text ?? '').join('')
       await sendTelegramMessage(chatId, text || 'Je n\'ai pas pu générer une réponse.')
@@ -747,15 +851,43 @@ Deno.serve(async (req) => {
       name: string; id: string; input: Record<string, unknown>
     }
 
+    // ── send_email : confirmation obligatoire ───────────────────────────
+    if (toolName === 'send_email') {
+      const to = String(toolInput.to ?? '')
+      const subject = String(toolInput.subject ?? '')
+      const body = String(toolInput.body ?? '')
+      const from = String(toolInput.from ?? '')
+      const whitelisted = await isEmailWhitelisted(to)
+
+      // Stocker l'action en attente
+      await storePendingAction(chatId, toolInput)
+
+      const domainWarning = whitelisted ? '' : '\n⚠️ *Domaine non reconnu* — le destinataire n\'est ni @memovia.io, ni @memovia.ai, ni un contact existant.'
+
+      await sendTelegramMessage(
+        chatId,
+        `📧 *Confirmation requise — envoi d'email*\n\n` +
+          `*De :* ${from}\n` +
+          `*À :* ${to}\n` +
+          `*Objet :* ${subject}\n` +
+          `*Aperçu :* ${body.slice(0, 200)}${body.length > 200 ? '…' : ''}` +
+          domainWarning +
+          `\n\n👉 Répondre *OUI* pour envoyer, *NON* pour annuler. _(expire dans 5 min)_`,
+      )
+      return new Response('ok', { status: 200 })
+    }
+
+    // ── Autres tools : exécution directe ────────────────────────────────
     let toolResult: string
     try {
       toolResult = await executeTool(toolName, toolInput)
+      await recordAction(chatId)
     } catch (err) {
       await sendTelegramMessage(chatId, `❌ ${err instanceof Error ? err.message : 'Erreur lors de l\'exécution.'}`)
       return new Response('ok', { status: 200 })
     }
 
-    // Phase 2 : confirmation
+    // Phase 2 : confirmation LLM
     const phase2Resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
