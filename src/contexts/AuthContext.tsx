@@ -11,8 +11,8 @@ import { supabase } from '@/lib/supabase'
 import type { AuthContextValue, AuthUser, DashboardProfile } from '@/types/auth'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const GET_SESSION_TIMEOUT_MS = 5000
-const PROFILE_QUERY_TIMEOUT_MS = 12000
+const GET_SESSION_TIMEOUT_MS = 8000
+const PROFILE_QUERY_TIMEOUT_MS = 15000
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -65,42 +65,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── loadUserProfile ──────────────────────────────────────────────────────
   // Fetches the dashboard_profiles row. If missing or query fails/times out,
   // access is denied (fail closed). Only users with an explicit DB profile
-  // are admitted to the dashboard.
+  // are admitted to the dashboard. Retries once on timeout/error.
   async function loadUserProfile(currentSession: Session): Promise<void> {
     if (!isMountedRef.current) return
 
-    // Bounded profile query: never let a stuck request block the login flow.
-    const profilePromise = supabase
-      .from('dashboard_profiles')
-      .select('*')
-      .eq('id', currentSession.user.id)
-      .maybeSingle()
-
-    const timeoutPromise = new Promise<{ data: null; error: Error }>((resolve) =>
-      setTimeout(
-        () =>
-          resolve({
-            data: null,
-            error: new Error('dashboard_profiles query timed out'),
-          }),
-        PROFILE_QUERY_TIMEOUT_MS
-      )
-    )
-
-    const { data: profileData, error: profileError } = await Promise.race([
-      profilePromise,
-      timeoutPromise,
-    ])
-
+    const profile = await fetchProfileWithRetry(currentSession.user.id)
     if (!isMountedRef.current) return
 
-    const profile = (profileData as DashboardProfile | null) ?? null
-
-    if (profileError || !profile) {
-      console.error(
-        '[auth] dashboard_profiles query failed or profile missing — denying access',
-        profileError
-      )
+    if (!profile) {
+      console.error('[auth] denying access — no dashboard_profiles row for', currentSession.user.email)
       setError('Profil introuvable. Accès refusé.')
       await supabase.auth.signOut()
       setSession(null)
@@ -116,6 +89,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: profile.role,
     })
     setIsLoading(false)
+  }
+
+  async function fetchProfileWithRetry(userId: string): Promise<DashboardProfile | null> {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const result = await fetchProfileOnce(userId)
+      if (result.profile) return result.profile
+
+      if (result.reason === 'not_found') {
+        // Profile genuinely missing — no retry
+        console.warn(`[auth] attempt ${attempt}: no dashboard_profiles row for uid=${userId}`)
+        return null
+      }
+
+      // Error or timeout — retry once
+      console.warn(`[auth] attempt ${attempt}: ${result.reason}`, result.detail)
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+    }
+    return null
+  }
+
+  async function fetchProfileOnce(userId: string): Promise<
+    { profile: DashboardProfile; reason?: never; detail?: never } |
+    { profile: null; reason: 'not_found' | 'error' | 'timeout'; detail?: string }
+  > {
+    const profilePromise = supabase
+      .from('dashboard_profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+
+    const timeoutPromise = new Promise<'TIMEOUT'>((resolve) =>
+      setTimeout(() => resolve('TIMEOUT'), PROFILE_QUERY_TIMEOUT_MS)
+    )
+
+    const result = await Promise.race([profilePromise, timeoutPromise])
+
+    if (result === 'TIMEOUT') {
+      return { profile: null, reason: 'timeout', detail: `>${PROFILE_QUERY_TIMEOUT_MS}ms` }
+    }
+
+    if (result.error) {
+      return { profile: null, reason: 'error', detail: result.error.message }
+    }
+
+    if (!result.data) {
+      return { profile: null, reason: 'not_found' }
+    }
+
+    return { profile: result.data as DashboardProfile }
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
