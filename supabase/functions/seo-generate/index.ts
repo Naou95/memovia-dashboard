@@ -1,24 +1,13 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { marked } from 'https://esm.sh/marked@9'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+import { safeFetch } from '../_shared/safeFetch.ts'
 
 function mdToHtml(md: string): string {
   if (!md) return ''
   // Skip conversion if content is already HTML
   if (md.trimStart().startsWith('<')) return md
   return marked.parse(md) as string
-}
-
-function isSafeUrl(urlStr: string): boolean {
-  try {
-    const u = new URL(urlStr)
-    if (u.protocol !== 'https:') return false
-    const host = u.hostname
-    if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(host)) return false
-    return true
-  } catch {
-    return false
-  }
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -124,21 +113,14 @@ async function fetchCompetitorContent(urls: string[]): Promise<string[]> {
   for (const url of urls.slice(0, 5)) {
     if (validContents.length >= 3) break
 
-    if (!isSafeUrl(url)) continue
-
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 8000)
-
-      const res = await fetch(url, {
-        signal: controller.signal,
+      const res = await safeFetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' },
       })
 
-      if (!res.ok) { clearTimeout(timeoutId); continue }
+      if (!res || !res.ok) continue
 
       const html = await res.text()
-      clearTimeout(timeoutId)
 
       // Strip HTML tags
       const text = html
