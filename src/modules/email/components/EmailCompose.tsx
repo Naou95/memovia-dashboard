@@ -189,8 +189,13 @@ export function EmailCompose({ replyTo, initialTemplate, isSending, onSend, onCa
           <button
             type="submit"
             disabled={isSending}
-            className="flex items-center gap-1.5 rounded-[var(--radius-card)] px-4 py-1.5 text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
-            style={{ backgroundColor: 'var(--memovia-violet)' }}
+            className="flex items-center gap-1.5 rounded-[var(--radius-card)] px-4 py-1.5 text-[13px] font-semibold text-white active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none"
+            style={{
+              backgroundColor: 'var(--memovia-violet)',
+              transition: 'transform 160ms var(--ease-out), background-color 120ms var(--ease-out)',
+            }}
+            onMouseEnter={(e) => { if (!isSending) e.currentTarget.style.backgroundColor = 'var(--memovia-violet-hover)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet)' }}
           >
             {isSending ? (
               <>

@@ -182,8 +182,13 @@ export default function EmailPage() {
           <div className="p-3">
             <button
               onClick={handleCompose}
-              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-              style={{ backgroundColor: 'var(--memovia-violet)' }}
+              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] px-4 py-2 text-[13px] font-semibold text-white active:scale-[0.97]"
+              style={{
+                backgroundColor: 'var(--memovia-violet)',
+                transition: 'transform 160ms var(--ease-out), background-color 120ms var(--ease-out)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet-hover)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet)' }}
             >
               <Pencil size={14} />
               Nouveau message
@@ -327,10 +332,9 @@ export default function EmailPage() {
       <AnimatePresence>
         {showCompose && (
           <motion.div
-            initial={{ y: 420, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 420, opacity: 0 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1, transition: { type: 'spring', damping: 28, stiffness: 300 } }}
+            exit={{ y: '100%', opacity: 0, transition: { duration: 0.15, ease: [0.23, 1, 0.32, 1] } }}
             className="fixed bottom-4 right-6 z-50 overflow-hidden"
             style={{
               width: '540px',

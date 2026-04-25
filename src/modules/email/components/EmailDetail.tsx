@@ -275,8 +275,13 @@ export function EmailDetail({ email, isLoading, onReply }: EmailDetailProps) {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => onReply(email)}
-              className="flex items-center gap-1.5 rounded-[var(--radius-card)] px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:opacity-90 active:scale-[0.98]"
-              style={{ backgroundColor: 'var(--memovia-violet)' }}
+              className="flex items-center gap-1.5 rounded-[var(--radius-card)] px-3 py-1.5 text-[13px] font-medium text-white active:scale-[0.97]"
+              style={{
+                backgroundColor: 'var(--memovia-violet)',
+                transition: 'transform 160ms var(--ease-out), background-color 120ms var(--ease-out)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet-hover)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet)' }}
             >
               <Reply size={14} />
               Répondre
