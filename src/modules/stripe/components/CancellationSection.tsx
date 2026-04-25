@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Mail, AlertTriangle, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import type { SubscriptionRow } from '@/types/stripe'
+
+interface RetentionRecord {
+  sent_at: string
+  sent_from: string
+}
 
 const SENDER_ALIASES = [
   'naoufel@memovia.io',
@@ -45,12 +50,109 @@ Naoufel
 Co-fondateur MEMOVIA`
 }
 
+// ── TEST temporaire — à supprimer après validation ─────────────────────────────
+function TestEmailButton() {
+  const [status, setStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  async function handleTest() {
+    setStatus('sending')
+    setErrorMsg('')
+    try {
+      console.log('[test-email] Sending test email...')
+      const { data, error } = await supabase.functions.invoke('email-send', {
+        body: {
+          from: 'naoufel@memovia.io',
+          to: 'bassou.naoufel@gmail.com',
+          subject: 'TEST rétention',
+          body: 'Ceci est un email de test envoyé depuis le dashboard MEMOVIA pour vérifier que email-send fonctionne.',
+        },
+      })
+      console.log('[test-email] Response:', { data, error })
+      if (error) {
+        let detail = ''
+        if (error.context && typeof error.context.json === 'function') {
+          try {
+            const errBody = await error.context.json()
+            console.error('[test-email] Error body:', errBody)
+            detail = errBody?.error || ''
+          } catch {
+            try { detail = await error.context.text() } catch { /* ignore */ }
+          }
+        }
+        throw new Error(detail || error.message || 'Erreur inconnue')
+      }
+      console.log('[test-email] Success:', data)
+      toast.success('Email test envoyé — vérifie bassou.naoufel@gmail.com')
+      setStatus('ok')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue'
+      console.error('[test-email] Error:', msg)
+      toast.error(`Échec test email : ${msg}`)
+      setErrorMsg(msg)
+      setStatus('error')
+    }
+  }
+
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-xl border border-dashed border-amber-400/50 bg-amber-400/5 px-4 py-3">
+      <span className="text-[12px] text-[var(--text-muted)]">🧪 TEST</span>
+      <button
+        onClick={handleTest}
+        disabled={status === 'sending'}
+        className="rounded-lg bg-amber-500 px-3 py-1.5 text-[12px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      >
+        {status === 'sending' ? 'Envoi…' : status === 'ok' ? '✓ Envoyé' : 'Envoyer test → bassou.naoufel@gmail.com'}
+      </button>
+      {status === 'error' && (
+        <span className="text-[12px] text-[var(--danger)]">{errorMsg}</span>
+      )}
+    </div>
+  )
+}
+
 export function CancellationSection({ subscriptions }: Props) {
   const canceling = subscriptions.filter((s) => s.cancelAtPeriodEnd)
+  const [retentionHistory, setRetentionHistory] = useState<Record<string, RetentionRecord>>({})
+
+  // Fetch last retention email per subscriber
+  useEffect(() => {
+    if (canceling.length === 0) return
+    const emails = canceling.map((s) => s.customerEmail).filter(Boolean) as string[]
+    if (emails.length === 0) return
+
+    supabase
+      .from('retention_emails')
+      .select('subscriber_email, sent_at, sent_from')
+      .in('subscriber_email', emails)
+      .order('sent_at', { ascending: false })
+      .then(({ data }) => {
+        if (!data) return
+        const map: Record<string, RetentionRecord> = {}
+        for (const row of data) {
+          // Keep only the most recent per subscriber
+          if (!map[row.subscriber_email]) {
+            map[row.subscriber_email] = { sent_at: row.sent_at, sent_from: row.sent_from }
+          }
+        }
+        setRetentionHistory(map)
+      })
+  }, [canceling.length]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleRecordSent(email: string, sentFrom: string) {
+    setRetentionHistory((prev) => ({
+      ...prev,
+      [email]: { sent_at: new Date().toISOString(), sent_from: sentFrom },
+    }))
+  }
+
   if (canceling.length === 0) return null
 
   return (
     <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5">
+      {/* TEST temporaire — à supprimer */}
+      <TestEmailButton />
+
       <div className="mb-4 flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 text-[var(--danger)]" />
         <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
@@ -62,7 +164,12 @@ export function CancellationSection({ subscriptions }: Props) {
       </div>
       <div className="space-y-3">
         {canceling.map((sub) => (
-          <CancellationCard key={sub.id} sub={sub} />
+          <CancellationCard
+            key={sub.id}
+            sub={sub}
+            lastRetention={sub.customerEmail ? retentionHistory[sub.customerEmail] : undefined}
+            onRecordSent={handleRecordSent}
+          />
         ))}
       </div>
     </section>
@@ -71,9 +178,14 @@ export function CancellationSection({ subscriptions }: Props) {
 
 // ── Card ────────────────────────────────────────────────────────────────────────
 
-function CancellationCard({ sub }: { sub: SubscriptionRow }) {
+interface CardProps {
+  sub: SubscriptionRow
+  lastRetention?: RetentionRecord
+  onRecordSent: (email: string, sentFrom: string) => void
+}
+
+function CancellationCard({ sub, lastRetention, onRecordSent }: CardProps) {
   const [open, setOpen] = useState(false)
-  const [sent, setSent] = useState(false)
 
   const cancelDate = sub.cancelAt ? formatCancelDate(sub.cancelAt) : 'fin de période inconnue'
   const days = sub.cancelAt ? daysUntil(sub.cancelAt) : null
@@ -89,6 +201,17 @@ function CancellationCard({ sub }: { sub: SubscriptionRow }) {
         <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
           {sub.planName} · fin le {cancelDate}
         </p>
+        {lastRetention && (
+          <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+            Email envoyé le{' '}
+            {new Date(lastRetention.sent_at).toLocaleDateString('fr-FR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            })}{' '}
+            par {lastRetention.sent_from}
+          </p>
+        )}
       </div>
 
       {/* Badge jours restants */}
@@ -102,27 +225,24 @@ function CancellationCard({ sub }: { sub: SubscriptionRow }) {
         {days === null ? '—' : days <= 0 ? 'Expire aujourd\'hui' : `${days}j restants`}
       </span>
 
-      {/* Action */}
-      {sent ? (
-        <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--success,#16a34a)_12%,transparent)] px-3 py-1 text-[12px] font-medium text-[var(--success,#16a34a)]">
-          Email envoyé
-        </span>
-      ) : (
-        <Dialog.Root open={open} onOpenChange={setOpen}>
-          <Dialog.Trigger asChild>
-            <button className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--memovia-violet-light)] hover:text-[var(--memovia-violet)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)]">
-              <Mail className="h-3.5 w-3.5" />
-              Envoyer email de rétention
-            </button>
-          </Dialog.Trigger>
-          <RetentionModal
-            sub={sub}
-            cancelDate={cancelDate}
-            onClose={() => setOpen(false)}
-            onSent={() => { setSent(true); setOpen(false) }}
-          />
-        </Dialog.Root>
-      )}
+      {/* Action — toujours cliquable pour renvoyer */}
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Trigger asChild>
+          <button className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--memovia-violet-light)] hover:text-[var(--memovia-violet)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)]">
+            <Mail className="h-3.5 w-3.5" />
+            {lastRetention ? 'Renvoyer un email' : 'Envoyer email de rétention'}
+          </button>
+        </Dialog.Trigger>
+        <RetentionModal
+          sub={sub}
+          cancelDate={cancelDate}
+          onClose={() => setOpen(false)}
+          onSent={(sentFrom: string) => {
+            if (sub.customerEmail) onRecordSent(sub.customerEmail, sentFrom)
+            setOpen(false)
+          }}
+        />
+      </Dialog.Root>
     </div>
   )
 }
@@ -133,7 +253,7 @@ interface ModalProps {
   sub: SubscriptionRow
   cancelDate: string
   onClose: () => void
-  onSent: () => void
+  onSent: (sentFrom: string) => void
 }
 
 function RetentionModal({ sub, cancelDate, onClose, onSent }: ModalProps) {
@@ -184,8 +304,16 @@ function RetentionModal({ sub, cancelDate, onClose, onSent }: ModalProps) {
       }
 
       console.log('[retention-email] Success:', data)
+
+      // Track in retention_emails table
+      const subject = 'On aimerait comprendre votre départ de MEMOVIA'
+      const { error: dbError } = await supabase
+        .from('retention_emails')
+        .insert({ subscriber_email: sub.customerEmail, sent_from: sender, subject })
+      if (dbError) console.error('[retention-email] DB insert error:', dbError)
+
       toast.success(`Email de rétention envoyé à ${sub.customerEmail}`)
-      onSent()
+      onSent(sender)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur envoi email'
       console.error('[retention-email] Final error:', message)
