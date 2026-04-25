@@ -56,10 +56,28 @@ function monthKey(d: Date): string {
 
 /**
  * Normalise un plan Stripe en montant mensuel (euros).
- * Plans annuels divisés par 12.
+ * Gère tous les intervalles Stripe : week, month, year.
+ * interval_count > 1 couvre les plans trimestriels (interval=month, interval_count=3).
  */
-export function normalizePlanAmount(plan: { amount: number; interval: string }): number {
-  const monthly = plan.interval === 'year' ? plan.amount / 12 : plan.amount
+export function normalizePlanAmount(plan: {
+  amount: number
+  interval: string
+  interval_count?: number
+}): number {
+  const count = plan.interval_count ?? 1
+  let monthly: number
+  switch (plan.interval) {
+    case 'week':
+      monthly = plan.amount * 4.33 / count
+      break
+    case 'year':
+      monthly = plan.amount / (12 * count)
+      break
+    case 'month':
+    default:
+      monthly = plan.amount / count
+      break
+  }
   return Math.round((monthly / 100) * 100) / 100
 }
 
@@ -116,7 +134,7 @@ Deno.serve(async (req) => {
     const mrr = paidSubs.reduce((sum, sub) => {
       const plan = sub.items.data[0]?.plan
       if (!plan?.amount) return sum
-      return sum + normalizePlanAmount({ amount: plan.amount, interval: plan.interval })
+      return sum + normalizePlanAmount({ amount: plan.amount, interval: plan.interval, interval_count: plan.interval_count })
     }, 0)
 
     // 6. Récupérer les noms de produits Stripe (prices.retrieve par ID unique)
@@ -171,7 +189,7 @@ Deno.serve(async (req) => {
         customerEmail: email,
         planName: productName ?? plan?.nickname ?? 'Plan inconnu',
         amount: plan
-          ? normalizePlanAmount({ amount: plan.amount ?? 0, interval: plan.interval })
+          ? normalizePlanAmount({ amount: plan.amount ?? 0, interval: plan.interval, interval_count: plan.interval_count })
           : 0,
         interval: (plan?.interval as 'month' | 'year') ?? 'month',
         startDate: new Date(sub.start_date * 1000).toISOString(),

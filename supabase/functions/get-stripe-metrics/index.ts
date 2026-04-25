@@ -28,13 +28,24 @@ Deno.serve(async (req) => {
       { timeout: 8000 }
     )
 
-    // MRR : plans payants uniquement, plans annuels normalisés en mensuel
+    // MRR : plans payants uniquement, normalisés en mensuel (tous intervalles)
     const mrr = activeSubs.data.reduce((sum, sub) => {
       const plan = sub.items.data[0]?.plan
       if (!plan?.amount) return sum
-      const monthlyAmount = plan.interval === 'year'
-        ? plan.amount / 12
-        : plan.amount
+      const count = plan.interval_count ?? 1
+      let monthlyAmount: number
+      switch (plan.interval) {
+        case 'week':
+          monthlyAmount = plan.amount * 4.33 / count
+          break
+        case 'year':
+          monthlyAmount = plan.amount / (12 * count)
+          break
+        case 'month':
+        default:
+          monthlyAmount = plan.amount / count
+          break
+      }
       return sum + monthlyAmount / 100 // cents → euros
     }, 0)
 

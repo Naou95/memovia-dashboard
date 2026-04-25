@@ -122,7 +122,14 @@ async function loadContext() {
       const mrr = subs.data.reduce((sum, sub) => {
         const plan = sub.items.data[0]?.plan
         if (!plan?.amount) return sum
-        return sum + (plan.interval === 'year' ? plan.amount / 12 : plan.amount) / 100
+        const count = plan.interval_count ?? 1
+        let monthly: number
+        switch (plan.interval) {
+          case 'week': monthly = plan.amount * 4.33 / count; break
+          case 'year': monthly = plan.amount / (12 * count); break
+          default: monthly = plan.amount / count; break
+        }
+        return sum + monthly / 100
       }, 0)
       const paid = subs.data.filter((s) => (s.items.data[0]?.plan?.amount ?? 0) > 0)
       return {
