@@ -14,6 +14,9 @@ import {
   ChevronRight,
   Plus,
   CalendarDays,
+  Unlink,
+  Link,
+  Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSearchParams } from 'react-router-dom'
@@ -288,6 +291,60 @@ function ViewToggle({ current, onChange }: { current: View; onChange: (v: View) 
   )
 }
 
+// ── ConnectionStatus ──────────────────────────────────────────────────────────
+
+function ConnectionStatus({
+  name,
+  connected,
+  isSelf,
+  onConnect,
+  onDisconnect,
+  loading = false,
+}: {
+  name: string
+  connected: boolean
+  isSelf: boolean
+  onConnect?: () => void
+  onDisconnect?: () => void
+  loading?: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between gap-1.5 rounded-lg px-2.5 py-1.5">
+      <div className="flex items-center gap-2 min-w-0">
+        <span
+          className="h-2 w-2 flex-shrink-0 rounded-full"
+          style={{ backgroundColor: connected ? '#10B981' : '#D1D5DB' }}
+        />
+        <span className="text-[11px] text-[var(--text-primary)] truncate">{name}</span>
+      </div>
+      {isSelf && connected && onDisconnect && (
+        <button
+          onClick={onDisconnect}
+          disabled={loading}
+          className="cal-nav-btn flex-shrink-0 rounded p-1 text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger-bg)]"
+          title="Déconnecter Google Calendar"
+        >
+          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Unlink className="h-3 w-3" />}
+        </button>
+      )}
+      {isSelf && !connected && onConnect && (
+        <button
+          onClick={onConnect}
+          className="cal-nav-btn flex-shrink-0 rounded p-1 text-[var(--text-muted)] hover:text-[var(--memovia-violet)] hover:bg-[var(--memovia-violet-light)]"
+          title="Connecter Google Calendar"
+        >
+          <Link className="h-3 w-3" />
+        </button>
+      )}
+      {!isSelf && (
+        <span className="text-[9px] text-[var(--text-muted)]">
+          {connected ? 'Connecté' : 'Non connecté'}
+        </span>
+      )}
+    </div>
+  )
+}
+
 // ── CalendarPage ───────────────────────────────────────────────────────────────
 
 export default function CalendarPage() {
@@ -302,7 +359,8 @@ export default function CalendarPage() {
   const [popoverRect, setPopoverRect] = useState<DOMRect | null>(null)
   const calendarRef = useRef<HTMLDivElement>(null)
 
-  const { data, allUsersData, isLoading, isLoadingAll, error, refetch, refetchAll, createMeet, startOAuth } = useCalendar(currentDate)
+  const [disconnecting, setDisconnecting] = useState(false)
+  const { data, allUsersData, isLoading, isLoadingAll, error, refetch, refetchAll, createMeet, startOAuth, disconnect } = useCalendar(currentDate)
   const { user } = useAuth()
   const isEmir = user?.role === 'admin_bizdev'
   const myName = user?.profile?.full_name ?? ''
@@ -496,42 +554,46 @@ export default function CalendarPage() {
       {/* ── Content : sidebar + calendar ─────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
         {/* ── Left Sidebar ─────────────────────────────────────────────────── */}
-        {data?.google_configured && (
-          <aside className="w-[200px] flex-shrink-0 border-r border-[var(--border-color)] bg-white px-3 py-4">
+        {(data?.google_configured || nothingConfigured) && (
+          <aside className="w-[200px] flex-shrink-0 border-r border-[var(--border-color)] bg-white px-3 py-4 overflow-y-auto">
             <div className="flex flex-col gap-4">
-              {/* Agendas */}
-              <div className="flex flex-col gap-0.5">
-                <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Agendas
-                </p>
-                <AgendaToggle
-                  color={COLOR_NAOUFEL}
-                  label={myName || 'Naoufel'}
-                  checked={true}
-                  onToggle={() => {}}
-                />
-                <AgendaToggle
-                  color={COLOR_EMIR}
-                  label="Emir"
-                  checked={showEmir}
-                  loading={showEmir && isLoadingAll && !allUsersData}
-                  onToggle={() => setShowEmir((v) => !v)}
-                />
-              </div>
+              {/* Agendas (seulement si connecté) */}
+              {data?.google_configured && (
+                <div className="flex flex-col gap-0.5">
+                  <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    Agendas
+                  </p>
+                  <AgendaToggle
+                    color={COLOR_NAOUFEL}
+                    label={myName || 'Naoufel'}
+                    checked={true}
+                    onToggle={() => {}}
+                  />
+                  <AgendaToggle
+                    color={COLOR_EMIR}
+                    label="Emir"
+                    checked={showEmir}
+                    loading={showEmir && isLoadingAll && !allUsersData}
+                    onToggle={() => setShowEmir((v) => !v)}
+                  />
+                </div>
+              )}
 
               {/* Planification */}
-              <div className="flex flex-col gap-0.5">
-                <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Planification
-                </p>
-                <AgendaToggle
-                  color={COLOR_AVAIL}
-                  label="Dispos communes"
-                  checked={showAvailability}
-                  loading={showAvailability && isLoadingAll && !allUsersData}
-                  onToggle={() => setShowAvailability((v) => !v)}
-                />
-              </div>
+              {data?.google_configured && (
+                <div className="flex flex-col gap-0.5">
+                  <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    Planification
+                  </p>
+                  <AgendaToggle
+                    color={COLOR_AVAIL}
+                    label="Dispos communes"
+                    checked={showAvailability}
+                    loading={showAvailability && isLoadingAll && !allUsersData}
+                    onToggle={() => setShowAvailability((v) => !v)}
+                  />
+                </div>
+              )}
 
               {/* Availability count */}
               {showAvailability && availableSlots.length > 0 && (
@@ -539,6 +601,52 @@ export default function CalendarPage() {
                   {availableSlots.length} créneaux libres sur 7 jours ouvrés
                 </p>
               )}
+
+              {/* ── Connexions ────────────────────────────────────────────── */}
+              <div className="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
+                <p className="px-2.5 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Connexions
+                </p>
+                <ConnectionStatus
+                  name={myName || 'Naoufel'}
+                  connected={!!data?.google_configured}
+                  isSelf={true}
+                  onConnect={startOAuth}
+                  onDisconnect={async () => {
+                    setDisconnecting(true)
+                    try {
+                      await disconnect()
+                      toast.success('Google Calendar déconnecté')
+                      refetch()
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : 'Erreur de déconnexion')
+                    } finally {
+                      setDisconnecting(false)
+                    }
+                  }}
+                  loading={disconnecting}
+                />
+                <ConnectionStatus
+                  name="Emir"
+                  connected={allUsersData?.connected_users?.some((u) => u.role === 'admin_bizdev') ?? false}
+                  isSelf={isEmir}
+                  onConnect={isEmir ? startOAuth : undefined}
+                  onDisconnect={isEmir ? async () => {
+                    setDisconnecting(true)
+                    try {
+                      await disconnect()
+                      toast.success('Google Calendar déconnecté')
+                      refetch()
+                      refetchAll()
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : 'Erreur de déconnexion')
+                    } finally {
+                      setDisconnecting(false)
+                    }
+                  } : undefined}
+                  loading={isEmir ? disconnecting : false}
+                />
+              </div>
             </div>
           </aside>
         )}

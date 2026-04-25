@@ -34,8 +34,15 @@ export interface RBCEvent {
   resource: CalendarEvent
 }
 
+export interface ConnectedUser {
+  user_id: string
+  name: string
+  role: string
+}
+
 export interface CalendarEventsResponse {
   events: CalendarEvent[]
+  connected_users?: ConnectedUser[]
   google_configured: boolean
   google_error: string | null
   fetched_at: string

@@ -23,6 +23,7 @@ export interface UseCalendarResult {
   refetchAll: () => Promise<void>
   createMeet: (payload: CreateMeetPayload) => Promise<CreateMeetResponse>
   startOAuth: () => Promise<void>
+  disconnect: () => Promise<void>
 }
 
 function dateRangeForView(date: Date): { start: Date; end: Date } {
@@ -240,5 +241,33 @@ export function useCalendar(currentDate = new Date(), options: { enabled?: boole
     window.location.href = authUrl
   }, [])
 
-  return { data, allUsersData, isLoading, isLoadingAll, error, refetch, refetchAll, createMeet, startOAuth }
+  const disconnect = useCallback(async (): Promise<void> => {
+    const session = await getSession()
+    if (!session) throw new Error('Non authentifié')
+
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/calendar-disconnect`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      },
+    )
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+      throw new Error(err.error ?? `HTTP ${res.status}`)
+    }
+
+    // Invalide le cache et reset les données
+    invalidateCalendarCache()
+    lastFetchKey.current = null
+    lastFetchAllKey.current = null
+    setData(null)
+    setAllUsersData(null)
+  }, [])
+
+  return { data, allUsersData, isLoading, isLoadingAll, error, refetch, refetchAll, createMeet, startOAuth, disconnect }
 }

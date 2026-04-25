@@ -192,18 +192,29 @@ function extractGoogleMeetLink(item: Record<string, unknown>): string | undefine
 
 // ── All-users fetch ────────────────────────────────────────────────────────────
 
+interface ConnectedUser {
+  user_id: string
+  name: string
+  role: string
+}
+
+interface AllUsersResult {
+  events: CalendarEvent[]
+  connected_users: ConnectedUser[]
+}
+
 async function fetchAllUsersEvents(
   supabase: SupabaseClient,
   startStr: string,
   endStr: string,
-): Promise<CalendarEvent[]> {
+): Promise<AllUsersResult> {
   const { data: tokens, error } = await supabase
     .from('calendar_tokens')
     .select('*')
     .eq('provider', 'google')
     .not('user_id', 'is', null)
 
-  if (error || !tokens?.length) return []
+  if (error || !tokens?.length) return { events: [], connected_users: [] }
 
   const userIds = (tokens as TokenRow[]).map((t) => t.user_id)
   const { data: profiles } = await supabase
@@ -214,6 +225,16 @@ async function fetchAllUsersEvents(
   const profileMap = new Map<string, ProfileRow>(
     (profiles as ProfileRow[] ?? []).map((p) => [p.id, p]),
   )
+
+  // Liste des users connectés (indépendant du fetch d'événements)
+  const connected_users: ConnectedUser[] = (tokens as TokenRow[]).map((t) => {
+    const profile = profileMap.get(t.user_id)
+    return {
+      user_id: t.user_id,
+      name: profile?.full_name ?? t.owner,
+      role: profile?.role ?? '',
+    }
+  })
 
   const allEvents: CalendarEvent[] = []
 
@@ -250,7 +271,7 @@ async function fetchAllUsersEvents(
     }
   }
 
-  return deduplicated
+  return { events: deduplicated, connected_users }
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────
@@ -279,12 +300,13 @@ Deno.serve(async (req) => {
   )
 
   if (includeAllUsers) {
-    const events = await fetchAllUsersEvents(supabase, startStr, endStr)
+    const { events, connected_users } = await fetchAllUsersEvents(supabase, startStr, endStr)
 
     return Response.json(
       {
         events,
-        google_configured: events.length > 0,
+        connected_users,
+        google_configured: connected_users.length > 0,
         google_error: null,
         fetched_at: new Date().toISOString(),
       },
