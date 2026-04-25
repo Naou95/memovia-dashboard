@@ -114,7 +114,7 @@ export default function EmailPage() {
   }))
 
   return (
-    <div className="flex h-full flex-col" style={{ overflow: 'hidden' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 64px - 40px)', overflow: 'hidden' }}>
       {/* Detection result banner */}
       <AnimatePresence>
         {detectionResult !== null && (
@@ -178,61 +178,65 @@ export default function EmailPage() {
             backgroundColor: 'var(--bg-primary)',
           }}
         >
-          {/* Compose button */}
-          <div className="p-3">
-            <button
-              onClick={handleCompose}
-              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] px-4 py-2 text-[13px] font-semibold text-white active:scale-[0.97]"
-              style={{
-                backgroundColor: 'var(--memovia-violet)',
-                transition: 'transform 160ms var(--ease-out), background-color 120ms var(--ease-out)',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet-hover)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet)' }}
-            >
-              <Pencil size={14} />
-              Nouveau message
-            </button>
+          {/* Scrollable area: compose + folders */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            {/* Compose button */}
+            <div className="shrink-0 p-3">
+              <button
+                onClick={handleCompose}
+                className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] px-4 py-2 text-[13px] font-semibold text-white active:scale-[0.97]"
+                style={{
+                  backgroundColor: 'var(--memovia-violet)',
+                  transition: 'transform 160ms var(--ease-out), background-color 120ms var(--ease-out)',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet-hover)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet)' }}
+              >
+                <Pencil size={14} />
+                Nouveau message
+              </button>
+            </div>
+
+            {/* Folder list */}
+            <nav className="flex flex-col gap-0.5 px-2">
+              {FOLDERS.map((f) => {
+                const Icon = f.icon
+                const isActive = folder === f.id
+                const count = f.id === 'INBOX' ? unseenCount : 0
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setFolder(f.id)}
+                    className="flex items-center gap-3 rounded-[var(--radius-card)] px-3 py-2 text-left text-[13px] transition-colors"
+                    style={{
+                      backgroundColor: isActive ? 'var(--memovia-violet)' : 'transparent',
+                      color: isActive ? '#fff' : 'var(--text-primary)',
+                      fontWeight: isActive ? 600 : 400,
+                    }}
+                  >
+                    <Icon size={16} style={{ opacity: isActive ? 1 : 0.5 }} />
+                    <span className="flex-1">{f.label}</span>
+                    {count > 0 && (
+                      <span
+                        className="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
+                        style={{
+                          backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
           </div>
 
-          {/* Folder list */}
-          <nav className="flex flex-col gap-0.5 px-2">
-            {FOLDERS.map((f) => {
-              const Icon = f.icon
-              const isActive = folder === f.id
-              const count = f.id === 'INBOX' ? unseenCount : 0
-              return (
-                <button
-                  key={f.id}
-                  onClick={() => setFolder(f.id)}
-                  className="flex items-center gap-3 rounded-[var(--radius-card)] px-3 py-2 text-left text-[13px] transition-colors"
-                  style={{
-                    backgroundColor: isActive ? 'var(--memovia-violet)' : 'transparent',
-                    color: isActive ? '#fff' : 'var(--text-primary)',
-                    fontWeight: isActive ? 600 : 400,
-                  }}
-                >
-                  <Icon size={16} style={{ opacity: isActive ? 1 : 0.5 }} />
-                  <span className="flex-1">{f.label}</span>
-                  {count > 0 && (
-                    <span
-                      className="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
-                      style={{
-                        backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : 'var(--text-muted)',
-                      }}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </nav>
-
-          <div className="flex-1" />
-
-          {/* Bottom actions */}
-          <div className="flex flex-col gap-0.5 border-t p-2" style={{ borderColor: 'var(--border-color)' }}>
+          {/* Fixed bottom actions */}
+          <div
+            className="shrink-0 flex flex-col gap-0.5 border-t p-2"
+            style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+          >
             <button
               onClick={() => setShowTemplates(true)}
               className="flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-[13px] transition-colors hover:bg-[var(--bg-hover)]"
