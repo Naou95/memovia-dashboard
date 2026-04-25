@@ -93,51 +93,55 @@ export function EmailTemplates({ onSelect, onClose }: EmailTemplatesProps) {
     <div className="flex flex-col">
       <div
         className="flex shrink-0 items-center justify-between px-5 py-4"
-        style={{ borderBottom: '1px solid #e5e5ea' }}
+        style={{ borderBottom: '1px solid var(--border-color)' }}
       >
         <div>
-          <h2 className="text-[15px] font-semibold" style={{ color: '#1d1d1f' }}>
+          <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
             Templates d'email
           </h2>
-          <p className="mt-0.5 text-[12px]" style={{ color: '#86868b' }}>
+          <p className="mt-0.5 text-[12px]" style={{ color: 'var(--text-muted)' }}>
             Cliquez pour pré-remplir un nouveau message
           </p>
         </div>
         <button
           onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+          className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[var(--bg-hover)]"
+          aria-label="Fermer"
         >
-          <X size={15} style={{ color: '#86868b' }} />
+          <X size={15} style={{ color: 'var(--text-muted)' }} />
         </button>
       </div>
 
       <div className="p-4">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
           {EMAIL_TEMPLATES.map((template) => {
             const Icon = template.icon
             return (
               <button
                 key={template.id}
                 onClick={() => onSelect(template)}
-                className="flex items-start gap-3.5 rounded-xl p-3.5 text-left transition-colors"
-                style={{ backgroundColor: 'transparent' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#F5F5F7' }}
+                className="flex items-start gap-3.5 rounded-[var(--radius-card)] p-3.5 text-left transition-colors"
+                style={{
+                  transitionDuration: '120ms',
+                  transitionTimingFunction: 'var(--ease-out)',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
               >
                 <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: '#EDE9FF', color: 'var(--memovia-violet)' }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-card)]"
+                  style={{ backgroundColor: 'var(--memovia-violet-light)', color: 'var(--memovia-violet)' }}
                 >
                   <Icon size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold" style={{ color: '#1d1d1f' }}>
+                  <div className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                     {template.label}
                   </div>
-                  <div className="mt-0.5 text-[12px]" style={{ color: '#86868b' }}>
+                  <div className="mt-0.5 text-[12px]" style={{ color: 'var(--text-muted)' }}>
                     {template.description}
                   </div>
-                  <div className="mt-1.5 truncate text-[12px] font-medium" style={{ color: '#3e3e43' }}>
+                  <div className="mt-1.5 truncate text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
                     {template.subject}
                   </div>
                 </div>

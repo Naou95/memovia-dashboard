@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { RefreshCw, Zap, X, FileText, Pencil, Inbox, Send as SendIcon, Archive, Trash2, AlertTriangle } from 'lucide-react'
+import { RefreshCw, Zap, X, FileText, Pencil, Inbox, Send as SendIcon, Trash2, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEmail } from '@/hooks/useEmail'
 import { EmailList } from './components/EmailList'
@@ -8,8 +8,6 @@ import { EmailCompose } from './components/EmailCompose'
 import { EmailTemplates, type EmailTemplate } from './components/EmailTemplates'
 import type { EmailMessageDetail } from '@/types/email'
 import { supabase } from '@/lib/supabase'
-
-const APPLE_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
 
 const FOLDERS = [
   { id: 'INBOX', label: 'Boîte de réception', icon: Inbox },
@@ -102,7 +100,6 @@ export default function EmailPage() {
 
   const unseenCount = messages.filter((m) => !m.seen).length
 
-  // Filtered messages for search
   const filteredMessages = searchQuery.trim()
     ? messages.filter((m) => {
         const q = searchQuery.toLowerCase()
@@ -111,17 +108,13 @@ export default function EmailPage() {
       })
     : messages
 
-  // Enrich messages with urgent flag
   const enrichedMessages = filteredMessages.map((m) => ({
     ...m,
     isUrgent: !m.seen && hasUrgentKeyword(m.subject),
   }))
 
   return (
-    <div
-      className="flex h-full flex-col"
-      style={{ fontFamily: APPLE_FONT, overflow: 'hidden' }}
-    >
+    <div className="flex h-full flex-col" style={{ overflow: 'hidden' }}>
       {/* Detection result banner */}
       <AnimatePresence>
         {detectionResult !== null && (
@@ -129,17 +122,17 @@ export default function EmailPage() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
             className="shrink-0 overflow-hidden"
           >
             <div
               className="flex items-center justify-between px-4 py-2.5 text-[13px]"
               style={
                 detectionResult.inserted > 0
-                  ? { backgroundColor: '#e8f5e9', color: '#2e7d32' }
+                  ? { backgroundColor: 'var(--success-bg)', color: 'var(--success)' }
                   : detectionResult.inserted === 0
-                  ? { backgroundColor: '#f5f5f7', color: '#86868b' }
-                  : { backgroundColor: '#fce4ec', color: '#c62828' }
+                  ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-muted)' }
+                  : { backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }
               }
             >
               <span>
@@ -154,7 +147,7 @@ export default function EmailPage() {
                   'Erreur lors de la détection'
                 )}
               </span>
-              <button onClick={() => setDetectionResult(null)} className="ml-4 rounded p-0.5 opacity-60 hover:opacity-100">
+              <button onClick={() => setDetectionResult(null)} className="ml-4 rounded p-0.5 opacity-60 transition-opacity hover:opacity-100">
                 <X size={14} />
               </button>
             </div>
@@ -164,26 +157,32 @@ export default function EmailPage() {
 
       {/* Error banner */}
       {error && !isLoading && (
-        <div className="shrink-0 px-4 py-2.5 text-[13px]" style={{ backgroundColor: '#fce4ec', color: '#c62828' }}>
+        <div
+          className="shrink-0 px-4 py-2.5 text-[13px]"
+          style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }}
+        >
           {error} — Vérifiez les secrets Supabase (HOSTINGER_EMAIL, HOSTINGER_IMAP_PASSWORD)
         </div>
       )}
 
       {/* 3-column layout */}
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-[8px] border border-[var(--border-color)] shadow-[var(--shadow-xs)]">
+      <div
+        className="flex min-h-0 flex-1 overflow-hidden rounded-[var(--radius-card)] border shadow-[var(--shadow-xs)]"
+        style={{ borderColor: 'var(--border-color)' }}
+      >
         {/* Column 1: Sidebar folders */}
         <div
           className="flex w-[240px] shrink-0 flex-col border-r"
           style={{
             borderColor: 'var(--border-color)',
-            backgroundColor: '#f5f5f7',
+            backgroundColor: 'var(--bg-primary)',
           }}
         >
           {/* Compose button */}
           <div className="p-3">
             <button
               onClick={handleCompose}
-              className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] px-4 py-2 text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
               style={{ backgroundColor: 'var(--memovia-violet)' }}
             >
               <Pencil size={14} />
@@ -201,21 +200,20 @@ export default function EmailPage() {
                 <button
                   key={f.id}
                   onClick={() => setFolder(f.id)}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-left text-[13px] transition-colors"
+                  className="flex items-center gap-3 rounded-[var(--radius-card)] px-3 py-2 text-left text-[13px] transition-colors"
                   style={{
                     backgroundColor: isActive ? 'var(--memovia-violet)' : 'transparent',
-                    color: isActive ? '#fff' : '#1d1d1f',
+                    color: isActive ? '#fff' : 'var(--text-primary)',
                     fontWeight: isActive ? 600 : 400,
                   }}
                 >
-                  <Icon size={16} style={{ opacity: isActive ? 1 : 0.6 }} />
+                  <Icon size={16} style={{ opacity: isActive ? 1 : 0.5 }} />
                   <span className="flex-1">{f.label}</span>
                   {count > 0 && (
                     <span
-                      className="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold"
+                      className="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
                       style={{
-                        backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : '#86868b',
-                        color: isActive ? '#fff' : '#fff',
+                        backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : 'var(--text-muted)',
                       }}
                     >
                       {count}
@@ -226,36 +224,38 @@ export default function EmailPage() {
             })}
           </nav>
 
-          {/* Spacer */}
           <div className="flex-1" />
 
           {/* Bottom actions */}
-          <div className="flex flex-col gap-1 border-t p-2" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="flex flex-col gap-0.5 border-t p-2" style={{ borderColor: 'var(--border-color)' }}>
             <button
               onClick={() => setShowTemplates(true)}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-[#1d1d1f] transition-colors hover:bg-white/60"
+              className="flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-[13px] transition-colors hover:bg-[var(--bg-hover)]"
+              style={{ color: 'var(--text-secondary)' }}
             >
-              <FileText size={15} style={{ opacity: 0.6 }} />
+              <FileText size={15} style={{ opacity: 0.5 }} />
               Templates
             </button>
             <button
               onClick={handleDetectLeads}
               disabled={isDetecting || isLoading}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-[#1d1d1f] transition-colors hover:bg-white/60 disabled:opacity-50"
+              className="flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-[13px] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:pointer-events-none"
+              style={{ color: 'var(--text-secondary)' }}
             >
               {isDetecting ? (
-                <RefreshCw size={15} className="animate-spin" style={{ opacity: 0.6 }} />
+                <RefreshCw size={15} className="animate-spin" style={{ opacity: 0.5 }} />
               ) : (
-                <Zap size={15} style={{ opacity: 0.6 }} />
+                <Zap size={15} style={{ opacity: 0.5 }} />
               )}
               {isDetecting ? 'Analyse…' : 'Détecter leads'}
             </button>
             <button
               onClick={handleRefresh}
               disabled={isLoading}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-[#1d1d1f] transition-colors hover:bg-white/60 disabled:opacity-50"
+              className="flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-[13px] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:pointer-events-none"
+              style={{ color: 'var(--text-secondary)' }}
             >
-              <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} style={{ opacity: 0.6 }} />
+              <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} style={{ opacity: 0.5 }} />
               Actualiser
             </button>
           </div>
@@ -264,15 +264,15 @@ export default function EmailPage() {
         {/* Column 2: Email list */}
         <div
           className="flex w-[340px] shrink-0 flex-col border-r"
-          style={{ borderColor: 'var(--border-color)', backgroundColor: '#fff' }}
+          style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}
         >
           {/* Search bar */}
           <div className="shrink-0 p-3">
             <div
-              className="flex items-center gap-2 rounded-lg px-3 py-[7px]"
-              style={{ backgroundColor: '#f5f5f7' }}
+              className="flex items-center gap-2 rounded-[var(--radius-card)] px-3 py-[7px]"
+              style={{ backgroundColor: 'var(--bg-primary)' }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#86868b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.3-4.3" />
               </svg>
@@ -281,11 +281,12 @@ export default function EmailPage() {
                 placeholder="Rechercher"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-[13px] text-[#1d1d1f] outline-none placeholder:text-[#86868b]"
+                className="flex-1 bg-transparent text-[13px] outline-none"
+                style={{ color: 'var(--text-primary)' }}
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="rounded-full p-0.5 hover:bg-black/5">
-                  <X size={12} style={{ color: '#86868b' }} />
+                <button onClick={() => setSearchQuery('')} className="rounded-full p-0.5 transition-colors hover:bg-[var(--bg-hover)]">
+                  <X size={12} style={{ color: 'var(--text-muted)' }} />
                 </button>
               )}
             </div>
@@ -293,10 +294,10 @@ export default function EmailPage() {
 
           {/* Folder header */}
           <div className="flex shrink-0 items-center justify-between px-4 pb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#86868b' }}>
+            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
               {FOLDERS.find((f) => f.id === folder)?.label}
             </span>
-            <span className="text-[11px]" style={{ color: '#86868b' }}>
+            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
               {isLoading ? '…' : `${total} message${total !== 1 ? 's' : ''}`}
             </span>
           </div>
@@ -313,7 +314,7 @@ export default function EmailPage() {
         </div>
 
         {/* Column 3: Reading pane */}
-        <div className="flex-1 overflow-hidden" style={{ backgroundColor: '#fff' }}>
+        <div className="flex-1 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           <EmailDetail
             email={emailDetail}
             isLoading={isDetailLoading}
@@ -330,15 +331,13 @@ export default function EmailPage() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 420, opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="fixed bottom-4 right-6 z-50"
+            className="fixed bottom-4 right-6 z-50 overflow-hidden"
             style={{
               width: '540px',
               height: '420px',
-              borderRadius: '12px',
-              backgroundColor: '#fff',
-              boxShadow: '0 24px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.08)',
-              fontFamily: APPLE_FONT,
-              overflow: 'hidden',
+              borderRadius: 'var(--radius-card)',
+              backgroundColor: 'var(--bg-secondary)',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.15), 0 8px 24px rgba(0,0,0,0.06)',
             }}
           >
             <EmailCompose
@@ -361,16 +360,16 @@ export default function EmailPage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             className="fixed inset-0 z-40 flex items-center justify-center"
-            style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)' }}
+            style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}
             onClick={() => setShowTemplates(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.97, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="max-h-[80vh] w-[520px] overflow-hidden rounded-xl bg-white shadow-2xl"
-              style={{ fontFamily: APPLE_FONT }}
+              exit={{ scale: 0.97, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+              className="max-h-[80vh] w-[520px] overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-sm)]"
+              style={{ backgroundColor: 'var(--bg-secondary)' }}
               onClick={(e) => e.stopPropagation()}
             >
               <EmailTemplates onSelect={handleSelectTemplate} onClose={() => setShowTemplates(false)} />

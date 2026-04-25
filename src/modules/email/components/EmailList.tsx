@@ -37,7 +37,7 @@ function getSenderName(msg: EmailMessage): string {
   return msg.from.name || msg.from.address
 }
 
-// Generate a consistent color from sender name/email
+/** Consistent avatar color from sender address — uses MEMOVIA accent palette */
 function getAvatarColor(msg: EmailMessage): string {
   const str = msg.from.address || msg.from.name || ''
   let hash = 0
@@ -45,8 +45,14 @@ function getAvatarColor(msg: EmailMessage): string {
     hash = str.charCodeAt(i) + ((hash << 5) - hash)
   }
   const colors = [
-    '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500',
-    '#34C759', '#00C7BE', '#30B0C7', '#FF6482', '#A2845E',
+    'var(--memovia-violet)',  // #7C3AED
+    'var(--accent-blue)',     // #3B82F6
+    'var(--success)',         // #16A34A
+    'var(--warning)',         // #D97706
+    'var(--danger)',          // #DC2626
+    'var(--chart-purple-400)',
+    'var(--memovia-violet-hover)',
+    'var(--chart-purple-600)',
   ]
   return colors[Math.abs(hash) % colors.length]
 }
@@ -56,12 +62,19 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
     return (
       <div className="flex flex-col">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="flex items-start gap-3 px-4 py-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
-            <div className="h-10 w-10 shrink-0 animate-pulse rounded-full" style={{ backgroundColor: '#e5e5ea' }} />
+          <div
+            key={i}
+            className="flex items-start gap-3 px-4 py-3"
+            style={{ borderBottom: '1px solid var(--border-subtle)' }}
+          >
+            <div
+              className="h-10 w-10 shrink-0 animate-pulse rounded-full"
+              style={{ backgroundColor: 'var(--border-color)' }}
+            />
             <div className="flex-1 space-y-2 pt-0.5">
-              <div className="h-3 w-28 animate-pulse rounded" style={{ backgroundColor: '#e5e5ea' }} />
-              <div className="h-3 w-full animate-pulse rounded" style={{ backgroundColor: '#e5e5ea' }} />
-              <div className="h-3 w-3/4 animate-pulse rounded" style={{ backgroundColor: '#e5e5ea' }} />
+              <div className="h-3 w-28 animate-pulse rounded" style={{ backgroundColor: 'var(--border-color)' }} />
+              <div className="h-3 w-full animate-pulse rounded" style={{ backgroundColor: 'var(--border-color)' }} />
+              <div className="h-3 w-3/4 animate-pulse rounded" style={{ backgroundColor: 'var(--border-color)' }} />
             </div>
           </div>
         ))}
@@ -72,7 +85,7 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-2">
-        <p className="text-[13px]" style={{ color: '#86868b' }}>
+        <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
           Aucun email
         </p>
       </div>
@@ -88,24 +101,26 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
           <button
             key={msg.uid}
             onClick={() => onSelect(msg.uid)}
-            className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-[100ms]"
+            className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors"
             style={{
-              backgroundColor: isSelected ? '#EDE9FF' : 'transparent',
-              borderBottom: '1px solid #f0f0f0',
+              transitionDuration: '120ms',
+              transitionTimingFunction: 'var(--ease-out)',
+              backgroundColor: isSelected ? 'var(--bg-active)' : 'transparent',
+              borderBottom: '1px solid var(--border-subtle)',
             }}
             onMouseEnter={(e) => {
-              if (!isSelected) e.currentTarget.style.backgroundColor = '#F5F5F7'
+              if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
             }}
             onMouseLeave={(e) => {
               if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'
             }}
           >
-            {/* Blue dot for unread */}
+            {/* Unread dot */}
             <div className="flex w-2 shrink-0 items-center pt-4">
               {isUnread && (
                 <span
-                  className="block h-[8px] w-[8px] rounded-full"
-                  style={{ backgroundColor: '#007AFF' }}
+                  className="block h-2 w-2 rounded-full"
+                  style={{ backgroundColor: 'var(--memovia-violet)' }}
                 />
               )}
             </div>
@@ -124,7 +139,7 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
                 <span
                   className="truncate text-[13px]"
                   style={{
-                    color: '#1d1d1f',
+                    color: 'var(--text-primary)',
                     fontWeight: isUnread ? 600 : 400,
                   }}
                 >
@@ -132,12 +147,12 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
                 </span>
                 <div className="flex shrink-0 items-center gap-1.5">
                   {msg.flagged && (
-                    <Star size={11} style={{ color: '#FF9500', fill: '#FF9500' }} />
+                    <Star size={11} style={{ color: 'var(--warning)', fill: 'var(--warning)' }} />
                   )}
                   {msg.hasAttachments && (
-                    <Paperclip size={11} style={{ color: '#86868b' }} />
+                    <Paperclip size={11} style={{ color: 'var(--text-muted)' }} />
                   )}
-                  <span className="text-[11px]" style={{ color: '#86868b' }}>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                     {formatDate(msg.date)}
                   </span>
                 </div>
@@ -146,7 +161,7 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
                 <span
                   className="truncate text-[13px]"
                   style={{
-                    color: isUnread ? '#1d1d1f' : '#86868b',
+                    color: isUnread ? 'var(--text-primary)' : 'var(--text-muted)',
                     fontWeight: isUnread ? 500 : 400,
                   }}
                 >
@@ -154,20 +169,16 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
                 </span>
                 {msg.isUrgent && (
                   <span
-                    className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                    style={{
-                      backgroundColor: '#FF3B30',
-                      color: '#fff',
-                    }}
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                    style={{ backgroundColor: 'var(--danger)' }}
                   >
                     URGENT
                   </span>
                 )}
               </div>
-              {/* Preview line - truncated */}
               <p
                 className="mt-0.5 truncate text-[12px] leading-[1.4]"
-                style={{ color: '#86868b' }}
+                style={{ color: 'var(--text-muted)' }}
               >
                 {msg.subject}
               </p>
