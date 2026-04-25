@@ -325,6 +325,30 @@ export interface Database {
         Update: { suggestions_json?: Json; expires_at?: string | null }
         Relationships: []
       }
+      retention_emails: {
+        Row: {
+          id: string
+          subscriber_email: string
+          sent_at: string
+          sent_from: string
+          subject: string
+        }
+        Insert: {
+          id?: string
+          subscriber_email: string
+          sent_at?: string
+          sent_from: string
+          subject: string
+        }
+        Update: {
+          id?: string
+          subscriber_email?: string
+          sent_at?: string
+          sent_from?: string
+          subject?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       // ── Vue lecture seule — Module 9 Utilisateurs MEMOVIA ──────────────────
