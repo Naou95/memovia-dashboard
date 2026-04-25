@@ -1,8 +1,12 @@
 import { Paperclip, Star } from 'lucide-react'
 import type { EmailMessage } from '@/types/email'
 
+interface EnrichedEmailMessage extends EmailMessage {
+  isUrgent?: boolean
+}
+
 interface EmailListProps {
-  messages: EmailMessage[]
+  messages: EnrichedEmailMessage[]
   isLoading: boolean
   selectedUid: number | null
   onSelect: (uid: number) => void
@@ -29,33 +33,35 @@ function getSenderInitial(msg: EmailMessage): string {
   return name.charAt(0).toUpperCase()
 }
 
-function getSenderLabel(msg: EmailMessage): string {
+function getSenderName(msg: EmailMessage): string {
   return msg.from.name || msg.from.address
+}
+
+// Generate a consistent color from sender name/email
+function getAvatarColor(msg: EmailMessage): string {
+  const str = msg.from.address || msg.from.name || ''
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const colors = [
+    '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500',
+    '#34C759', '#00C7BE', '#30B0C7', '#FF6482', '#A2845E',
+  ]
+  return colors[Math.abs(hash) % colors.length]
 }
 
 export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailListProps) {
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-1 p-2">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-3 rounded-[8px] p-3"
-            style={{ backgroundColor: 'var(--bg-secondary)' }}
-          >
-            <div
-              className="h-9 w-9 shrink-0 animate-pulse rounded-full"
-              style={{ backgroundColor: 'var(--border-color)' }}
-            />
-            <div className="flex-1 space-y-2">
-              <div
-                className="h-3 w-2/3 animate-pulse rounded"
-                style={{ backgroundColor: 'var(--border-color)' }}
-              />
-              <div
-                className="h-3 w-full animate-pulse rounded"
-                style={{ backgroundColor: 'var(--border-color)' }}
-              />
+      <div className="flex flex-col">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i} className="flex items-start gap-3 px-4 py-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
+            <div className="h-10 w-10 shrink-0 animate-pulse rounded-full" style={{ backgroundColor: '#e5e5ea' }} />
+            <div className="flex-1 space-y-2 pt-0.5">
+              <div className="h-3 w-28 animate-pulse rounded" style={{ backgroundColor: '#e5e5ea' }} />
+              <div className="h-3 w-full animate-pulse rounded" style={{ backgroundColor: '#e5e5ea' }} />
+              <div className="h-3 w-3/4 animate-pulse rounded" style={{ backgroundColor: '#e5e5ea' }} />
             </div>
           </div>
         ))}
@@ -65,8 +71,8 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-2">
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+      <div className="flex flex-col items-center justify-center py-20 gap-2">
+        <p className="text-[13px]" style={{ color: '#86868b' }}>
           Aucun email
         </p>
       </div>
@@ -74,24 +80,40 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
   }
 
   return (
-    <div className="flex flex-col gap-0.5 p-2">
+    <div className="flex flex-col">
       {messages.map((msg) => {
         const isSelected = msg.uid === selectedUid
+        const isUnread = !msg.seen
         return (
           <button
             key={msg.uid}
             onClick={() => onSelect(msg.uid)}
-            className="flex w-full items-start gap-3 rounded-[8px] px-3 py-2.5 text-left transition-colors"
+            className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors duration-[100ms]"
             style={{
-              backgroundColor: isSelected
-                ? 'var(--accent-purple-bg)'
-                : 'transparent',
+              backgroundColor: isSelected ? '#EDE9FF' : 'transparent',
+              borderBottom: '1px solid #f0f0f0',
+            }}
+            onMouseEnter={(e) => {
+              if (!isSelected) e.currentTarget.style.backgroundColor = '#F5F5F7'
+            }}
+            onMouseLeave={(e) => {
+              if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'
             }}
           >
+            {/* Blue dot for unread */}
+            <div className="flex w-2 shrink-0 items-center pt-4">
+              {isUnread && (
+                <span
+                  className="block h-[8px] w-[8px] rounded-full"
+                  style={{ backgroundColor: '#007AFF' }}
+                />
+              )}
+            </div>
+
             {/* Avatar */}
             <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
-              style={{ backgroundColor: 'var(--memovia-violet)' }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold text-white"
+              style={{ backgroundColor: getAvatarColor(msg) }}
             >
               {getSenderInitial(msg)}
             </div>
@@ -100,41 +122,55 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <span
-                  className="truncate text-sm"
+                  className="truncate text-[13px]"
                   style={{
-                    color: 'var(--text-primary)',
-                    fontWeight: msg.seen ? 400 : 600,
+                    color: '#1d1d1f',
+                    fontWeight: isUnread ? 600 : 400,
                   }}
                 >
-                  {getSenderLabel(msg)}
+                  {getSenderName(msg)}
                 </span>
-                <span className="shrink-0 text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {formatDate(msg.date)}
-                </span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {msg.flagged && (
+                    <Star size={11} style={{ color: '#FF9500', fill: '#FF9500' }} />
+                  )}
+                  {msg.hasAttachments && (
+                    <Paperclip size={11} style={{ color: '#86868b' }} />
+                  )}
+                  <span className="text-[11px]" style={{ color: '#86868b' }}>
+                    {formatDate(msg.date)}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                {!msg.seen && (
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: 'var(--memovia-violet)' }}
-                  />
-                )}
+              <div className="flex items-center gap-2 mt-0.5">
                 <span
-                  className="flex-1 truncate text-xs"
+                  className="truncate text-[13px]"
                   style={{
-                    color: msg.seen ? 'var(--text-muted)' : 'var(--text-secondary)',
-                    fontWeight: msg.seen ? 400 : 500,
+                    color: isUnread ? '#1d1d1f' : '#86868b',
+                    fontWeight: isUnread ? 500 : 400,
                   }}
                 >
                   {msg.subject}
                 </span>
-                {msg.flagged && (
-                  <Star size={11} className="shrink-0" style={{ color: '#f59e0b', fill: '#f59e0b' }} />
-                )}
-                {msg.hasAttachments && (
-                  <Paperclip size={11} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                {msg.isUrgent && (
+                  <span
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                    style={{
+                      backgroundColor: '#FF3B30',
+                      color: '#fff',
+                    }}
+                  >
+                    URGENT
+                  </span>
                 )}
               </div>
+              {/* Preview line - truncated */}
+              <p
+                className="mt-0.5 truncate text-[12px] leading-[1.4]"
+                style={{ color: '#86868b' }}
+              >
+                {msg.subject}
+              </p>
             </div>
           </button>
         )

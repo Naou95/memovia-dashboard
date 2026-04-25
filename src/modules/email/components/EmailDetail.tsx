@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Reply, ExternalLink, Loader2, ChevronDown } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Reply, MoreHorizontal, ChevronDown, Loader2, Mail } from 'lucide-react'
+import { motion } from 'framer-motion'
 import type { EmailMessageDetail } from '@/types/email'
 
 function formatFullDate(isoDate: string): string {
@@ -41,6 +41,25 @@ function getTextPreview(email: EmailMessageDetail): string {
   return ''
 }
 
+function getAvatarColor(address: string): string {
+  let hash = 0
+  for (let i = 0; i < address.length; i++) {
+    hash = address.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const colors = [
+    '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500',
+    '#34C759', '#00C7BE', '#30B0C7', '#FF6482', '#A2845E',
+  ]
+  return colors[Math.abs(hash) % colors.length]
+}
+
+function getInitial(email: EmailMessageDetail): string {
+  const name = email.from.name || email.from.address || '?'
+  return name.charAt(0).toUpperCase()
+}
+
+/* ---------- Thread card ---------- */
+
 interface ThreadCardProps {
   email: EmailMessageDetail
   isExpanded: boolean
@@ -54,88 +73,89 @@ function ThreadCard({ email, isExpanded: defaultExpanded, isSent, showDivider }:
   const fromLabel = email.from.name || email.from.address
 
   return (
-    <div
-      className={showDivider ? 'border-b' : ''}
-      style={{ borderBottomColor: 'var(--border-color)' }}
-    >
-      <div
-        className="border-l-[3px]"
-        style={{
-          borderLeftColor: isSent ? 'var(--memovia-violet)' : 'var(--border-color)',
-          marginLeft: '1px',
-        }}
+    <div style={{ borderBottom: showDivider ? '1px solid #f0f0f0' : 'none' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-start justify-between gap-3 px-6 py-3 text-left transition-colors duration-[100ms]"
+        style={{ backgroundColor: 'transparent' }}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#F5F5F7' }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+        aria-expanded={open}
       >
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--bg-secondary)]"
-          aria-expanded={open}
-        >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
+            style={{ backgroundColor: getAvatarColor(email.from.address) }}
+          >
+            {(email.from.name || email.from.address || '?').charAt(0).toUpperCase()}
+          </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span
-                className="truncate text-sm font-medium"
-                style={{ color: 'var(--text-primary)' }}
-              >
+              <span className="truncate text-[13px] font-medium" style={{ color: '#1d1d1f' }}>
                 {fromLabel}
               </span>
               {isSent && (
                 <span
-                  className="shrink-0 rounded-full px-1.5 py-0.5 text-xs font-medium"
-                  style={{
-                    backgroundColor: 'var(--accent-purple-bg)',
-                    color: 'var(--memovia-violet)',
-                  }}
+                  className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{ backgroundColor: '#EDE9FF', color: 'var(--memovia-violet)' }}
                 >
                   Envoyé
                 </span>
               )}
             </div>
             {!open && preview && (
-              <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--text-muted)' }}>
+              <p className="mt-0.5 truncate text-[12px]" style={{ color: '#86868b' }}>
                 {preview}
               </p>
             )}
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {formatShortDate(email.date)}
-            </span>
-            <ChevronDown
-              size={14}
-              style={{
-                color: 'var(--text-muted)',
-                transform: open ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.15s',
-              }}
-            />
-          </div>
-        </button>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+          <span className="text-[11px]" style={{ color: '#86868b' }}>
+            {formatShortDate(email.date)}
+          </span>
+          <ChevronDown
+            size={13}
+            style={{
+              color: '#86868b',
+              transform: open ? 'rotate(180deg)' : 'none',
+              transition: 'transform 0.2s',
+            }}
+          />
+        </div>
+      </button>
 
-        {open && (
-          <div className="px-4 pb-4">
-            <div className="mb-3 space-y-0.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="px-6 pb-5"
+        >
+          <div className="mb-4 space-y-0.5 text-[12px] pl-11" style={{ color: '#86868b' }}>
+            <p>
+              <span className="font-medium">De : </span>
+              <span style={{ color: '#3e3e43' }}>
+                {email.from.name ? `${email.from.name} <${email.from.address}>` : email.from.address}
+              </span>
+            </p>
+            <p>
+              <span className="font-medium">À : </span>
+              <span style={{ color: '#3e3e43' }}>
+                {email.to.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address)).join(', ')}
+              </span>
+            </p>
+            {email.cc && email.cc.length > 0 && (
               <p>
-                <span style={{ color: 'var(--text-muted)' }}>De : </span>
-                {email.from.name
-                  ? `${email.from.name} <${email.from.address}>`
-                  : email.from.address}
+                <span className="font-medium">Cc : </span>
+                <span style={{ color: '#3e3e43' }}>
+                  {email.cc.map((a) => (a.name ? `${a.name} <${a.address}>` : a.address)).join(', ')}
+                </span>
               </p>
-              <p>
-                <span style={{ color: 'var(--text-muted)' }}>À : </span>
-                {email.to
-                  .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-                  .join(', ')}
-              </p>
-              {email.cc && email.cc.length > 0 && (
-                <p>
-                  <span style={{ color: 'var(--text-muted)' }}>Cc : </span>
-                  {email.cc
-                    .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-                    .join(', ')}
-                </p>
-              )}
-              <p style={{ color: 'var(--text-muted)' }}>{formatFullDate(email.date)}</p>
-            </div>
+            )}
+            <p>{formatFullDate(email.date)}</p>
+          </div>
+          <div className="pl-11">
             {email.html ? (
               <iframe
                 srcDoc={email.html}
@@ -146,18 +166,20 @@ function ThreadCard({ email, isExpanded: defaultExpanded, isSent, showDivider }:
               />
             ) : (
               <pre
-                className="whitespace-pre-wrap text-sm leading-relaxed"
-                style={{ color: 'var(--text-secondary)', fontFamily: 'inherit' }}
+                className="whitespace-pre-wrap leading-relaxed"
+                style={{ color: '#3e3e43', fontFamily: 'inherit', fontSize: '15px' }}
               >
                 {email.text || '(Contenu vide)'}
               </pre>
             )}
           </div>
-        )}
-      </div>
+        </motion.div>
+      )}
     </div>
   )
 }
+
+/* ---------- Main detail ---------- */
 
 interface EmailDetailProps {
   email: EmailMessageDetail | null
@@ -169,7 +191,7 @@ export function EmailDetail({ email, isLoading, onReply }: EmailDetailProps) {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Loader2 size={24} className="animate-spin" style={{ color: 'var(--memovia-violet)' }} />
+        <Loader2 size={24} className="animate-spin" style={{ color: '#86868b' }} />
       </div>
     )
   }
@@ -178,13 +200,16 @@ export function EmailDetail({ email, isLoading, onReply }: EmailDetailProps) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <div
-          className="flex h-14 w-14 items-center justify-center rounded-[8px]"
-          style={{ backgroundColor: 'var(--bg-secondary)' }}
+          className="flex h-16 w-16 items-center justify-center rounded-full"
+          style={{ backgroundColor: '#f5f5f7' }}
         >
-          <ExternalLink size={24} style={{ color: 'var(--text-muted)' }} />
+          <Mail size={28} style={{ color: '#c7c7cc' }} />
         </div>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Sélectionnez un email pour le lire
+        <p className="text-[15px] font-medium" style={{ color: '#86868b' }}>
+          Aucun email sélectionné
+        </p>
+        <p className="text-[13px]" style={{ color: '#c7c7cc' }}>
+          Choisissez un message pour le lire
         </p>
       </div>
     )
@@ -193,67 +218,69 @@ export function EmailDetail({ email, isLoading, onReply }: EmailDetailProps) {
   const thread = email.thread
   const hasThread = thread && thread.length > 1
 
-  const fromLabel = email.from.name
-    ? `${email.from.name} <${email.from.address}>`
-    : email.from.address
-
-  const toLabel = email.to
-    .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-    .join(', ')
-
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <motion.div
+      key={email.uid}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+      className="flex h-full flex-col overflow-hidden"
+    >
       {/* Header */}
       <div
-        className="shrink-0 border-b px-6 py-4"
-        style={{ borderColor: 'var(--border-color)' }}
+        className="shrink-0 px-6 py-4"
+        style={{ borderBottom: '1px solid #f0f0f0' }}
       >
         <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <h2
-              className="text-base font-semibold leading-snug"
-              style={{ color: 'var(--text-primary)' }}
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold text-white"
+              style={{ backgroundColor: getAvatarColor(email.from.address) }}
             >
-              {email.subject}
-            </h2>
-            {hasThread ? (
-              <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                {thread.length} messages dans ce fil
-              </p>
-            ) : (
-              <div className="mt-2 space-y-0.5">
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  <span className="font-medium" style={{ color: 'var(--text-muted)' }}>
-                    De :{' '}
-                  </span>
-                  {fromLabel}
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  <span className="font-medium" style={{ color: 'var(--text-muted)' }}>
-                    À :{' '}
-                  </span>
-                  {toLabel}
-                </p>
-                {email.cc && email.cc.length > 0 && (
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    <span className="font-medium" style={{ color: 'var(--text-muted)' }}>
-                      Cc :{' '}
-                    </span>
-                    {email.cc
-                      .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-                      .join(', ')}
-                  </p>
-                )}
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {getInitial(email)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[15px] font-semibold leading-snug" style={{ color: '#1d1d1f' }}>
+                {email.subject}
+              </h2>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-[13px] font-medium" style={{ color: '#1d1d1f' }}>
+                  {email.from.name || email.from.address}
+                </span>
+                <span className="text-[12px]" style={{ color: '#86868b' }}>
+                  &lt;{email.from.address}&gt;
+                </span>
+              </div>
+              {!hasThread && (
+                <p className="mt-0.5 text-[12px]" style={{ color: '#86868b' }}>
                   {formatFullDate(email.date)}
                 </p>
-              </div>
-            )}
+              )}
+              {hasThread && (
+                <p className="mt-0.5 text-[12px]" style={{ color: '#86868b' }}>
+                  {thread.length} messages dans ce fil
+                </p>
+              )}
+            </div>
           </div>
-          <Button variant="brand" size="sm" onClick={() => onReply(email)}>
-            <Reply size={14} className="mr-1.5" />
-            Répondre
-          </Button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => onReply(email)}
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors"
+              style={{ backgroundColor: 'var(--memovia-violet)', color: '#fff' }}
+            >
+              <Reply size={14} />
+              Répondre
+            </button>
+            <button
+              className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+              style={{ backgroundColor: 'transparent' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f5f5f7' }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+            >
+              <MoreHorizontal size={16} style={{ color: '#86868b' }} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -272,7 +299,12 @@ export function EmailDetail({ email, isLoading, onReply }: EmailDetailProps) {
             ))}
           </div>
         ) : (
-          <div className="px-6 py-4 h-full">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: 0.05 }}
+            className="px-6 py-5"
+          >
             {email.html ? (
               <iframe
                 srcDoc={email.html}
@@ -283,15 +315,31 @@ export function EmailDetail({ email, isLoading, onReply }: EmailDetailProps) {
               />
             ) : (
               <pre
-                className="whitespace-pre-wrap text-sm leading-relaxed"
-                style={{ color: 'var(--text-secondary)', fontFamily: 'inherit' }}
+                className="whitespace-pre-wrap leading-relaxed"
+                style={{ color: '#3e3e43', fontFamily: 'inherit', fontSize: '15px' }}
               >
                 {email.text || '(Contenu vide)'}
               </pre>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
-    </div>
+
+      {/* Quick reply footer */}
+      <div
+        className="shrink-0 px-6 py-3"
+        style={{ borderTop: '1px solid #f0f0f0' }}
+      >
+        <button
+          onClick={() => onReply(email)}
+          className="w-full rounded-lg px-4 py-2.5 text-left text-[13px] transition-colors"
+          style={{ backgroundColor: '#f5f5f7', color: '#86868b' }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ebebed' }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f5f5f7' }}
+        >
+          Répondre à {email.from.name || email.from.address}…
+        </button>
+      </div>
+    </motion.div>
   )
 }

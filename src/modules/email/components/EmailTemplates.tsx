@@ -1,4 +1,4 @@
-import { FileText, Handshake, Clock } from 'lucide-react'
+import { FileText, Handshake, Clock, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface EmailTemplate {
@@ -85,65 +85,59 @@ naoufel@memovia.io`,
 
 interface EmailTemplatesProps {
   onSelect: (template: EmailTemplate) => void
+  onClose: () => void
 }
 
-export function EmailTemplates({ onSelect }: EmailTemplatesProps) {
+export function EmailTemplates({ onSelect, onClose }: EmailTemplatesProps) {
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex flex-col">
       <div
-        className="flex shrink-0 items-center justify-between border-b px-6 py-4"
-        style={{ borderColor: 'var(--border-color)' }}
+        className="flex shrink-0 items-center justify-between px-5 py-4"
+        style={{ borderBottom: '1px solid #e5e5ea' }}
       >
         <div>
-          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="text-[15px] font-semibold" style={{ color: '#1d1d1f' }}>
             Templates d'email
           </h2>
-          <p className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-0.5 text-[12px]" style={{ color: '#86868b' }}>
             Cliquez pour pré-remplir un nouveau message
           </p>
         </div>
+        <button
+          onClick={onClose}
+          className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+        >
+          <X size={15} style={{ color: '#86868b' }} />
+        </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid gap-3">
+      <div className="p-4">
+        <div className="flex flex-col gap-2">
           {EMAIL_TEMPLATES.map((template) => {
             const Icon = template.icon
             return (
               <button
                 key={template.id}
                 onClick={() => onSelect(template)}
-                className="group flex items-start gap-4 rounded-[8px] border p-4 text-left transition-colors hover:border-[var(--memovia-violet)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
-                style={{
-                  borderColor: 'var(--border-color)',
-                  backgroundColor: 'var(--bg-secondary)',
-                }}
+                className="flex items-start gap-3.5 rounded-xl p-3.5 text-left transition-colors"
+                style={{ backgroundColor: 'transparent' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#F5F5F7' }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
               >
                 <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors"
-                  style={{
-                    backgroundColor: 'var(--memovia-violet-light)',
-                    color: 'var(--memovia-violet)',
-                  }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: '#EDE9FF', color: 'var(--memovia-violet)' }}
                 >
                   <Icon size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div
-                    className="text-sm font-semibold"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
+                  <div className="text-[13px] font-semibold" style={{ color: '#1d1d1f' }}>
                     {template.label}
                   </div>
-                  <div
-                    className="mt-0.5 text-xs"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
+                  <div className="mt-0.5 text-[12px]" style={{ color: '#86868b' }}>
                     {template.description}
                   </div>
-                  <div
-                    className="mt-2 truncate text-xs font-medium"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
+                  <div className="mt-1.5 truncate text-[12px] font-medium" style={{ color: '#3e3e43' }}>
                     {template.subject}
                   </div>
                 </div>
