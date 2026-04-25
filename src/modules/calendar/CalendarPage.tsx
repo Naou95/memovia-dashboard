@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Calendar, dateFnsLocalizer, type View } from 'react-big-calendar'
 import {
   format,
@@ -8,17 +8,22 @@ import {
   addDays,
 } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { RefreshCw, ChevronLeft, ChevronRight, CalendarDays, Plus } from 'lucide-react'
+import {
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  CalendarDays,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { staggerContainer, staggerItem } from '@/lib/motion'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 import { useCalendar } from '@/hooks/useCalendar'
 import { useAuth } from '@/contexts/AuthContext'
 import { CalendarEmptyState } from './components/CalendarEmptyState'
 import { CreateEventModal } from './components/CreateEventModal'
+import { EventPopover } from './components/EventPopover'
 import type { RBCEvent, CalendarEvent, AvailabilitySlot } from '@/types/calendar'
 
 // ── Couleurs ───────────────────────────────────────────────────────────────────
@@ -52,7 +57,7 @@ const messages = {
   time: 'Heure',
   event: 'Événement',
   noEventsInRange: 'Aucun événement sur cette période',
-  showMore: (total: number) => `+${total} de plus`,
+  showMore: (total: number) => `+${total} autre${total > 1 ? 's' : ''}`,
 }
 
 // ── Disponibilités communes ────────────────────────────────────────────────────
@@ -170,15 +175,18 @@ function eventStyleGetter(event: RBCEvent) {
   if (isAvailability) {
     return {
       style: {
-        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+        backgroundColor: 'rgba(16, 185, 129, 0.10)',
         borderLeft: `3px solid ${COLOR_AVAIL}`,
+        borderTop: 'none',
+        borderRight: 'none',
+        borderBottom: 'none',
         color: '#059669',
         borderRadius: '6px',
         fontSize: '11px',
-        fontWeight: 500,
-        padding: '2px 6px',
+        fontWeight: 500 as const,
+        padding: '2px 8px',
         cursor: 'default',
-        opacity: 0.9,
+        opacity: 0.85,
       },
     }
   }
@@ -188,51 +196,51 @@ function eventStyleGetter(event: RBCEvent) {
 
   return {
     style: {
-      backgroundColor: isEmir ? 'rgba(0, 229, 204, 0.10)' : 'rgba(124, 58, 237, 0.12)',
+      backgroundColor: isEmir ? 'rgba(0, 229, 204, 0.12)' : 'rgba(124, 58, 237, 0.12)',
       borderLeft: `3px solid ${color}`,
+      borderTop: 'none',
+      borderRight: 'none',
+      borderBottom: 'none',
       color: isEmir ? '#0891B2' : '#5B21B6',
       borderRadius: '6px',
       fontSize: '12px',
-      fontWeight: 500,
-      padding: '2px 6px',
+      fontWeight: 500 as const,
+      padding: '2px 8px',
       cursor: 'pointer',
     },
   }
 }
 
-// ── AgendaRow (checkbox Outlook) ───────────────────────────────────────────────
+// ── AgendaToggle ──────────────────────────────────────────────────────────────
 
-function AgendaRow({
+function AgendaToggle({
   color,
   label,
   checked,
-  disabled = false,
   loading = false,
   onToggle,
 }: {
   color: string
   label: string
   checked: boolean
-  disabled?: boolean
   loading?: boolean
   onToggle?: () => void
 }) {
   return (
     <button
       type="button"
-      onClick={disabled ? undefined : onToggle}
-      disabled={disabled}
-      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--bg-primary)] disabled:cursor-default"
+      onClick={onToggle}
+      className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors hover:bg-black/[0.03]"
     >
       <div
-        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-colors"
+        className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded border-[1.5px] transition-colors"
         style={{
           borderColor: color,
           backgroundColor: checked ? color : 'transparent',
         }}
       >
         {checked && (
-          <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 10 10">
+          <svg className="h-2 w-2 text-white" fill="none" viewBox="0 0 10 10">
             <path
               d="M1.5 5l3 3 4-4.5"
               stroke="currentColor"
@@ -243,32 +251,40 @@ function AgendaRow({
           </svg>
         )}
       </div>
-      <span className="flex-1 text-[13px] text-[var(--text-primary)]">{label}</span>
+      <span className="text-[12px] font-medium text-[var(--text-primary)]">{label}</span>
       {loading && (
-        <RefreshCw className="h-3 w-3 flex-shrink-0 animate-spin" style={{ color }} />
+        <RefreshCw className="h-3 w-3 flex-shrink-0 animate-spin text-[var(--text-muted)]" />
       )}
     </button>
   )
 }
 
-// ── LegendDot ──────────────────────────────────────────────────────────────────
+// ── View Toggle ───────────────────────────────────────────────────────────────
 
-function LegendDot({ color, label }: { color: string; label: string }) {
+const VIEW_OPTIONS: { value: View; label: string }[] = [
+  { value: 'month', label: 'Mois' },
+  { value: 'week', label: 'Semaine' },
+  { value: 'day', label: 'Jour' },
+]
+
+function ViewToggle({ current, onChange }: { current: View; onChange: (v: View) => void }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: color }} />
-      <span className="text-[12px] text-[var(--text-secondary)]">{label}</span>
+    <div className="flex rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-0.5">
+      {VIEW_OPTIONS.map(({ value, label }) => (
+        <button
+          key={value}
+          onClick={() => onChange(value)}
+          aria-pressed={current === value}
+          className={`rounded-md px-3 py-1 text-[12px] font-medium transition-all ${
+            current === value
+              ? 'bg-white text-[var(--text-primary)] shadow-sm'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
     </div>
-  )
-}
-
-// ── SectionLabel ───────────────────────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="px-2 pb-1 pt-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-      {children}
-    </p>
   )
 }
 
@@ -276,12 +292,15 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [view, setView] = useState<View>('week')
+  const [view, setView] = useState<View>('month')
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const [showEmir, setShowEmir] = useState(true)
   const [showAvailability, setShowAvailability] = useState(false)
+  const [popoverEvent, setPopoverEvent] = useState<CalendarEvent | null>(null)
+  const [popoverRect, setPopoverRect] = useState<DOMRect | null>(null)
+  const calendarRef = useRef<HTMLDivElement>(null)
 
   const { data, allUsersData, isLoading, isLoadingAll, error, refetch, refetchAll, createMeet, startOAuth } = useCalendar(currentDate)
   const { user } = useAuth()
@@ -295,11 +314,6 @@ export default function CalendarPage() {
       refetchAll()
     }
   }, [needsAllUsers, allUsersData, isLoadingAll, refetchAll])
-
-  useEffect(() => {
-    if (needsAllUsers) refetchAll()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDate])
 
   // Gérer les retours OAuth
   useEffect(() => {
@@ -348,16 +362,14 @@ export default function CalendarPage() {
     [ownEvents, emirEvents, availableSlots, showEmir, showAvailability],
   )
 
-  const handleNavigate = useCallback(
-    (date: Date) => {
-      setCurrentDate(date)
-      refetch()
-    },
-    [refetch],
-  )
+  const handleNavigate = useCallback((date: Date) => {
+    setCurrentDate(date)
+    setPopoverEvent(null)
+  }, [])
 
   const handleViewChange = useCallback((newView: View) => {
     setView(newView)
+    setPopoverEvent(null)
   }, [])
 
   const handleSelectSlot = useCallback(({ start, end }: { start: Date; end: Date }) => {
@@ -365,14 +377,12 @@ export default function CalendarPage() {
     setModalOpen(true)
   }, [])
 
-  const handleSelectEvent = useCallback((event: RBCEvent) => {
+  const handleSelectEvent = useCallback((event: RBCEvent, e: React.SyntheticEvent) => {
     if (event.resource.id.startsWith('avail_')) return
-    const ev = event.resource
-    if (ev.meetLink) {
-      window.open(ev.meetLink, '_blank', 'noopener,noreferrer')
-    } else if (ev.htmlLink) {
-      window.open(ev.htmlLink, '_blank', 'noopener,noreferrer')
-    }
+    const target = e.target as HTMLElement
+    const rect = target.getBoundingClientRect()
+    setPopoverEvent(event.resource)
+    setPopoverRect(rect)
   }, [])
 
   const googleNotConfigured = data ? !data.google_configured : false
@@ -380,6 +390,9 @@ export default function CalendarPage() {
 
   // Titre de la période affichée
   const viewTitle = useMemo(() => {
+    if (view === 'day') {
+      return format(currentDate, 'EEEE d MMMM yyyy', { locale: fr })
+    }
     if (view === 'month') {
       return format(currentDate, 'MMMM yyyy', { locale: fr })
     }
@@ -395,114 +408,146 @@ export default function CalendarPage() {
   function navigatePrev() {
     const d = new Date(currentDate)
     if (view === 'month') d.setMonth(d.getMonth() - 1)
-    else d.setDate(d.getDate() - 7)
+    else if (view === 'week') d.setDate(d.getDate() - 7)
+    else d.setDate(d.getDate() - 1)
     handleNavigate(d)
   }
 
   function navigateNext() {
     const d = new Date(currentDate)
     if (view === 'month') d.setMonth(d.getMonth() + 1)
-    else d.setDate(d.getDate() + 7)
+    else if (view === 'week') d.setDate(d.getDate() + 7)
+    else d.setDate(d.getDate() + 1)
     handleNavigate(d)
   }
 
+  const isToday = useMemo(() => {
+    const now = new Date()
+    return currentDate.getDate() === now.getDate()
+      && currentDate.getMonth() === now.getMonth()
+      && currentDate.getFullYear() === now.getFullYear()
+  }, [currentDate])
+
   return (
-    <motion.div className="flex flex-col gap-4" variants={staggerContainer} initial="hidden" animate="show">
-      {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <motion.div variants={staggerItem} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Calendrier</h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Google Calendar · {myName || 'votre compte'}
-          </p>
+    <div className="flex flex-col gap-0 h-full">
+      {/* ── Header Apple-style ────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-color)] bg-white">
+        {/* Left: Navigation + Today */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={navigatePrev}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={navigateNext}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          {!isToday && (
+            <button
+              onClick={() => handleNavigate(new Date())}
+              className="ml-1 h-7 rounded-md border border-[var(--border-color)] px-2.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+            >
+              Aujourd'hui
+            </button>
+          )}
         </div>
-        <button
-          onClick={() => { refetch(); if (needsAllUsers) refetchAll() }}
-          disabled={isLoading}
-          className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border-color)] bg-white px-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
-          aria-label="Actualiser le calendrier"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </button>
-      </motion.div>
+
+        {/* Center: Period title */}
+        <h2 className="text-[17px] font-semibold text-[var(--text-primary)] capitalize select-none">
+          {viewTitle}
+        </h2>
+
+        {/* Right: View toggle + actions */}
+        <div className="flex items-center gap-2">
+          <ViewToggle current={view} onChange={handleViewChange} />
+
+          {data?.google_configured && (
+            <button
+              onClick={() => { setSelectedSlot(null); setModalOpen(true) }}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--memovia-violet)] text-white hover:bg-[var(--memovia-violet-hover)] transition-colors"
+              title="Nouvel événement"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )}
+
+          <button
+            onClick={() => { refetch(); if (needsAllUsers) refetchAll() }}
+            disabled={isLoading}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-secondary)] transition-colors disabled:opacity-50"
+            title="Actualiser"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+      </div>
 
       {/* ── Google error ─────────────────────────────────────────────────────── */}
       {data?.google_error && (
-        <motion.div variants={staggerItem} className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-[13px] text-[var(--danger)]">
+        <div className="mx-5 mt-3 rounded-lg border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-2.5 text-[12px] text-[var(--danger)]">
           <span className="font-semibold">Erreur Google Calendar :</span> {data.google_error}
-        </motion.div>
+        </div>
       )}
 
-      {/* ── Content layout : sidebar + calendar ──────────────────────────────── */}
-      <motion.div variants={staggerItem} className="flex items-start gap-4">
-
+      {/* ── Content : sidebar + calendar ─────────────────────────────────────── */}
+      <div className="flex flex-1 min-h-0">
         {/* ── Left Sidebar ─────────────────────────────────────────────────── */}
-        <aside className="w-[220px] flex-shrink-0">
-          <div className="flex flex-col gap-3 rounded-[8px] border border-[var(--border-color)] bg-white p-4">
-
-            {/* Nouvel événement */}
-            {data?.google_configured && (
-              <button
-                onClick={() => { setSelectedSlot(null); setModalOpen(true) }}
-                className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-[var(--memovia-violet)] text-[13px] font-medium text-white hover:bg-[var(--memovia-violet-hover)] transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                Nouvel événement
-              </button>
-            )}
-
-            {/* Mes agendas */}
-            {data?.google_configured && (
-              <div className="flex flex-col">
-                <SectionLabel>Mes agendas</SectionLabel>
-                <AgendaRow
+        {data?.google_configured && (
+          <aside className="w-[200px] flex-shrink-0 border-r border-[var(--border-color)] bg-white px-3 py-4">
+            <div className="flex flex-col gap-4">
+              {/* Agendas */}
+              <div className="flex flex-col gap-0.5">
+                <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Agendas
+                </p>
+                <AgendaToggle
                   color={COLOR_NAOUFEL}
-                  label={myName || 'Mon agenda'}
+                  label={myName || 'Naoufel'}
                   checked={true}
-                  disabled={true}
+                  onToggle={() => {}}
                 />
-                <AgendaRow
+                <AgendaToggle
                   color={COLOR_EMIR}
-                  label="Agenda Emir"
+                  label="Emir"
                   checked={showEmir}
                   loading={showEmir && isLoadingAll && !allUsersData}
                   onToggle={() => setShowEmir((v) => !v)}
                 />
               </div>
-            )}
 
-            {/* Planification */}
-            {data?.google_configured && (
-              <div className="flex flex-col">
-                <SectionLabel>Planification</SectionLabel>
-                <AgendaRow
+              {/* Planification */}
+              <div className="flex flex-col gap-0.5">
+                <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Planification
+                </p>
+                <AgendaToggle
                   color={COLOR_AVAIL}
-                  label="Disponibilités communes"
+                  label="Dispos communes"
                   checked={showAvailability}
                   loading={showAvailability && isLoadingAll && !allUsersData}
                   onToggle={() => setShowAvailability((v) => !v)}
                 />
               </div>
-            )}
 
-            {/* Légende */}
-            {data?.google_configured && (
-              <div className="flex flex-col gap-1.5 border-t border-[var(--border-color)] pt-3">
-                <SectionLabel>Légende</SectionLabel>
-                <LegendDot color={COLOR_NAOUFEL} label={myName || 'Naoufel'} />
-                {showEmir && <LegendDot color={COLOR_EMIR} label="Emir" />}
-                {showAvailability && <LegendDot color={COLOR_AVAIL} label="Disponible ensemble" />}
-              </div>
-            )}
-          </div>
-        </aside>
+              {/* Availability count */}
+              {showAvailability && availableSlots.length > 0 && (
+                <p className="px-2.5 text-[10px] text-[var(--text-muted)] leading-relaxed">
+                  {availableSlots.length} créneaux libres sur 7 jours ouvrés
+                </p>
+              )}
+            </div>
+          </aside>
+        )}
 
         {/* ── Main calendar area ────────────────────────────────────────────── */}
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-
+        <div ref={calendarRef} className="flex-1 min-w-0 bg-white overflow-auto">
           {/* Loading skeleton */}
           {isLoading && !data && (
-            <div className="flex flex-col gap-3 rounded-[8px] border border-[var(--border-color)] bg-white p-6">
+            <div className="flex flex-col gap-3 p-6">
               <div className="h-5 w-40 skeleton rounded-md" />
               <div className="h-[600px] skeleton rounded-lg" />
             </div>
@@ -510,7 +555,7 @@ export default function CalendarPage() {
 
           {/* Error state */}
           {error && !isLoading && (
-            <div className="flex flex-col items-center gap-4 rounded-[8px] border border-[var(--border-color)] bg-white py-16 text-center">
+            <div className="flex flex-col items-center gap-4 py-20 text-center">
               <CalendarDays className="h-10 w-10 text-[var(--text-muted)]" />
               <div>
                 <p className="text-[15px] font-medium text-[var(--text-primary)]">
@@ -530,105 +575,55 @@ export default function CalendarPage() {
 
           {/* Empty state : Google non configuré */}
           {nothingConfigured && !isLoading && (
-            <CalendarEmptyState
-              googleConfigured={false}
-              canConnect={true}
-              onConnect={startOAuth}
-            />
+            <div className="p-6">
+              <CalendarEmptyState
+                googleConfigured={false}
+                canConnect={true}
+                onConnect={startOAuth}
+              />
+            </div>
           )}
 
           {/* Calendar */}
           {data && data.google_configured && !isLoading && (
-            <div className="flex flex-col rounded-[8px] border border-[var(--border-color)] bg-white overflow-hidden">
-              {/* Toolbar */}
-              <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-3">
-                {/* Navigation */}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={navigatePrev}
-                    aria-label={view === 'month' ? 'Mois précédent' : 'Semaine précédente'}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleNavigate(new Date())}
-                    className="h-8 rounded-lg px-3 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
-                  >
-                    Aujourd'hui
-                  </button>
-                  <button
-                    onClick={navigateNext}
-                    aria-label={view === 'month' ? 'Mois suivant' : 'Semaine suivante'}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 transition-colors"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* Période affichée */}
-                <span className="text-[15px] font-semibold text-[var(--text-primary)] capitalize">
-                  {viewTitle}
-                </span>
-
-                {/* Sélecteur de vue */}
-                <div className="flex rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-0.5">
-                  {(['week', 'month'] as View[]).map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => handleViewChange(v)}
-                      aria-pressed={view === v}
-                      className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1 ${
-                        view === v
-                          ? 'bg-white text-[var(--text-primary)] shadow-sm'
-                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                      }`}
-                    >
-                      {v === 'week' ? 'Semaine' : 'Mois'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* react-big-calendar */}
-              <div className="calendar-wrapper px-2 pb-2">
-                <Calendar
-                  localizer={localizer}
-                  events={rbcEvents}
-                  startAccessor="start"
-                  endAccessor="end"
-                  view={view}
-                  onView={handleViewChange}
-                  date={currentDate}
-                  onNavigate={handleNavigate}
-                  messages={messages}
-                  culture="fr"
-                  style={{ height: 680 }}
-                  eventPropGetter={eventStyleGetter}
-                  onSelectSlot={handleSelectSlot}
-                  onSelectEvent={handleSelectEvent}
-                  selectable
-                  popup
-                  toolbar={false}
-                  step={30}
-                  timeslots={2}
-                  min={new Date(2024, 0, 1, 8, 0, 0)}
-                  max={new Date(2024, 0, 1, 20, 0, 0)}
-                />
-              </div>
-
-              {/* Footer */}
-              {showAvailability && availableSlots.length > 0 && (
-                <div className="border-t border-[var(--border-color)] px-5 py-2.5">
-                  <p className="text-[12px] text-[var(--text-muted)]">
-                    {availableSlots.length} créneaux disponibles en commun sur les 7 prochains jours ouvrés (9h–18h).
-                  </p>
-                </div>
-              )}
+            <div className="calendar-apple h-full">
+              <Calendar
+                localizer={localizer}
+                events={rbcEvents}
+                startAccessor="start"
+                endAccessor="end"
+                view={view}
+                onView={handleViewChange}
+                date={currentDate}
+                onNavigate={handleNavigate}
+                messages={messages}
+                culture="fr"
+                style={{ height: 'calc(100vh - 140px)' }}
+                eventPropGetter={eventStyleGetter}
+                onSelectSlot={handleSelectSlot}
+                onSelectEvent={handleSelectEvent}
+                selectable
+                popup
+                toolbar={false}
+                step={30}
+                timeslots={2}
+                min={new Date(2024, 0, 1, 7, 0, 0)}
+                max={new Date(2024, 0, 1, 21, 0, 0)}
+                dayLayoutAlgorithm="overlap"
+              />
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
+
+      {/* ── Event Popover ───────────────────────────────────────────────────── */}
+      {popoverEvent && (
+        <EventPopover
+          event={popoverEvent}
+          anchorRect={popoverRect}
+          onClose={() => { setPopoverEvent(null); setPopoverRect(null) }}
+        />
+      )}
 
       {/* ── Modal création événement ─────────────────────────────────────────── */}
       <CreateEventModal
@@ -639,6 +634,6 @@ export default function CalendarPage() {
         onCreateEvent={createMeet}
         inviteNaoufel={isEmir}
       />
-    </motion.div>
+    </div>
   )
 }

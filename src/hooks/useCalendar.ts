@@ -19,8 +19,8 @@ export interface UseCalendarResult {
   isLoading: boolean
   isLoadingAll: boolean
   error: string | null
-  refetch: (start?: Date, end?: Date) => Promise<void>
-  refetchAll: (start?: Date, end?: Date) => Promise<void>
+  refetch: () => Promise<void>
+  refetchAll: () => Promise<void>
   createMeet: (payload: CreateMeetPayload) => Promise<CreateMeetResponse>
   startOAuth: () => Promise<void>
 }
@@ -54,6 +54,11 @@ async function callCalendarAPI(
   return res.json()
 }
 
+/** Génère une clé de cache stable pour une date donnée (mois courant ± 1) */
+function cacheKeyForDate(date: Date, prefix: string): string {
+  return `${prefix}_${date.getFullYear()}-${date.getMonth()}`
+}
+
 export function useCalendar(currentDate = new Date(), options: { enabled?: boolean } = {}): UseCalendarResult {
   const { enabled = true } = options
   const [data, setData] = useState<CalendarEventsResponse | null>(null)
@@ -64,29 +69,34 @@ export function useCalendar(currentDate = new Date(), options: { enabled?: boole
   const currentDateRef = useRef(currentDate)
   const abortRef = useRef<{ aborted: boolean } | null>(null)
   const abortAllRef = useRef<{ aborted: boolean } | null>(null)
+  // Empêche le double-fetch sur le même range au même render
+  const lastFetchKey = useRef<string | null>(null)
+  const lastFetchAllKey = useRef<string | null>(null)
 
   useEffect(() => { currentDateRef.current = currentDate }, [currentDate])
 
-  const fetchEvents = useCallback(async (start?: Date, end?: Date) => {
+  const fetchEvents = useCallback(async (force = false) => {
+    const key = cacheKeyForDate(currentDateRef.current, 'own')
+
+    // Évite les appels redondants sur le même range
+    if (!force && lastFetchKey.current === key) return
+    lastFetchKey.current = key
+
     if (abortRef.current) abortRef.current.aborted = true
     const guard = { aborted: false }
     abortRef.current = guard
 
-    if (!guard.aborted) setIsLoading(true)
-    if (!guard.aborted) setError(null)
+    setIsLoading(true)
+    setError(null)
 
-    const cacheKey = (start && end)
-      ? `own_${start.toISOString()}_${end.toISOString()}`
-      : `own_${currentDateRef.current.getFullYear()}-${currentDateRef.current.getMonth()}`
-
-    const cached = calendarCache.get(cacheKey)
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    const cached = calendarCache.get(key)
+    if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
       if (!guard.aborted) setData(cached.data)
       if (!guard.aborted) setIsLoading(false)
       return
     }
 
-    const range = start && end ? { start, end } : dateRangeForView(currentDateRef.current)
+    const range = dateRangeForView(currentDateRef.current)
     const session = await getSession()
     if (!session) {
       if (!guard.aborted) setError('Non authentifié')
@@ -101,7 +111,7 @@ export function useCalendar(currentDate = new Date(), options: { enabled?: boole
 
     try {
       const json = await callCalendarAPI(session.access_token, params)
-      calendarCache.set(cacheKey, { data: json, ts: Date.now() })
+      calendarCache.set(key, { data: json, ts: Date.now() })
       if (!guard.aborted) setData(json)
     } catch (err) {
       if (!guard.aborted) setError(err instanceof Error ? err.message : 'Erreur de chargement')
@@ -110,23 +120,26 @@ export function useCalendar(currentDate = new Date(), options: { enabled?: boole
     }
   }, [])
 
-  const fetchAllUsers = useCallback(async (start?: Date, end?: Date) => {
+  const fetchAllUsers = useCallback(async (force = false) => {
+    const key = cacheKeyForDate(currentDateRef.current, 'all')
+
+    if (!force && lastFetchAllKey.current === key) return
+    lastFetchAllKey.current = key
+
     if (abortAllRef.current) abortAllRef.current.aborted = true
     const guard = { aborted: false }
     abortAllRef.current = guard
 
-    if (!guard.aborted) setIsLoadingAll(true)
+    setIsLoadingAll(true)
 
-    const range = start && end ? { start, end } : dateRangeForView(currentDateRef.current)
-    const cacheKey = `all_${range.start.toISOString()}_${range.end.toISOString()}`
-
-    const cached = calendarCache.get(cacheKey)
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    const cached = calendarCache.get(key)
+    if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
       if (!guard.aborted) setAllUsersData(cached.data)
       if (!guard.aborted) setIsLoadingAll(false)
       return
     }
 
+    const range = dateRangeForView(currentDateRef.current)
     const session = await getSession()
     if (!session) {
       if (!guard.aborted) setIsLoadingAll(false)
@@ -141,7 +154,7 @@ export function useCalendar(currentDate = new Date(), options: { enabled?: boole
 
     try {
       const json = await callCalendarAPI(session.access_token, params)
-      calendarCache.set(cacheKey, { data: json, ts: Date.now() })
+      calendarCache.set(key, { data: json, ts: Date.now() })
       if (!guard.aborted) setAllUsersData(json)
     } catch {
       // silencieux — la vue standard reste disponible
@@ -150,13 +163,24 @@ export function useCalendar(currentDate = new Date(), options: { enabled?: boole
     }
   }, [])
 
+  // Fetch initial + refetch quand la date change de mois
   useEffect(() => {
     if (!enabled) return
     fetchEvents()
     return () => {
       if (abortRef.current) abortRef.current.aborted = true
     }
-  }, [fetchEvents, enabled])
+  }, [fetchEvents, enabled, currentDate])
+
+  const refetch = useCallback(async () => {
+    lastFetchKey.current = null // force bypass du guard
+    await fetchEvents(true)
+  }, [fetchEvents])
+
+  const refetchAll = useCallback(async () => {
+    lastFetchAllKey.current = null
+    await fetchAllUsers(true)
+  }, [fetchAllUsers])
 
   const createMeet = useCallback(async (payload: CreateMeetPayload): Promise<CreateMeetResponse> => {
     const session = await getSession()
@@ -202,5 +226,5 @@ export function useCalendar(currentDate = new Date(), options: { enabled?: boole
     window.location.href = authUrl
   }, [])
 
-  return { data, allUsersData, isLoading, isLoadingAll, error, refetch: fetchEvents, refetchAll: fetchAllUsers, createMeet, startOAuth }
+  return { data, allUsersData, isLoading, isLoadingAll, error, refetch, refetchAll, createMeet, startOAuth }
 }

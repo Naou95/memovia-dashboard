@@ -190,163 +190,283 @@ body {
   }
 }
 
-/* ── react-big-calendar overrides (MEMOVIA design system) ────────────────── */
-.calendar-wrapper .rbc-calendar {
-  font-family: 'Geist', system-ui, sans-serif;
+/* ── react-big-calendar: Apple Calendar style ────────────────────────────── */
+
+.calendar-apple .rbc-calendar {
+  font-family: 'Geist', system-ui, -apple-system, sans-serif;
   color: var(--text-primary);
 }
 
-/* Month grid */
-.calendar-wrapper .rbc-month-view,
-.calendar-wrapper .rbc-time-view {
+/* ── Grid structure ─────────────────────────────────────────────────────── */
+
+.calendar-apple .rbc-month-view,
+.calendar-apple .rbc-time-view {
   border: none;
-  border-radius: 0;
 }
 
-.calendar-wrapper .rbc-month-row {
+.calendar-apple .rbc-month-view {
+  border-top: 1px solid var(--border-color);
+}
+
+.calendar-apple .rbc-month-row {
   border-color: var(--border-color);
 }
 
-.calendar-wrapper .rbc-month-row + .rbc-month-row {
+.calendar-apple .rbc-month-row + .rbc-month-row {
   border-color: var(--border-color);
 }
 
-.calendar-wrapper .rbc-day-bg + .rbc-day-bg {
-  border-color: var(--border-color);
+.calendar-apple .rbc-day-bg {
+  background: white;
 }
 
-/* Headers (Mon, Tue…) */
-.calendar-wrapper .rbc-header {
-  border-bottom: 1px solid var(--border-color);
-  border-left: none;
-  padding: 8px 4px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-label);
-}
-
-.calendar-wrapper .rbc-header + .rbc-header {
+.calendar-apple .rbc-day-bg + .rbc-day-bg {
   border-left: 1px solid var(--border-color);
 }
 
-/* Today highlight */
-.calendar-wrapper .rbc-today {
-  background-color: var(--memovia-violet-light);
+/* ── Headers (Lun, Mar…) ────────────────────────────────────────────────── */
+
+.calendar-apple .rbc-header {
+  border-bottom: 1px solid var(--border-color);
+  border-left: none;
+  padding: 10px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg-primary);
 }
 
-/* Date cells */
-.calendar-wrapper .rbc-date-cell {
-  padding: 4px 8px;
+.calendar-apple .rbc-header + .rbc-header {
+  border-left: 1px solid var(--border-color);
+}
+
+/* ── Today ──────────────────────────────────────────────────────────────── */
+
+.calendar-apple .rbc-today {
+  background-color: rgba(124, 58, 237, 0.03);
+}
+
+/* ── Date cells (month view) ────────────────────────────────────────────── */
+
+.calendar-apple .rbc-date-cell {
+  padding: 4px 6px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-secondary);
   text-align: right;
 }
 
-.calendar-wrapper .rbc-date-cell.rbc-now button {
+.calendar-apple .rbc-date-cell > button {
+  cursor: pointer;
+}
+
+.calendar-apple .rbc-date-cell.rbc-now > button {
   background-color: var(--memovia-violet);
   color: white;
   border-radius: 50%;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-/* Off-range days (prev/next month) */
-.calendar-wrapper .rbc-off-range {
+/* ── Off-range (prev/next month) ────────────────────────────────────────── */
+
+.calendar-apple .rbc-off-range {
   color: var(--text-muted);
+  opacity: 0.4;
 }
 
-.calendar-wrapper .rbc-off-range-bg {
-  background: #FAFAFA;
+.calendar-apple .rbc-off-range-bg {
+  background: var(--bg-primary);
 }
 
-/* Events */
-.calendar-wrapper .rbc-event {
+/* ── Events ─────────────────────────────────────────────────────────────── */
+
+.calendar-apple .rbc-event {
   border: none !important;
   box-shadow: none;
   outline: none;
   font-size: 11px;
-  padding: 1px 3px;
+  padding: 1px 4px;
+  margin: 1px 2px;
+  transition: opacity 0.15s ease;
 }
 
-.calendar-wrapper .rbc-event-content {
+.calendar-apple .rbc-event:hover {
+  opacity: 0.85;
+}
+
+.calendar-apple .rbc-event-content {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.4;
 }
 
-.calendar-wrapper .rbc-event:focus {
+.calendar-apple .rbc-event:focus {
   outline: 2px solid var(--memovia-violet);
   outline-offset: 1px;
 }
 
-.calendar-wrapper .rbc-event-label {
-  font-size: 11px;
+.calendar-apple .rbc-event-label {
+  font-size: 10px;
+  font-weight: 500;
 }
 
-/* "Show more" button */
-.calendar-wrapper .rbc-show-more {
+/* Month view: event pills */
+.calendar-apple .rbc-month-view .rbc-event {
+  border-radius: 4px;
+  padding: 1px 6px;
   font-size: 11px;
+  line-height: 1.6;
+}
+
+/* Week/Day view: event blocks */
+.calendar-apple .rbc-time-view .rbc-event {
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+/* ── Show more ("+X autres") ────────────────────────────────────────────── */
+
+.calendar-apple .rbc-show-more {
+  font-size: 10px;
   font-weight: 600;
   color: var(--memovia-violet);
   background: none;
-  padding: 0 8px;
+  padding: 2px 6px;
+  cursor: pointer;
 }
 
-/* Week view time gutter */
-.calendar-wrapper .rbc-time-gutter .rbc-timeslot-group {
+.calendar-apple .rbc-show-more:hover {
+  text-decoration: underline;
+}
+
+/* ── Time gutter (week/day) ─────────────────────────────────────────────── */
+
+.calendar-apple .rbc-time-gutter {
+  background: var(--bg-primary);
+}
+
+.calendar-apple .rbc-time-gutter .rbc-timeslot-group {
   border-color: var(--border-color);
 }
 
-.calendar-wrapper .rbc-time-header-content {
-  border-color: var(--border-color);
+.calendar-apple .rbc-time-header {
+  border-bottom: 1px solid var(--border-color);
 }
 
-.calendar-wrapper .rbc-time-content {
-  border-color: var(--border-color);
+.calendar-apple .rbc-time-header-content {
+  border-left: 1px solid var(--border-color);
 }
 
-.calendar-wrapper .rbc-timeslot-group {
-  border-bottom-color: var(--border-color);
+.calendar-apple .rbc-time-content {
+  border-top: none;
 }
 
-.calendar-wrapper .rbc-time-slot {
+.calendar-apple .rbc-time-content > * + * > * {
+  border-left: 1px solid var(--border-color);
+}
+
+.calendar-apple .rbc-timeslot-group {
+  border-bottom: 1px solid var(--border-color);
+  min-height: 60px;
+}
+
+.calendar-apple .rbc-time-slot {
   border-top-color: transparent;
 }
 
-.calendar-wrapper .rbc-label {
-  font-size: 11px;
+.calendar-apple .rbc-label {
+  font-size: 10px;
+  font-weight: 500;
   color: var(--text-muted);
-  padding: 0 6px;
+  padding: 0 8px;
 }
 
-/* Selected slot */
-.calendar-wrapper .rbc-slot-selection {
-  background-color: rgba(124, 58, 237, 0.12);
-  border: 1px solid var(--memovia-violet);
+/* Current time indicator */
+.calendar-apple .rbc-current-time-indicator {
+  background-color: #EF4444;
+  height: 2px;
+}
+
+.calendar-apple .rbc-current-time-indicator::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #EF4444;
+}
+
+/* ── Day view header ────────────────────────────────────────────────────── */
+
+.calendar-apple .rbc-time-header-cell {
+  min-height: auto;
+}
+
+.calendar-apple .rbc-allday-cell {
+  display: none;
+}
+
+/* ── Slot selection ─────────────────────────────────────────────────────── */
+
+.calendar-apple .rbc-slot-selection {
+  background-color: rgba(124, 58, 237, 0.08);
+  border: 1px dashed var(--memovia-violet);
   border-radius: 4px;
 }
 
-/* Popup (overflow events) */
-.calendar-wrapper .rbc-overlay {
+/* ── Popup (overflow events) ────────────────────────────────────────────── */
+
+.calendar-apple .rbc-overlay {
   border: 1px solid var(--border-color);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04);
   background: white;
   padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
-.calendar-wrapper .rbc-overlay-header {
+.calendar-apple .rbc-overlay-header {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 6px;
   padding-bottom: 6px;
+}
+
+/* ── Row segment (month view event rows) ────────────────────────────────── */
+
+.calendar-apple .rbc-row-segment {
+  padding: 0 2px;
+}
+
+/* ── Scrollbar inside calendar ──────────────────────────────────────────── */
+
+.calendar-apple .rbc-time-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.calendar-apple .rbc-time-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.calendar-apple .rbc-time-content::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.calendar-apple .rbc-time-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
