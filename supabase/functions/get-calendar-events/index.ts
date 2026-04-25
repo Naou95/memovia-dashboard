@@ -201,6 +201,7 @@ async function fetchAllUsersEvents(
     .from('calendar_tokens')
     .select('*')
     .eq('provider', 'google')
+    .not('user_id', 'is', null)
 
   if (error || !tokens?.length) return []
 
@@ -236,7 +237,20 @@ async function fetchAllUsersEvents(
     }),
   )
 
-  return allEvents
+  // Déduplique par (title + start) — un même événement peut apparaître
+  // dans les agendas de Naoufel et Emir (ex. invitation partagée).
+  // On garde la première occurrence (le propriétaire réel).
+  const seen = new Set<string>()
+  const deduplicated: CalendarEvent[] = []
+  for (const ev of allEvents) {
+    const key = `${ev.title}::${ev.start}`
+    if (!seen.has(key)) {
+      seen.add(key)
+      deduplicated.push(ev)
+    }
+  }
+
+  return deduplicated
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────

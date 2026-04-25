@@ -59,6 +59,18 @@ function cacheKeyForDate(date: Date, prefix: string): string {
   return `${prefix}_${date.getFullYear()}-${date.getMonth()}`
 }
 
+/** Déduplique les événements par (title + start) côté client */
+function deduplicateEvents(response: CalendarEventsResponse): CalendarEventsResponse {
+  const seen = new Set<string>()
+  const events = response.events.filter((ev) => {
+    const key = `${ev.title}::${ev.start}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  return { ...response, events }
+}
+
 export function useCalendar(currentDate = new Date(), options: { enabled?: boolean } = {}): UseCalendarResult {
   const { enabled = true } = options
   const [data, setData] = useState<CalendarEventsResponse | null>(null)
@@ -110,7 +122,8 @@ export function useCalendar(currentDate = new Date(), options: { enabled?: boole
     })
 
     try {
-      const json = await callCalendarAPI(session.access_token, params)
+      const raw = await callCalendarAPI(session.access_token, params)
+      const json = deduplicateEvents(raw)
       calendarCache.set(key, { data: json, ts: Date.now() })
       if (!guard.aborted) setData(json)
     } catch (err) {
@@ -153,7 +166,8 @@ export function useCalendar(currentDate = new Date(), options: { enabled?: boole
     })
 
     try {
-      const json = await callCalendarAPI(session.access_token, params)
+      const raw = await callCalendarAPI(session.access_token, params)
+      const json = deduplicateEvents(raw)
       calendarCache.set(key, { data: json, ts: Date.now() })
       if (!guard.aborted) setAllUsersData(json)
     } catch {
