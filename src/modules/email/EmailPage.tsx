@@ -25,7 +25,7 @@ function hasUrgentKeyword(subject: string): boolean {
 }
 
 export default function EmailPage() {
-  const { messages, alerts, total, isLoading, isSending, error, loadEmails, getEmail, sendEmail, invalidateCache } =
+  const { messages, total, isLoading, isSending, error, loadEmails, getEmail, sendEmail, invalidateCache } =
     useEmail()
 
   const [folder, setFolder] = useState('INBOX')
