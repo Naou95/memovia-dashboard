@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { X, Clock, MapPin, Video, ExternalLink, User } from 'lucide-react'
 import type { CalendarEvent } from '@/types/calendar'
 
@@ -27,6 +27,12 @@ function fmtDate(iso: string): string {
 
 export function EventPopover({ event, anchorRect, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    // Trigger enter animation on next frame
+    requestAnimationFrame(() => setMounted(true))
+  }, [])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -43,23 +49,37 @@ export function EventPopover({ event, anchorRect, onClose }: Props) {
     }
   }, [onClose])
 
-  // Position : centré horizontalement par rapport à l'ancre, en dessous
+  // Position + origin-aware transform
   const style: React.CSSProperties = {}
+  let transformOrigin = 'top center'
   if (anchorRect) {
     const popoverW = 320
     let left = anchorRect.left + anchorRect.width / 2 - popoverW / 2
     let top = anchorRect.bottom + 8
+    let opensAbove = false
 
     // Clamp dans le viewport
     if (left < 12) left = 12
     if (left + popoverW > window.innerWidth - 12) left = window.innerWidth - popoverW - 12
-    if (top + 300 > window.innerHeight) top = anchorRect.top - 308
+    if (top + 300 > window.innerHeight) {
+      top = anchorRect.top - 308
+      opensAbove = true
+    }
+
+    // Transform origin pointe vers le trigger
+    const originX = anchorRect.left + anchorRect.width / 2 - left
+    transformOrigin = `${originX}px ${opensAbove ? '100%' : '0%'}`
 
     style.position = 'fixed'
     style.left = left
     style.top = top
     style.width = popoverW
   }
+
+  style.transformOrigin = transformOrigin
+  style.opacity = mounted ? 1 : 0
+  style.transform = mounted ? 'scale(1)' : 'scale(0.96)'
+  style.transition = 'transform 180ms cubic-bezier(0.23, 1, 0.32, 1), opacity 180ms cubic-bezier(0.23, 1, 0.32, 1)'
 
   const color = event.owner?.color ?? COLOR_NAOUFEL
   const isEmir = color === COLOR_EMIR
@@ -70,7 +90,7 @@ export function EventPopover({ event, anchorRect, onClose }: Props) {
       <div
         ref={ref}
         style={style}
-        className="z-50 rounded-xl border border-[var(--border-color)] bg-white shadow-xl animate-in fade-in zoom-in-95 duration-150"
+        className="z-50 rounded-xl border border-[var(--border-color)] bg-white shadow-xl"
       >
         {/* Color stripe + close */}
         <div
@@ -138,7 +158,7 @@ export function EventPopover({ event, anchorRect, onClose }: Props) {
                 href={event.meetLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--memovia-violet)] py-2 text-[12px] font-medium text-white hover:bg-[var(--memovia-violet-hover)] transition-colors"
+                className="popover-action-btn flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--memovia-violet)] py-2 text-[12px] font-medium text-white hover:bg-[var(--memovia-violet-hover)]"
               >
                 <Video className="h-3.5 w-3.5" />
                 Rejoindre
@@ -149,7 +169,7 @@ export function EventPopover({ event, anchorRect, onClose }: Props) {
                 href={event.htmlLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--border-color)] py-2 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-colors"
+                className="popover-action-btn flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--border-color)] py-2 text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Ouvrir

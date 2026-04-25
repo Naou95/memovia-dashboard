@@ -275,7 +275,7 @@ function ViewToggle({ current, onChange }: { current: View; onChange: (v: View) 
           key={value}
           onClick={() => onChange(value)}
           aria-pressed={current === value}
-          className={`rounded-md px-3 py-1 text-[12px] font-medium transition-all ${
+          className={`cal-view-btn rounded-md px-3 py-1 text-[12px] font-medium ${
             current === value
               ? 'bg-white text-[var(--text-primary)] shadow-sm'
               : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
@@ -436,20 +436,20 @@ export default function CalendarPage() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={navigatePrev}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+            className="cal-nav-btn flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={navigateNext}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+            className="cal-nav-btn flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
           {!isToday && (
             <button
               onClick={() => handleNavigate(new Date())}
-              className="ml-1 h-7 rounded-md border border-[var(--border-color)] px-2.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+              className="cal-nav-btn ml-1 h-7 rounded-md border border-[var(--border-color)] px-2.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]"
             >
               Aujourd'hui
             </button>
@@ -468,7 +468,7 @@ export default function CalendarPage() {
           {data?.google_configured && (
             <button
               onClick={() => { setSelectedSlot(null); setModalOpen(true) }}
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--memovia-violet)] text-white hover:bg-[var(--memovia-violet-hover)] transition-colors"
+              className="cal-action-btn flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--memovia-violet)] text-white hover:bg-[var(--memovia-violet-hover)]"
               title="Nouvel événement"
             >
               <Plus className="h-4 w-4" />
@@ -478,7 +478,7 @@ export default function CalendarPage() {
           <button
             onClick={() => { refetch(); if (needsAllUsers) refetchAll() }}
             disabled={isLoading}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-secondary)] transition-colors disabled:opacity-50"
+            className="cal-nav-btn flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-secondary)] disabled:opacity-50"
             title="Actualiser"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} />
