@@ -1,8 +1,16 @@
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Mail, AlertTriangle } from 'lucide-react'
+import { X, Mail, AlertTriangle, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 import type { SubscriptionRow } from '@/types/stripe'
+
+const SENDER_ALIASES = [
+  'naoufel@memovia.io',
+  'support@memovia.io',
+  'contact@memovia.io',
+  'emir@memovia.io',
+] as const
 
 interface Props {
   subscriptions: SubscriptionRow[]
@@ -130,6 +138,7 @@ interface ModalProps {
 
 function RetentionModal({ sub, cancelDate, onClose, onSent }: ModalProps) {
   const [body, setBody] = useState(() => buildEmailBody(sub.customerEmail, cancelDate))
+  const [sender, setSender] = useState<string>(SENDER_ALIASES[0])
   const [isSending, setIsSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
 
@@ -137,18 +146,51 @@ function RetentionModal({ sub, cancelDate, onClose, onSent }: ModalProps) {
     setIsSending(true)
     setSendError(null)
     try {
-      const { error } = await supabase.functions.invoke('email-send', {
+      console.log('[retention-email] Sending email...', {
+        from: sender,
+        to: sub.customerEmail,
+        subject: 'On aimerait comprendre votre départ de MEMOVIA',
+      })
+
+      const { data, error } = await supabase.functions.invoke('email-send', {
         body: {
-          from: 'naoufel@memovia.io',
+          from: sender,
           to: sub.customerEmail,
           subject: 'On aimerait comprendre votre départ de MEMOVIA',
           body,
         },
       })
-      if (error) throw error
+
+      console.log('[retention-email] Response:', { data, error })
+
+      if (error) {
+        // Extract the real error message from the Edge Function response
+        let detail = ''
+        if (error.context && typeof error.context.json === 'function') {
+          try {
+            const errBody = await error.context.json()
+            console.error('[retention-email] Error body:', errBody)
+            detail = errBody?.error || ''
+          } catch {
+            // context.json() failed, try text
+            try {
+              detail = await error.context.text()
+              console.error('[retention-email] Error text:', detail)
+            } catch { /* ignore */ }
+          }
+        }
+        const message = detail || error.message || 'Erreur inconnue'
+        throw new Error(message)
+      }
+
+      console.log('[retention-email] Success:', data)
+      toast.success(`Email de rétention envoyé à ${sub.customerEmail}`)
       onSent()
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : 'Erreur envoi email')
+      const message = err instanceof Error ? err.message : 'Erreur envoi email'
+      console.error('[retention-email] Final error:', message)
+      setSendError(message)
+      toast.error(`Échec envoi email : ${message}`)
     } finally {
       setIsSending(false)
     }
@@ -174,10 +216,21 @@ function RetentionModal({ sub, cancelDate, onClose, onSent }: ModalProps) {
           </Dialog.Close>
         </div>
 
-        {/* Champs en lecture seule */}
-        <div className="mb-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-[13px]">
+        {/* Champs */}
+        <div className="mb-3 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 text-[13px]">
           <span className="text-[var(--text-muted)]">De</span>
-          <span className="text-[var(--text-primary)]">naoufel@memovia.io</span>
+          <div className="relative">
+            <select
+              value={sender}
+              onChange={(e) => setSender(e.target.value)}
+              className="w-full appearance-none rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] py-1.5 pl-3 pr-8 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--memovia-violet)] focus:ring-1 focus:ring-[var(--memovia-violet)]"
+            >
+              {SENDER_ALIASES.map((alias) => (
+                <option key={alias} value={alias}>{alias}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+          </div>
           <span className="text-[var(--text-muted)]">Sujet</span>
           <span className="text-[var(--text-primary)]">On aimerait comprendre votre départ de MEMOVIA</span>
         </div>
