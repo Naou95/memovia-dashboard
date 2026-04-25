@@ -297,9 +297,9 @@ export function EmailDetail({ email, isLoading, onReply }: EmailDetailProps) {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {hasThread ? (
-          <div className="flex flex-col">
+          <div className="flex flex-col overflow-y-auto">
             {thread.map((item, index) => (
               <ThreadCard
                 key={`${item.folder}-${item.uid}`}
@@ -315,19 +315,18 @@ export function EmailDetail({ email, isLoading, onReply }: EmailDetailProps) {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, delay: 0.05, ease: [0.25, 1, 0.5, 1] }}
-            className="px-6 py-5"
+            className="flex min-h-0 flex-1 flex-col px-6 py-5"
           >
             {email.html ? (
               <iframe
                 srcDoc={email.html}
-                className="h-full w-full rounded-[var(--radius-card)] border-0"
-                style={{ minHeight: '400px' }}
+                className="w-full flex-1 rounded-[var(--radius-card)] border-0"
                 sandbox=""
                 title="Email content"
               />
             ) : (
               <pre
-                className="whitespace-pre-wrap text-[15px] leading-relaxed"
+                className="flex-1 overflow-y-auto whitespace-pre-wrap text-[15px] leading-relaxed"
                 style={{ color: 'var(--text-secondary)', fontFamily: 'inherit' }}
               >
                 {email.text || '(Contenu vide)'}

@@ -335,8 +335,10 @@ export default function EmailPage() {
             initial={{ y: '100%', opacity: 0 }}
             animate={{ y: 0, opacity: 1, transition: { type: 'spring', damping: 28, stiffness: 300 } }}
             exit={{ y: '100%', opacity: 0, transition: { duration: 0.15, ease: [0.23, 1, 0.32, 1] } }}
-            className="fixed bottom-4 right-6 z-50 overflow-hidden"
+            className="fixed z-50 overflow-hidden"
             style={{
+              bottom: '12px',
+              right: '80px',
               width: '540px',
               height: '420px',
               borderRadius: 'var(--radius-card)',
