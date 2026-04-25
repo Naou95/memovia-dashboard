@@ -12,7 +12,34 @@ import type { AuthContextValue, AuthUser, DashboardProfile } from '@/types/auth'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GET_SESSION_TIMEOUT_MS = 8000
-const PROFILE_QUERY_TIMEOUT_MS = 15000
+const PROFILE_QUERY_TIMEOUT_MS = 20000
+const PROFILE_CACHE_KEY = 'dashboard_profile'
+
+// ─── Profile cache (localStorage) ────────────────────────────────────────────
+
+function getCachedProfile(userId: string): DashboardProfile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as DashboardProfile
+    if (parsed.id !== userId) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function setCachedProfile(profile: DashboardProfile): void {
+  try {
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile))
+  } catch { /* quota exceeded — ignore */ }
+}
+
+function clearCachedProfile(): void {
+  try {
+    localStorage.removeItem(PROFILE_CACHE_KEY)
+  } catch { /* ignore */ }
+}
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -48,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (newSession) {
           await loadUserProfile(newSession)
         } else {
+          clearCachedProfile()
           setSession(null)
           setUser(null)
           setIsLoading(false)
@@ -63,13 +91,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // ── loadUserProfile ──────────────────────────────────────────────────────
-  // Fetches the dashboard_profiles row. If missing or query fails/times out,
-  // access is denied (fail closed). Only users with an explicit DB profile
-  // are admitted to the dashboard. Retries once on timeout/error.
+  // Cache-first, network-update pattern:
+  // 1. Read cached profile from localStorage → admit immediately if valid
+  // 2. Fetch from DB in background → update cache + state
+  // 3. If no cache AND fetch fails → deny access (fail closed)
   async function loadUserProfile(currentSession: Session): Promise<void> {
     if (!isMountedRef.current) return
 
-    const profile = await fetchProfileWithRetry(currentSession.user.id)
+    const userId = currentSession.user.id
+    const cached = getCachedProfile(userId)
+
+    // Cache hit → admit immediately, refresh in background
+    if (cached) {
+      setSession(currentSession)
+      setUser({
+        supabaseUser: currentSession.user,
+        profile: cached,
+        role: cached.role,
+      })
+      setIsLoading(false)
+
+      // Background refresh — don't block the UI
+      fetchProfileWithRetry(userId).then((fresh) => {
+        if (!isMountedRef.current) return
+        if (fresh) {
+          setCachedProfile(fresh)
+          setUser({
+            supabaseUser: currentSession.user,
+            profile: fresh,
+            role: fresh.role,
+          })
+        } else {
+          // Profile deleted from DB since last cache → deny
+          console.error('[auth] cached profile no longer exists in DB — signing out')
+          clearCachedProfile()
+          supabase.auth.signOut()
+          setSession(null)
+          setUser(null)
+          setError('Profil supprimé. Accès refusé.')
+        }
+      })
+      return
+    }
+
+    // No cache → must fetch from network (blocking)
+    const profile = await fetchProfileWithRetry(userId)
     if (!isMountedRef.current) return
 
     if (!profile) {
@@ -82,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
+    setCachedProfile(profile)
     setSession(currentSession)
     setUser({
       supabaseUser: currentSession.user,
@@ -97,7 +164,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (result.profile) return result.profile
 
       if (result.reason === 'not_found') {
-        // Profile genuinely missing — no retry
         console.warn(`[auth] attempt ${attempt}: no dashboard_profiles row for uid=${userId}`)
         return null
       }
@@ -105,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Error or timeout — retry once
       console.warn(`[auth] attempt ${attempt}: ${result.reason}`, result.detail)
       if (attempt < 2) {
-        await new Promise((r) => setTimeout(r, 1000))
+        await new Promise((r) => setTimeout(r, 2000))
       }
     }
     return null
@@ -184,6 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut(): Promise<void> {
+    clearCachedProfile()
     await supabase.auth.signOut()
     // State is cleared via onAuthStateChange
   }
