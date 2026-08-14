@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { ImapFlow } from 'npm:imapflow'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 const FILTER_KEYWORDS = [
   'unsubscribe', 'noreply', 'no-reply', 'newsletter',
@@ -35,10 +36,15 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace('Bearer ', '')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const parServiceRole = !!token && !!serviceRoleKey && token === serviceRoleKey
+  // timingSafeEqual et pas `===` : c'est le standard de ce dépôt pour comparer un secret
+  // (send-telegram, memovia-mcp, telegram-webhook, notify-stripe-payment l'utilisent déjà).
+  const parServiceRole = !!token && !!serviceRoleKey && timingSafeEqual(token, serviceRoleKey)
 
   if (!parServiceRole && !(await isAuthenticatedCronCall(req))) {
-    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   try {

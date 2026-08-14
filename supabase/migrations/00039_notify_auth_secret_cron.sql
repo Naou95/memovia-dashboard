@@ -33,6 +33,38 @@
 -- On en profite pour poser `timeout_milliseconds` sur l'appel du trigger : il était au défaut
 -- pg_net de 5 s, le même angle mort que celui traité en 00038.
 
+-- ── 0. Garde : les secrets doivent EXISTER avant qu'on branche quoi que ce soit dessus ───────
+--
+-- 🔑 TROUVÉ PAR REVUE ADVERSARIALE le 14/08 sur cette migration même. Sans ce bloc, la migration
+-- DÉPLAÇAIT le bug au lieu de l'éliminer. Vérifié par exécution :
+--     jsonb_build_object('Authorization', 'Bearer ' || NULL::text)::text  =  '{"Authorization": null}'
+-- `jsonb_build_object` n'exige un non-NULL que pour les CLÉS. Sur un nom de secret inexistant,
+-- `(select decrypted_secret ...)` rend NULL, `'Bearer ' || NULL` rend NULL, et l'objet part avec
+-- un header à valeur nulle — sans la moindre exception. C'est EXACTEMENT le mode de panne du GUC
+-- qu'on prétend corriger : on remplacerait un GUC jamais posé par une entrée Vault manquante.
+--
+-- Le vrai gain de cette migration n'est donc pas là où le commentaire d'origine le plaçait : il
+-- est que `x-cron-secret` est désormais VÉRIFIÉ côté fonction, donc un secret absent devient un
+-- 401 visible dans `net._http_response` au lieu d'un 200 silencieux. La garde ci-dessous ajoute
+-- le deuxième filet : sur une base neuve ou une branche au Vault vide, la migration ÉCHOUE fort
+-- au lieu d'installer une notification morte-née.
+do $$
+begin
+  if not exists (
+    select 1 from vault.decrypted_secrets
+    where name = 'dashboard_cron_secret' and decrypted_secret is not null and decrypted_secret <> ''
+  ) then
+    raise exception 'Secret Vault « dashboard_cron_secret » absent ou vide. Appliquer 00034 d''abord : sans lui le trigger enverrait un header nul et la notification serait morte-nee EN SILENCE.';
+  end if;
+
+  if not exists (
+    select 1 from vault.decrypted_secrets
+    where name = 'service_role_key' and decrypted_secret is not null and decrypted_secret <> ''
+  ) then
+    raise exception 'Secret Vault « service_role_key » absent ou vide (contient la cle anon, cf. 00034).';
+  end if;
+end $$;
+
 -- ── 1. Le trigger d'inscription ──────────────────────────────────────────────────────────────
 create or replace function public.notify_new_user_telegram()
 returns trigger
