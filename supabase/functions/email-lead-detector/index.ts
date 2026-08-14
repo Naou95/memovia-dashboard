@@ -358,7 +358,13 @@ async function upsertLead(
     analysis.contact_name?.trim() ||
     contactEmail
 
-  const { error: insertError } = await supabaseAdmin.from('leads').insert({
+  // `upsert` et non `insert` : le select ci-dessus et cet insert ne sont PAS atomiques, et deux
+  // exécutions peuvent se chevaucher (cron de 23h + déclenchement manuel depuis le dashboard, ou
+  // deux zombies laissés par le `Promise.race` du handler, qui n'annule pas runDetector). Deux
+  // `select` simultanés ne trouvent rien, deux `insert` passent, et le CRM porte deux lignes pour
+  // le même prospect. L'index unique partiel `leads_contact_email_unique` (migration 00037) est la
+  // garantie dure ; `onConflict` évite qu'elle ne se manifeste en erreur 500 côté appelant.
+  const { error: insertError } = await supabaseAdmin.from('leads').upsert({
     name,
     type: leadType,
     canal: 'email',
@@ -374,7 +380,7 @@ async function upsertLead(
     next_action: analysis.next_action || null,
     timeline: analysis.timeline || null,
     source: 'email_auto',
-  })
+  }, { onConflict: 'contact_email' })
   if (insertError) throw new Error(`insert_failed: ${insertError.message}`)
   return 'inserted'
 }
