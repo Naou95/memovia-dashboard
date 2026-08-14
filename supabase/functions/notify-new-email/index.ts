@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { ImapFlow } from 'npm:imapflow'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
+import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 
 const FILTER_KEYWORDS = [
   'unsubscribe', 'noreply', 'no-reply', 'newsletter',
@@ -24,7 +25,22 @@ function formatDateFR(date: Date): string {
   })
 }
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
+
+  // Cette fonction nommait sa requête `_req` : elle la JETAIT. Aucun contrôle, `verify_jwt = false`
+  // et un cron `*/30` — n'importe qui connaissant l'URL déclenchait une session IMAP sur la boîte
+  // Hostinger et pouvait pousser des messages dans le Telegram de Naoufel. Refermé le 14/08/2026,
+  // avec la même porte que `telegram-weekly-report` et `notify-new-user`.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace('Bearer ', '')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const parServiceRole = !!token && !!serviceRoleKey && token === serviceRoleKey
+
+  if (!parServiceRole && !(await isAuthenticatedCronCall(req))) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
+  }
+
   try {
     const imapUser = Deno.env.get('HOSTINGER_EMAIL')
     const imapPass = Deno.env.get('HOSTINGER_IMAP_PASSWORD')
