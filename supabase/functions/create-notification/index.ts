@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,26 @@ interface NotificationPayload {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Cette fonction n'avait AUCUN contrôle applicatif alors qu'elle écrit avec le client
+  // service_role : n'importe lequel des 359 comptes du projet Supabase partagé pouvait insérer
+  // une notification arbitraire dans `dashboard_notifications`, avec un `user_id` usurpé et un
+  // `title` / `message` libres. `verify_jwt = true` ne protégeait pas : la passerelle valide la
+  // signature du JWT, or celui d'un apprenti de l'app est signé par le même projet.
+  //
+  // Le seul appelant légitime est `get-sentry/index.ts:137`, une fonction edge qui envoie déjà
+  // `Authorization: Bearer <service_role>`. Un contrôle service_role suffit donc, et il ne casse
+  // rien : vérifié par balayage, aucun appelant dans `src/` ni ailleurs.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace('Bearer ', '')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
+  if (!token || !serviceRoleKey || !timingSafeEqual(token, serviceRoleKey)) {
+    return new Response(
+      JSON.stringify({ error: 'unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
   }
 
   try {
