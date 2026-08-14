@@ -1,5 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
+import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 interface WebhookPayload {
   type: 'INSERT' | 'UPDATE' | 'DELETE'
@@ -48,6 +50,31 @@ function formatAccountType(accountType?: string): string {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
+
+  // Même trou que celui refermé sur `telegram-weekly-report` le 14/08 : aucun contrôle, et
+  // `verify_jwt = false`. N'importe qui connaissant l'URL pouvait pousser du texte arbitraire
+  // dans le Telegram de Naoufel — et pire, `record.user_id` part directement dans
+  // `auth.admin.getUserById` plus bas : en comparant une réponse 200 à une 502, on obtenait un
+  // oracle d'énumération des comptes. Refermé le 14/08/2026.
+  //
+  // 🔑 La cause racine était côté base, pas ici : le trigger `notify_new_user_telegram()`
+  // envoyait `'Bearer ' || current_setting('app.service_role_key', true)`, or ce GUC n'a jamais
+  // été posé. En SQL, `'Bearer ' || NULL` vaut NULL — le header partait vide. Ça ne se voyait pas
+  // précisément parce que cette fonction ne lisait rien. La migration jumelle bascule le trigger
+  // sur le secret de cron dédié (`x-cron-secret`), celui posé par 00034.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace('Bearer ', '')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  // timingSafeEqual et pas `===` : c'est le standard de ce dépôt pour comparer un secret
+  // (send-telegram, memovia-mcp, telegram-webhook, notify-stripe-payment l'utilisent déjà).
+  const parServiceRole = !!token && !!serviceRoleKey && timingSafeEqual(token, serviceRoleKey)
+
+  if (!parServiceRole && !(await isAuthenticatedCronCall(req))) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
 
   try {
     const payload: WebhookPayload = await req.json()
