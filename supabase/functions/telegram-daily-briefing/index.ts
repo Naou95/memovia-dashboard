@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@17'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
+import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 
 interface QontoBankAccount { balance_cents: number }
 interface QontoResponse { bank_accounts: QontoBankAccount[] }
@@ -8,12 +9,17 @@ interface QontoResponse { bank_accounts: QontoBankAccount[] }
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
 
-  // Only accept calls authenticated with the service role key (cron via pg_net)
+  // Deux portes d'entrée, l'une OU l'autre suffit :
+  //  - `x-cron-secret` (pg_cron, cf. _shared/cronAuth.ts et migration 00034). C'est la voie
+  //    normale depuis le 14/08/2026 : l'ancienne dépendait d'un GUC jamais posé, ce qui a
+  //    fait échouer ce cron 117 fois d'affilée depuis le 20/04, sans que rien ne le signale.
+  //  - la clé service_role en Authorization, conservée pour tout appel manuel existant.
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace('Bearer ', '')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const parServiceRole = !!token && !!serviceRoleKey && token === serviceRoleKey
 
-  if (!token || token !== serviceRoleKey) {
+  if (!parServiceRole && !(await isAuthenticatedCronCall(req))) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
   }
 

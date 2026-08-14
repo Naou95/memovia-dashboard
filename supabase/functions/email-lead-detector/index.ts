@@ -1,4 +1,5 @@
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 import { ImapFlow } from 'npm:imapflow'
 import { simpleParser } from 'npm:mailparser'
 import { Buffer } from 'node:buffer'
@@ -28,7 +29,14 @@ const MAX_PER_FOLDER = 10
 const MAX_CONVERSATIONS = 10
 const MAX_BODY_CHARS = 1000
 const CLAUDE_DELAY_MS = 100
-const GLOBAL_TIMEOUT_MS = 45_000
+// 45 s ne suffisaient pas : mesuré le 14/08/2026, deux appels réels consécutifs (à froid puis à
+// chaud) ont rendu 504 `global_timeout` en écrivant ZÉRO lead. Le scan IMAP plus les analyses
+// Claude (jusqu'à MAX_CONVERSATIONS, avec la latence du modèle sur chacune) dépassent le budget.
+// Le cron n'était donc pas seulement mal authentifié : même authentifié, il ne produisait rien.
+// 110 s laisse la marge nécessaire tout en restant sous la limite d'exécution de la plateforme.
+// ⚠️ À garder cohérent avec le `timeout_milliseconds` du cron (migration 00036) : un pg_net qui
+// abandonne avant ce délai fait croire à un échec alors que la fonction travaille encore.
+const GLOBAL_TIMEOUT_MS = 110_000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -464,10 +472,18 @@ async function runDetector(
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
+  // Trois portes, l'une suffit : x-cron-secret (pg_cron), la clé service_role en
+  // Authorization, ou un JWT utilisateur du dashboard (déclenchement manuel depuis l'UI).
+  //
+  // La voie x-cron-secret est la seule qui marche réellement pour le cron (migration 00034) :
+  // l'ancienne s'appuyait sur un GUC jamais posé → 113 échecs d'affilée depuis le 23/04, en
+  // silence. Et même posé, ça n'aurait pas suffi ici : `validateAuth` passe par
+  // `auth.getUser()`, qui attend un JWT **utilisateur** — une clé de service ne franchit pas
+  // cette porte, donc le fallback `isCronCall` ci-dessous était le seul chemin possible.
   const authHeader = req.headers.get('Authorization') ?? ''
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   const isCronCall = serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`
-  if (!isCronCall) {
+  if (!isCronCall && !(await isAuthenticatedCronCall(req))) {
     const authResult = await validateAuth(req)
     if (authResult instanceof Response) return authResult
   }
