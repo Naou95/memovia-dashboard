@@ -1,4 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 interface LeadRecord {
   id: string
@@ -23,6 +25,29 @@ function addDaysISO(days: number): string {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
+
+  // Aucun contrôle applicatif jusqu'ici, alors que la fonction agit avec le client service_role
+  // sur un payload de webhook entièrement forgeable : n'importe quel compte du projet partagé
+  // pouvait déclarer un lead « chaud » qui n'existe pas et déclencher les actions associées.
+  //
+  // 🔑 TROISIÈME VARIANTE DU MÊME BUG DE GUC, et la plus discrète : le trigger
+  // `trigger_lead_hot_webhook()` envoie
+  //     'Bearer ' || current_setting('app.settings.service_role_key', true)
+  // — un nom de GUC ENCORE DIFFÉRENT de `app.service_role_key` utilisé ailleurs. Vérifié le
+  // 14/08 : les deux sont NULL, et la base ne déclare AUCUN GUC `app.*`. Donc le header partait
+  // nul ici aussi, sans que personne s'en aperçoive puisque rien ne le lisait.
+  // La migration 00040 bascule ce trigger sur `x-cron-secret`.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace('Bearer ', '')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const parServiceRole = !!token && !!serviceRoleKey && timingSafeEqual(token, serviceRoleKey)
+
+  if (!parServiceRole && !(await isAuthenticatedCronCall(req))) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
 
   try {
     const payload: WebhookPayload = await req.json()
