@@ -1,9 +1,26 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@17'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
+import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
+
+  // Cette fonction n'avait AUCUN contrôle d'authentification, et tourne en `verify_jwt = false` :
+  // n'importe qui sur internet pouvait la déclencher, envoyer un rapport Telegram à Naoufel et
+  // faire consommer les API Stripe et Qonto au passage. Refermé le 14/08/2026.
+  //
+  // Elle « passait » là où ses deux jumelles échouaient depuis avril, précisément parce qu'elle
+  // ne vérifiait rien : son header Authorization était NULL lui aussi (GUC jamais posé), mais
+  // personne ne le lisait. C'était une panne masquée, pas un cron sain.
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const token = authHeader.replace('Bearer ', '')
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const parServiceRole = !!token && !!serviceRoleKey && token === serviceRoleKey
+
+  if (!parServiceRole && !(await isAuthenticatedCronCall(req))) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
+  }
 
   const chatId = Deno.env.get('TELEGRAM_CHAT_ID_NAOUFEL')
   if (!chatId) {
