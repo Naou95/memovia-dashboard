@@ -31,12 +31,16 @@ const MAX_BODY_CHARS = 1000
 const CLAUDE_DELAY_MS = 100
 // 45 s ne suffisaient pas : mesuré le 14/08/2026, deux appels réels consécutifs (à froid puis à
 // chaud) ont rendu 504 `global_timeout` en écrivant ZÉRO lead. Le scan IMAP plus les analyses
-// Claude (jusqu'à MAX_CONVERSATIONS, avec la latence du modèle sur chacune) dépassent le budget.
+// LLM (jusqu'à MAX_CONVERSATIONS, avec la latence du modèle sur chacune) dépassent le budget.
 // Le cron n'était donc pas seulement mal authentifié : même authentifié, il ne produisait rien.
-// 110 s laisse la marge nécessaire tout en restant sous la limite d'exécution de la plateforme.
-// ⚠️ À garder cohérent avec le `timeout_milliseconds` du cron (migration 00036) : un pg_net qui
-// abandonne avant ce délai fait croire à un échec alors que la fonction travaille encore.
-const GLOBAL_TIMEOUT_MS = 110_000
+// Recalibré le 20/08/2026 pour NIM : la file du tier gratuit fait varier un appel de 4 à 94 s
+// (mesuré au banc, 12 appels réels) là où Claude tenait en 2-5 s. À 110 s de budget global, une
+// nuit lente n'analysait plus qu'1-2 conversations. 350 s reste sous le wall clock edge (400 s)
+// et couvre ~4-8 conversations par nuit ; le reliquat éventuel est rattrapé les nuits suivantes
+// (fenêtre DAYS_BACK = 14 j).
+// ⚠️ À garder cohérent avec le `timeout_milliseconds` du cron (migration 00041, avant : 00036) :
+// un pg_net qui abandonne avant ce délai fait croire à un échec alors que la fonction travaille.
+const GLOBAL_TIMEOUT_MS = 350_000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -273,32 +277,47 @@ function extractJson(text: string): ClaudeAnalysis | null {
   try { return JSON.parse(match[0]) as ClaudeAnalysis } catch { return null }
 }
 
+// Bascule Anthropic → NVIDIA NIM le 20/08/2026 : le compte API Anthropic n'a plus de crédit
+// (6× « credit balance too low » au run du 19/08). Tier NIM gratuit : 40 req/min, largement
+// au-dessus des MAX_CONVERSATIONS appels/nuit.
+// ⚠️ Modèle choisi au BANC (scratchpad banc-nim-lead-detector.mjs, 20/08) sur le vrai contrat
+// (prompt + extractJson) : beaucoup d'entrées de /v1/models répondent 404 sur ce compte
+// (mistral-large, kimi — listé ≠ provisionné), et les llama-70b tournent à 40-125 s/appel,
+// intenable sur 10 conversations dans le wall clock edge.
+const NIM_MODEL = 'deepseek-ai/deepseek-v4-flash-0731'
+
 async function analyzeConversation(
   apiKey: string,
   conversation: RawEmail[],
 ): Promise<ClaudeAnalysis | null> {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      'Authorization': `Bearer ${apiKey}`,
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: NIM_MODEL,
       max_tokens: 1024,
-      system: CLAUDE_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: buildConversationMessage(conversation) }],
+      temperature: 0.1,
+      messages: [
+        { role: 'system', content: CLAUDE_SYSTEM_PROMPT },
+        { role: 'user', content: buildConversationMessage(conversation) },
+      ],
     }),
+    // Le tier gratuit met parfois en file (529/latence) : borner l'appel pour qu'une
+    // conversation coincée ne mange pas le budget des suivantes. 100 s et pas moins :
+    // 94 s observés au banc sur un appel RÉUSSI — un garde plus court tuerait des succès.
+    signal: AbortSignal.timeout(100_000),
   })
 
   if (!resp.ok) {
     const errText = await resp.text().catch(() => '')
-    throw new Error(`claude_api_${resp.status}: ${errText.slice(0, 200)}`)
+    throw new Error(`nim_api_${resp.status}: ${errText.slice(0, 200)}`)
   }
 
-  const data = await resp.json() as { content?: Array<{ type: string; text?: string }> }
-  const text = data.content?.find((c) => c.type === 'text')?.text || ''
+  const data = await resp.json() as { choices?: Array<{ message?: { content?: string } }> }
+  const text = data.choices?.[0]?.message?.content || ''
   return extractJson(text)
 }
 
@@ -391,7 +410,7 @@ async function runDetector(
   supabaseAdmin: ReturnType<typeof createClient>,
   imapUser: string,
   imapPass: string,
-  anthropicKey: string,
+  nimKey: string,
 ): Promise<Response> {
   const client = new ImapFlow({
     host: 'imap.hostinger.com',
@@ -440,9 +459,9 @@ async function runDetector(
       stats.analyzed++
       let analysis: ClaudeAnalysis | null = null
       try {
-        analysis = await analyzeConversation(anthropicKey, conversation)
+        analysis = await analyzeConversation(nimKey, conversation)
       } catch (err) {
-        console.error('Claude error:', err)
+        console.error('NIM error:', err)
         stats.errors++
         await new Promise((r) => setTimeout(r, CLAUDE_DELAY_MS))
         continue
@@ -496,10 +515,10 @@ Deno.serve(async (req) => {
 
   const imapUser = Deno.env.get('HOSTINGER_EMAIL')
   const imapPass = Deno.env.get('HOSTINGER_IMAP_PASSWORD')
-  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
+  const nimKey = Deno.env.get('NVIDIA_NIM_KEY')
 
   if (!imapUser || !imapPass) return errorResponse('email_not_configured', 500)
-  if (!anthropicKey) return errorResponse('anthropic_not_configured', 500)
+  if (!nimKey) return errorResponse('nim_not_configured', 500)
 
   try { await req.json() } catch { /* ignore */ }
 
@@ -516,7 +535,7 @@ Deno.serve(async (req) => {
   )
 
   return Promise.race([
-    runDetector(supabaseAdmin, imapUser, imapPass, anthropicKey),
+    runDetector(supabaseAdmin, imapUser, imapPass, nimKey),
     timeout,
   ])
 })
