@@ -21,7 +21,7 @@ function StatCard({
 }) {
   return (
     <div
-      className="flex items-center gap-3 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
+      className="flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
     >
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
@@ -43,7 +43,7 @@ function StatCard({
 
 function SkeletonCard({ lines = 4 }: { lines?: number }) {
   return (
-    <div className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
+    <div className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <div
         className="flex items-center gap-2 border-b px-4 py-3"
         style={{ borderColor: 'var(--border-color)' }}
@@ -104,7 +104,7 @@ export default function GitHubPage() {
         <motion.div
           variants={staggerItem}
           role="alert"
-          className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
+          className="rounded-[var(--radius-card)] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
         >
           {error} — Vérifiez le secret Supabase GITHUB_TOKEN
         </motion.div>
@@ -116,7 +116,7 @@ export default function GitHubPage() {
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="h-16 skeleton rounded-[8px] border border-[var(--border-color)]"
+              className="h-16 skeleton rounded-[var(--radius-card)] border border-[var(--border-color)]"
             />
           ))}
         </motion.div>

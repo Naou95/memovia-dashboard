@@ -38,24 +38,24 @@ function TopNavItem({ item, isActive }: { item: NavItem; isActive: boolean }) {
       className={cn(
         'relative flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium transition-transform duration-150 ease-out',
         isActive
-          ? 'text-[var(--memovia-violet)]'
+          ? 'text-[var(--nav-fg-active)]'
           : !isSoon
-          ? 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] active:scale-[0.98]'
-          : 'cursor-default text-[var(--text-muted)]'
+          ? 'text-[var(--nav-fg)] hover:bg-[var(--nav-hover)] hover:text-white active:scale-[0.98]'
+          : 'cursor-default text-[var(--nav-fg)] opacity-50'
       )}
       aria-current={isActive ? 'page' : undefined}
     >
       {isActive && (
         <motion.span
           layoutId="topnav-active-pill"
-          className="absolute inset-0 rounded-lg bg-[var(--memovia-violet-light)]"
+          className="absolute inset-0 rounded-lg bg-[var(--memovia-violet)]"
           transition={spring.slide}
         />
       )}
       <Icon
         className={cn(
           'relative z-10 h-[15px] w-[15px] shrink-0',
-          isActive ? 'text-[var(--memovia-violet)]' : 'text-[var(--text-muted)]',
+          isActive ? 'text-white' : 'text-[var(--nav-fg)]',
           isSoon && 'opacity-60'
         )}
         strokeWidth={2}

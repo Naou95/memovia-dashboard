@@ -90,7 +90,7 @@ export function CreateEventModal({ isOpen, defaultStart, defaultEnd, onClose, on
     <div className="cal-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
 
-      <div className="cal-modal-panel relative z-10 w-full max-w-md rounded-[8px] border border-[var(--border-color)] bg-white shadow-xl">
+      <div className="cal-modal-panel relative z-10 w-full max-w-md rounded-[var(--radius-card)] border border-[var(--border-color)] bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-4">
           <div className="flex items-center gap-2.5">
@@ -113,7 +113,7 @@ export function CreateEventModal({ isOpen, defaultStart, defaultEnd, onClose, on
           /* Success state */
           <div className="flex flex-col gap-5 p-5">
             <div className="flex flex-col items-center gap-3 py-2 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-[8px] bg-[var(--trend-up-bg)]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-card)] bg-[var(--trend-up-bg)]">
                 <Calendar className="h-6 w-6 text-[var(--accent-mint)]" />
               </div>
               <div>

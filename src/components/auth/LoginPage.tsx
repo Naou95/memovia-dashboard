@@ -61,7 +61,7 @@ export default function LoginPage() {
     return (
       <LoginShell>
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[8px] bg-[var(--memovia-violet-light)]">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[var(--radius-card)] bg-[var(--memovia-violet-light)]">
             <Mail className="h-7 w-7 text-[var(--memovia-violet)]" />
           </div>
           <h2 className="mb-2 text-[22px] font-bold tracking-tight text-[var(--text-primary)]">
@@ -124,7 +124,7 @@ export default function LoginPage() {
 
       {/* Expired link banner */}
       {linkExpired && (
-        <div className="mb-6 rounded-[8px] border border-[var(--warning)]/20 bg-[var(--warning-bg)] px-4 py-3 text-[13px] text-[var(--warning)]">
+        <div className="mb-6 rounded-[var(--radius-card)] border border-[var(--warning)]/20 bg-[var(--warning-bg)] px-4 py-3 text-[13px] text-[var(--warning)]">
           Ce lien de connexion a expiré. Demandez-en un nouveau ci-dessous.
         </div>
       )}
@@ -146,7 +146,7 @@ export default function LoginPage() {
                 placeholder="vous@memovia.io"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-10 rounded-[8px]"
+                className="pl-10 h-10 rounded-[var(--radius-card)]"
                 disabled={isPending}
               />
             </div>
@@ -166,7 +166,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10 h-10 rounded-[8px]"
+                className="pl-10 pr-10 h-10 rounded-[var(--radius-card)]"
                 disabled={isPending}
               />
               <button
@@ -183,7 +183,7 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="h-10 w-full rounded-[8px] bg-[var(--text-primary)] text-white hover:bg-[var(--text-primary)]/90"
+            className="h-10 w-full rounded-[var(--radius-card)] bg-[var(--text-primary)] text-white hover:bg-[var(--text-primary)]/90"
             disabled={isPending}
           >
             {isPending ? (
@@ -221,7 +221,7 @@ export default function LoginPage() {
                 placeholder="vous@memovia.io"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-10 rounded-[8px]"
+                className="pl-10 h-10 rounded-[var(--radius-card)]"
                 disabled={isPending}
               />
             </div>
@@ -229,7 +229,7 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="h-10 w-full rounded-[8px] bg-[var(--text-primary)] text-white hover:bg-[var(--text-primary)]/90"
+            className="h-10 w-full rounded-[var(--radius-card)] bg-[var(--text-primary)] text-white hover:bg-[var(--text-primary)]/90"
             disabled={isPending}
           >
             {isPending ? (
@@ -267,7 +267,7 @@ function LoginShell({ children }: { children: React.ReactNode }) {
       {/* Right column — visual/quote (hidden on mobile) */}
       <div className="hidden md:flex md:w-[45%] md:items-center md:justify-center md:bg-[var(--bg-primary)] md:px-12">
         <div className="max-w-[420px]">
-          <div className="mb-6 inline-flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--memovia-violet-light)]">
+          <div className="mb-6 inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-card)] bg-[var(--memovia-violet-light)]">
             <svg
               width="18"
               height="18"

@@ -157,7 +157,7 @@ function KeywordResearchPanel({ onUseKeyword }: { onUseKeyword: (kw: string) => 
 
           {/* Related keywords */}
           {result.related_keywords.length > 0 && (
-            <div className="rounded-[8px] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+            <div className="rounded-[var(--radius-card)] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
                 Mots-clés associés
               </p>
@@ -240,7 +240,7 @@ function CompetitorPanel() {
       {result && (
         <div className="flex flex-col gap-4">
           {/* Top pages */}
-          <div className="rounded-[8px] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+          <div className="rounded-[var(--radius-card)] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
               Top 20 pages organiques — {result.domain}
             </p>
@@ -270,7 +270,7 @@ function CompetitorPanel() {
 
           {/* Content gaps */}
           {result.content_gaps.length > 0 && (
-            <div className="rounded-[8px] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+            <div className="rounded-[var(--radius-card)] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
                 Opportunités content gap pour MEMOVIA
               </p>
@@ -311,7 +311,7 @@ const GEO_CRITERIA = [
 function GeoExplainerPanel() {
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-[8px] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+      <div className="rounded-[var(--radius-card)] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
         <p className="mb-1 text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
           Qu'est-ce que le Score GEO ?
         </p>
@@ -322,7 +322,7 @@ function GeoExplainerPanel() {
         </p>
       </div>
 
-      <div className="rounded-[8px] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+      <div className="rounded-[var(--radius-card)] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
           Les 6 critères (total : 100 pts)
         </p>
@@ -424,7 +424,7 @@ function BacklinksPanel() {
 
           {/* Top pages */}
           {result.top_pages.length > 0 && (
-            <div className="rounded-[8px] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+            <div className="rounded-[var(--radius-card)] border p-4" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
                 Top 10 pages les plus linkées
               </p>
@@ -464,7 +464,7 @@ function MetricCard({ label, value, unit, valueColor }: {
 }) {
   return (
     <div
-      className="flex flex-col gap-1 rounded-[8px] border px-3 py-2.5"
+      className="flex flex-col gap-1 rounded-[var(--radius-card)] border px-3 py-2.5"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{label}</p>
@@ -494,7 +494,7 @@ function TrendChart({ trend }: { trend: { year: number; month: number; search_vo
   const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 
   return (
-    <div className="rounded-[8px] border p-3" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+    <div className="rounded-[var(--radius-card)] border p-3" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
       <p className="mb-2 text-[11px]" style={{ color: 'var(--text-muted)' }}>Tendance 12 mois</p>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
         <polyline

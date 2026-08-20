@@ -84,7 +84,7 @@ export default function QontoPage() {
       </motion.div>
 
       {/* Graphique trésorerie */}
-      <motion.section variants={staggerItem} className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
+      <motion.section variants={staggerItem} className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
             Trésorerie mensuelle
@@ -100,7 +100,7 @@ export default function QontoPage() {
       </motion.section>
 
       {/* Transactions */}
-      <motion.section variants={staggerItem} className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
+      <motion.section variants={staggerItem} className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
         <h3 className="mb-4 text-[14px] font-semibold text-[var(--text-primary)]">
           Transactions
         </h3>

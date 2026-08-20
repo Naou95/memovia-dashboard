@@ -195,7 +195,7 @@ export default function ProspectionPage() {
       {/* ── Filters ──────────────────────────────────────────────────────────── */}
       <motion.div
         variants={staggerItem}
-        className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
+        className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
       >
         {/* Statut label + pills */}
         <div className="flex flex-wrap items-center gap-2">

@@ -122,9 +122,9 @@ export default function SeoPage() {
       <motion.div variants={staggerItem} className="grid shrink-0 grid-cols-3 gap-3">
         {isLoading ? (
           <>
-            <div className="skeleton h-[60px] rounded-[8px]" />
-            <div className="skeleton h-[60px] rounded-[8px]" />
-            <div className="skeleton h-[60px] rounded-[8px]" />
+            <div className="skeleton h-[60px] rounded-[var(--radius-card)]" />
+            <div className="skeleton h-[60px] rounded-[var(--radius-card)]" />
+            <div className="skeleton h-[60px] rounded-[var(--radius-card)]" />
           </>
         ) : (
           <>
@@ -231,7 +231,7 @@ export default function SeoPage() {
 
               {generationStep === 'error' && (
                 <div
-                  className="rounded-[8px] border px-5 py-4 text-[13px]"
+                  className="rounded-[var(--radius-card)] border px-5 py-4 text-[13px]"
                   style={{
                     borderColor: '#fca5a5',
                     backgroundColor: '#fef2f2',
@@ -314,7 +314,7 @@ function SuggestionsTab({ seeds, suggestions, isLoading, onAddSeed, onDeleteSeed
   return (
     <div className="flex flex-col gap-4">
       {/* Seeds management */}
-      <div className="rounded-[8px] border p-5" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+      <div className="rounded-[var(--radius-card)] border p-5" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
         <h2 className="mb-3 text-[14px] font-semibold" style={{ color: 'var(--text-primary)' }}>
           Sujets de base
         </h2>
@@ -394,7 +394,7 @@ function SuggestionCard({ suggestion, onSelect }: { suggestion: SeoSuggestion; o
 
   return (
     <div
-      className="flex flex-col gap-2 rounded-[8px] border p-4"
+      className="flex flex-col gap-2 rounded-[var(--radius-card)] border p-4"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -449,7 +449,7 @@ function StatCard({
 }) {
   return (
     <div
-      className="flex items-center gap-3 rounded-[8px] border px-4 py-3"
+      className="flex items-center gap-3 rounded-[var(--radius-card)] border px-4 py-3"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       <div

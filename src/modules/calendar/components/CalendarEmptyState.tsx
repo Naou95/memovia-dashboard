@@ -25,8 +25,8 @@ export function CalendarEmptyState({ googleConfigured, canConnect, onConnect }: 
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 rounded-[8px] border border-[var(--border-color)] bg-white py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-[8px] bg-[var(--memovia-violet-light)]">
+    <div className="flex flex-col items-center gap-6 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-white py-16 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-[var(--radius-card)] bg-[var(--memovia-violet-light)]">
         <Calendar className="h-7 w-7 text-[var(--memovia-violet)]" />
       </div>
 

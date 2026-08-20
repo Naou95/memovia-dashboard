@@ -3,7 +3,7 @@ import { Sparkles } from 'lucide-react'
 export default function CopilotPage() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-[8px] bg-[var(--memovia-violet-light)]">
+      <div className="flex h-14 w-14 items-center justify-center rounded-[var(--radius-card)] bg-[var(--memovia-violet-light)]">
         <Sparkles className="h-7 w-7 text-[var(--memovia-violet)]" />
       </div>
       <div className="space-y-1">

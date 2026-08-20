@@ -17,7 +17,7 @@ function KpiCard({ icon, label, value, accent }: KpiCardProps) {
   const isCssVar = accent.startsWith('var(')
   return (
     <div
-      className="flex items-center gap-3 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
+      className="flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
     >
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"

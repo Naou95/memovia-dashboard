@@ -32,9 +32,9 @@ export default function AppLayout() {
   }, [section])
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg-primary)]">
-      {/* Top bar : logo + nav horizontale (desktop) / hamburger (mobile) */}
-      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-[var(--border-color)] bg-[var(--bg-sidebar)] px-5">
+    <div className="flex h-screen flex-col overflow-hidden" style={{ background: 'var(--bg-app)' }}>
+      {/* Nav sombre (refonte 20/08/2026) : logo + nav horizontale (desktop) / hamburger (mobile) */}
+      <header className="flex h-16 shrink-0 items-center gap-4 px-5" style={{ backgroundColor: 'var(--nav-bg)' }}>
         {/* Mobile hamburger */}
         <div className="md:hidden">
           <MobileNav />
@@ -59,7 +59,7 @@ export default function AppLayout() {
             />
             <circle cx="10" cy="15.5" r="1.3" fill="#7C3AED" />
           </svg>
-          <span className="text-[14px] font-bold tracking-tight text-[var(--text-primary)]">
+          <span className="text-[14px] font-bold tracking-tight text-white">
             MEMOVIA
           </span>
         </div>

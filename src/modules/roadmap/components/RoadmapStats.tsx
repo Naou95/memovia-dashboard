@@ -21,7 +21,7 @@ export function RoadmapStats({ items }: RoadmapStatsProps) {
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+          className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
         >
           <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-label)]">
             {stat.label}

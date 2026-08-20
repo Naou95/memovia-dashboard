@@ -40,7 +40,7 @@ export function KeywordInput({ step, onGenerate, defaultKeyword, onDefaultKeywor
 
   return (
     <div
-      className="rounded-[8px] border p-6"
+      className="rounded-[var(--radius-card)] border p-6"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       <h2
