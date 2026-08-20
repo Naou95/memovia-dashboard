@@ -262,6 +262,67 @@ export interface Database {
         }
         Relationships: []
       }
+      rdv: {
+        Row: {
+          id: string
+          title: string
+          rdv_date: string
+          lead_id: string | null
+          gcal_event_id: string | null
+          audio_path: string | null
+          transcript: string | null
+          cr: string | null
+          cr_status: 'manquant' | 'en_cours' | 'fait'
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          rdv_date: string
+          lead_id?: string | null
+          gcal_event_id?: string | null
+          audio_path?: string | null
+          transcript?: string | null
+          cr?: string | null
+          cr_status?: 'manquant' | 'en_cours' | 'fait'
+          created_by?: string | null
+        }
+        Update: {
+          title?: string
+          rdv_date?: string
+          lead_id?: string | null
+          audio_path?: string | null
+          transcript?: string | null
+          cr?: string | null
+          cr_status?: 'manquant' | 'en_cours' | 'fait'
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lead_calls: {
+        Row: {
+          id: string
+          lead_id: string
+          outcome: 'repondu' | 'pas_repondu' | 'rappel'
+          note: string | null
+          called_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          outcome: 'repondu' | 'pas_repondu' | 'rappel'
+          note?: string | null
+          called_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          note?: string | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           id: string
@@ -276,6 +337,8 @@ export interface Database {
           created_at: string
           updated_at: string
           created_by: string | null
+          contact_phone: string | null
+          archived: boolean
         }
         Insert: {
           id?: string

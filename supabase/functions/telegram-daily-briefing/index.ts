@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0]
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    const [stripeResult, qontoResult, tasksResult, leadsResult] = await Promise.allSettled([
+    const [stripeResult, qontoResult, tasksResult, leadsResult, rdvResult] = await Promise.allSettled([
       // Stripe MRR
       (async () => {
         const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
@@ -101,12 +101,25 @@ Deno.serve(async (req) => {
       // `count: 'exact'` : le titre doit dire COMBIEN il y en a, pas combien on en montre.
       // On tire large (50) puis on trie côté TS, parce que PostgREST ne sait pas trier sur un
       // coalesce des deux dates.
+      // ⚠️ `archived = false` : depuis la refonte v2 Phase 1 (20/08/2026), la liste pré-refonte
+      // est archivée. Sans ce filtre, 11 leads morts rempliraient la section chaque matin.
       supabase
         .from('leads')
         .select('id, name, status, updated_at, last_contact_date', { count: 'exact' })
+        .eq('archived', false)
         .not('status', 'in', '(gagne,perdu)')
         .or(`last_contact_date.lt.${sevenDaysAgo},and(last_contact_date.is.null,updated_at.lt.${sevenDaysAgo})`)
         .limit(50),
+
+      // RDV passés sans compte rendu (refonte v2 Phase 2) : c'est le filet anti-oubli.
+      // Un RDV reste relancé chaque matin tant que son CR n'est pas fait.
+      supabase
+        .from('rdv')
+        .select('id, title, rdv_date')
+        .eq('cr_status', 'manquant')
+        .lt('rdv_date', new Date().toISOString())
+        .order('rdv_date', { ascending: false })
+        .limit(10),
     ])
 
     const dayLabel = new Date().toLocaleDateString('fr-FR', {
@@ -196,6 +209,25 @@ Deno.serve(async (req) => {
     }
 
     lines.push('')
+
+    // RDV sans compte rendu — même règle que les leads : ne jamais confondre
+    // « rien à signaler » et « requête en échec ».
+    const rdvManquants = rdvResult.status === 'fulfilled' ? (rdvResult.value.data ?? []) : []
+    if (rdvManquants.length > 0) {
+      lines.push(`📝 *RDV sans compte rendu (${rdvManquants.length})*`)
+      for (const r of rdvManquants) {
+        const jours = Math.floor((Date.now() - new Date(r.rdv_date).getTime()) / 86400000)
+        const age = jours === 0 ? 'aujourd\'hui' : jours === 1 ? 'hier' : `il y a ${jours} j`
+        lines.push(`• ${echapperMarkdown(r.title)} _(${age})_`)
+      }
+      lines.push('_Uploade l\'enregistrement sur la fiche, ou saisis le CR à la main._')
+      lines.push('')
+    } else if (rdvResult.status === 'rejected' || rdvResult.value.error) {
+      console.error('[briefing] lecture des rdv en échec')
+      lines.push('📝 *RDV* : ⚠️ données indisponibles, requête en échec')
+      lines.push('')
+    }
+
     lines.push('_Bonne journée 🚀_')
 
     await sendTelegramMessage(chatId, lines.join('\n'))

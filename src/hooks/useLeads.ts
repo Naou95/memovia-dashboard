@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Lead, LeadInsert, LeadUpdate } from '@/types/leads'
+import type { Lead, LeadInsert, LeadUpdate, CallOutcome } from '@/types/leads'
+
+export interface LogCallInput {
+  outcome: CallOutcome
+  note?: string
+  nextAction?: string
+  followUpDate?: string
+}
 
 export interface UseLeadsResult {
   leads: Lead[]
@@ -9,6 +16,7 @@ export interface UseLeadsResult {
   createLead: (data: LeadInsert) => Promise<void>
   updateLead: (id: string, data: LeadUpdate) => Promise<void>
   deleteLead: (id: string) => Promise<void>
+  logCall: (leadId: string, input: LogCallInput) => Promise<void>
 }
 
 export function useLeads(): UseLeadsResult {
@@ -69,5 +77,28 @@ export function useLeads(): UseLeadsResult {
     await fetchAll()
   }
 
-  return { leads, isLoading, error, createLead, updateLead, deleteLead }
+  // Log d'appel < 30 s : insère l'appel puis met à jour le lead (dernier contact,
+  // prochaine action). Deux écritures sans transaction : si la 2e échoue, l'appel
+  // reste loggé — acceptable, la fiche se corrige à la main.
+  const logCall = async (leadId: string, input: LogCallInput): Promise<void> => {
+    const { error: callError } = await supabase.from('lead_calls').insert({
+      lead_id: leadId,
+      outcome: input.outcome,
+      note: input.note || null,
+    })
+    if (callError) throw callError
+
+    const update: LeadUpdate = {
+      last_contact_date: new Date().toISOString().slice(0, 10),
+      canal: 'appel',
+    }
+    if (input.nextAction) update.next_action = input.nextAction
+    if (input.followUpDate) update.follow_up_date = input.followUpDate
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: leadError } = await supabase.from('leads').update(update as any).eq('id', leadId)
+    if (leadError) throw leadError
+    await fetchAll()
+  }
+
+  return { leads, isLoading, error, createLead, updateLead, deleteLead, logCall }
 }
