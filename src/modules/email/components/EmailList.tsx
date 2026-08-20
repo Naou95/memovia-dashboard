@@ -45,11 +45,11 @@ function getAvatarColor(msg: EmailMessage): string {
     hash = str.charCodeAt(i) + ((hash << 5) - hash)
   }
   const colors = [
-    'var(--memovia-violet)',  // #7C3AED
-    'var(--accent-blue)',     // #3B82F6
-    'var(--success)',         // #16A34A
-    'var(--warning)',         // #D97706
-    'var(--danger)',          // #DC2626
+    'var(--memovia-violet)',
+    'var(--accent-blue)',
+    'var(--success)',
+    'var(--warning)',
+    'var(--danger)',
     'var(--chart-purple-400)',
     'var(--memovia-violet-hover)',
     'var(--chart-purple-600)',
@@ -57,25 +57,25 @@ function getAvatarColor(msg: EmailMessage): string {
   return colors[Math.abs(hash) % colors.length]
 }
 
+/**
+ * Liste dense « une ligne par mail » (refonte Mail du 20/08/2026, modèle
+ * Dribbble Holesinsky) : point non-lu · avatar · expéditeur · chip urgent ·
+ * objet · pièce jointe · date. Pas de fausse préview — on n'a que l'objet.
+ */
 export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailListProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col">
-        {Array.from({ length: 10 }).map((_, i) => (
+        {Array.from({ length: 12 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-start gap-3 px-4 py-3"
+            className="flex items-center gap-3 px-5 py-[13px]"
             style={{ borderBottom: '1px solid var(--border-subtle)' }}
           >
-            <div
-              className="h-10 w-10 shrink-0 animate-pulse rounded-full"
-              style={{ backgroundColor: 'var(--border-color)' }}
-            />
-            <div className="flex-1 space-y-2 pt-0.5">
-              <div className="h-3 w-28 animate-pulse rounded" style={{ backgroundColor: 'var(--border-color)' }} />
-              <div className="h-3 w-full animate-pulse rounded" style={{ backgroundColor: 'var(--border-color)' }} />
-              <div className="h-3 w-3/4 animate-pulse rounded" style={{ backgroundColor: 'var(--border-color)' }} />
-            </div>
+            <div className="h-7 w-7 shrink-0 animate-pulse rounded-full" style={{ backgroundColor: 'var(--border-color)' }} />
+            <div className="h-3 w-36 animate-pulse rounded" style={{ backgroundColor: 'var(--border-color)' }} />
+            <div className="h-3 flex-1 animate-pulse rounded" style={{ backgroundColor: 'var(--border-color)' }} />
+            <div className="h-3 w-14 animate-pulse rounded" style={{ backgroundColor: 'var(--border-color)' }} />
           </div>
         ))}
       </div>
@@ -84,7 +84,7 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-2">
+      <div className="flex flex-col items-center justify-center gap-2 py-20">
         <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
           Aucun email
         </p>
@@ -101,7 +101,7 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
           <button
             key={msg.uid}
             onClick={() => onSelect(msg.uid)}
-            className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors"
+            className="group flex w-full items-center gap-3 px-5 py-[13px] text-left transition-colors"
             style={{
               transitionDuration: '120ms',
               transitionTimingFunction: 'var(--ease-out)',
@@ -115,74 +115,58 @@ export function EmailList({ messages, isLoading, selectedUid, onSelect }: EmailL
               if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'
             }}
           >
-            {/* Unread dot */}
-            <div className="flex w-2 shrink-0 items-center pt-4">
+            {/* Point non-lu */}
+            <span className="w-2 shrink-0">
               {isUnread && (
-                <span
-                  className="block h-2 w-2 rounded-full"
-                  style={{ backgroundColor: 'var(--memovia-violet)' }}
-                />
+                <span className="block h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--memovia-violet)' }} />
               )}
-            </div>
+            </span>
 
-            {/* Avatar */}
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold text-white"
+            {/* Avatar compact */}
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
               style={{ backgroundColor: getAvatarColor(msg) }}
             >
               {getSenderInitial(msg)}
-            </div>
+            </span>
 
-            {/* Content */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span
-                  className="truncate text-[13px]"
-                  style={{
-                    color: 'var(--text-primary)',
-                    fontWeight: isUnread ? 600 : 400,
-                  }}
-                >
-                  {getSenderName(msg)}
-                </span>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {msg.flagged && (
-                    <Star size={11} style={{ color: 'var(--warning)', fill: 'var(--warning)' }} />
-                  )}
-                  {msg.hasAttachments && (
-                    <Paperclip size={11} style={{ color: 'var(--text-muted)' }} />
-                  )}
-                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                    {formatDate(msg.date)}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span
-                  className="truncate text-[13px]"
-                  style={{
-                    color: isUnread ? 'var(--text-primary)' : 'var(--text-muted)',
-                    fontWeight: isUnread ? 500 : 400,
-                  }}
-                >
-                  {msg.subject}
-                </span>
-                {msg.isUrgent && (
-                  <span
-                    className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
-                    style={{ backgroundColor: 'var(--danger)' }}
-                  >
-                    URGENT
-                  </span>
-                )}
-              </div>
-              <p
-                className="mt-0.5 truncate text-[12px] leading-[1.4]"
-                style={{ color: 'var(--text-muted)' }}
+            {/* Expéditeur — colonne fixe pour l'alignement vertical des objets */}
+            <span
+              className="w-28 shrink-0 truncate text-[13px] sm:w-44"
+              style={{ color: 'var(--text-primary)', fontWeight: isUnread ? 600 : 400 }}
+            >
+              {getSenderName(msg)}
+            </span>
+
+            {/* Chip urgent */}
+            {msg.isUrgent && (
+              <span
+                className="hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:inline"
+                style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }}
               >
-                {msg.subject}
-              </p>
-            </div>
+                Urgent
+              </span>
+            )}
+
+            {/* Objet — la ligne respire, l'objet porte le poids du non-lu */}
+            <span
+              className="min-w-0 flex-1 truncate text-[13px]"
+              style={{
+                color: isUnread ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontWeight: isUnread ? 500 : 400,
+              }}
+            >
+              {msg.subject}
+            </span>
+
+            {/* Indicateurs + date */}
+            <span className="flex shrink-0 items-center gap-2">
+              {msg.flagged && <Star size={11} style={{ color: 'var(--warning)', fill: 'var(--warning)' }} />}
+              {msg.hasAttachments && <Paperclip size={11} style={{ color: 'var(--text-muted)' }} />}
+              <span className="w-14 text-right text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                {formatDate(msg.date)}
+              </span>
+            </span>
           </button>
         )
       })}

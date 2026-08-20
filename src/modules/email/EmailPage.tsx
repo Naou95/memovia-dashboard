@@ -24,6 +24,12 @@ function hasUrgentKeyword(subject: string): boolean {
   return CRITICAL_KEYWORDS.some((kw) => lower.includes(kw))
 }
 
+/**
+ * Mail (refonte design du 20/08/2026, modèle Dribbble Holesinsky) :
+ * rail d'icônes · recherche + Compose sombre · liste pleine largeur une ligne
+ * par mail · lecture en panneau latéral. Toute la mécanique (IMAP, templates,
+ * Détecter leads, compose) est inchangée.
+ */
 export default function EmailPage() {
   const { messages, total, isLoading, isSending, error, loadEmails, getEmail, sendEmail, invalidateCache } =
     useEmail()
@@ -52,6 +58,11 @@ export default function EmailPage() {
     const detail = await getEmail(uid, folder)
     setEmailDetail(detail)
     setIsDetailLoading(false)
+  }
+
+  const handleCloseDetail = () => {
+    setSelectedUid(null)
+    setEmailDetail(null)
   }
 
   const handleCompose = () => {
@@ -113,223 +124,229 @@ export default function EmailPage() {
     isUrgent: !m.seen && hasUrgentKeyword(m.subject),
   }))
 
+  const railButtonBase =
+    'flex h-10 w-10 items-center justify-center rounded-xl transition-colors'
+
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 64px - 40px)', overflow: 'hidden' }}>
-      {/* Detection result banner */}
-      <AnimatePresence>
-        {detectionResult !== null && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-            className="shrink-0 overflow-hidden"
-          >
-            <div
-              className="flex items-center justify-between px-4 py-2.5 text-[13px]"
-              style={
-                detectionResult.inserted > 0
-                  ? { backgroundColor: 'var(--success-bg)', color: 'var(--success)' }
-                  : detectionResult.inserted === 0
-                  ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-muted)' }
-                  : { backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }
-              }
-            >
-              <span>
-                {detectionResult.inserted > 0 ? (
-                  <>
-                    {detectionResult.inserted} nouveau{detectionResult.inserted !== 1 ? 'x' : ''} lead{detectionResult.inserted !== 1 ? 's' : ''} détecté{detectionResult.inserted !== 1 ? 's' : ''}{' '}
-                    <a href="/prospection" className="underline font-medium">Voir dans Prospection</a>
-                  </>
-                ) : detectionResult.inserted === 0 ? (
-                  'Aucun nouveau lead détecté'
-                ) : (
-                  'Erreur lors de la détection'
-                )}
-              </span>
-              <button onClick={() => setDetectionResult(null)} className="ml-4 rounded p-0.5 opacity-60 transition-opacity hover:opacity-100">
-                <X size={14} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Error banner */}
-      {error && !isLoading && (
-        <div
-          className="shrink-0 px-4 py-2.5 text-[13px]"
-          style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }}
-        >
-          {error} — Vérifiez les secrets Supabase (HOSTINGER_EMAIL, HOSTINGER_IMAP_PASSWORD)
-        </div>
-      )}
-
-      {/* 3-column layout */}
+    <div className="flex gap-3 md:gap-4" style={{ height: 'calc(100vh - 64px - 40px)' }}>
+      {/* ── Rail d'icônes (dossiers + actions) ─────────────────────────────── */}
       <div
-        className="flex min-h-0 flex-1 overflow-hidden rounded-[var(--radius-card)] border shadow-[var(--shadow-xs)]"
-        style={{ borderColor: 'var(--border-color)' }}
+        className="flex w-14 shrink-0 flex-col items-center justify-between rounded-2xl border py-3"
+        style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-secondary)', boxShadow: 'var(--shadow-xs)' }}
       >
-        {/* Column 1: Sidebar folders */}
-        <div
-          className="flex w-[240px] shrink-0 flex-col border-r"
-          style={{
-            borderColor: 'var(--border-color)',
-            backgroundColor: 'var(--bg-primary)',
-          }}
-        >
-          {/* Scrollable area: compose + folders */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-            {/* Compose button */}
-            <div className="shrink-0 p-3">
+        <nav className="flex flex-col items-center gap-1" aria-label="Dossiers mail">
+          {FOLDERS.map((f) => {
+            const Icon = f.icon
+            const isActive = folder === f.id
+            const count = f.id === 'INBOX' ? unseenCount : 0
+            return (
               <button
-                onClick={handleCompose}
-                className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-card)] px-4 py-2 text-[13px] font-semibold text-white active:scale-[0.97]"
+                key={f.id}
+                onClick={() => setFolder(f.id)}
+                title={f.label}
+                aria-label={f.label}
+                aria-current={isActive ? 'true' : undefined}
+                className={railButtonBase}
                 style={{
-                  backgroundColor: 'var(--memovia-violet)',
-                  transition: 'transform 160ms var(--ease-out), background-color 120ms var(--ease-out)',
+                  backgroundColor: isActive ? 'var(--memovia-violet-light)' : 'transparent',
+                  color: isActive ? 'var(--memovia-violet)' : 'var(--text-muted)',
+                  position: 'relative',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet-hover)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--memovia-violet)' }}
               >
-                <Pencil size={14} />
-                Nouveau message
-              </button>
-            </div>
-
-            {/* Folder list */}
-            <nav className="flex flex-col gap-0.5 px-2">
-              {FOLDERS.map((f) => {
-                const Icon = f.icon
-                const isActive = folder === f.id
-                const count = f.id === 'INBOX' ? unseenCount : 0
-                return (
-                  <button
-                    key={f.id}
-                    onClick={() => setFolder(f.id)}
-                    className="flex items-center gap-3 rounded-[var(--radius-card)] px-3 py-2 text-left text-[13px] transition-colors"
-                    style={{
-                      backgroundColor: isActive ? 'var(--memovia-violet)' : 'transparent',
-                      color: isActive ? '#fff' : 'var(--text-primary)',
-                      fontWeight: isActive ? 600 : 400,
-                    }}
+                <Icon size={17} />
+                {count > 0 && (
+                  <span
+                    className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white"
+                    style={{ backgroundColor: 'var(--memovia-violet)' }}
                   >
-                    <Icon size={16} style={{ opacity: isActive ? 1 : 0.5 }} />
-                    <span className="flex-1">{f.label}</span>
-                    {count > 0 && (
-                      <span
-                        className="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold text-white"
-                        style={{
-                          backgroundColor: isActive ? 'rgba(255,255,255,0.3)' : 'var(--text-muted)',
-                        }}
-                      >
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
+                    {count > 9 ? '9+' : count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </nav>
 
-          {/* Fixed bottom actions */}
-          <div
-            className="shrink-0 flex flex-col gap-0.5 border-t p-2"
-            style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+        <div className="flex flex-col items-center gap-1">
+          <button
+            onClick={() => setShowTemplates(true)}
+            title="Templates"
+            aria-label="Templates"
+            className={railButtonBase}
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
           >
-            <button
-              onClick={() => setShowTemplates(true)}
-              className="flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-[13px] transition-colors hover:bg-[var(--bg-hover)]"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              <FileText size={15} style={{ opacity: 0.5 }} />
-              Templates
-            </button>
-            <button
-              onClick={handleDetectLeads}
-              disabled={isDetecting || isLoading}
-              className="flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-[13px] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:pointer-events-none"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {isDetecting ? (
-                <RefreshCw size={15} className="animate-spin" style={{ opacity: 0.5 }} />
-              ) : (
-                <Zap size={15} style={{ opacity: 0.5 }} />
-              )}
-              {isDetecting ? 'Analyse…' : 'Détecter leads'}
-            </button>
-            <button
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="flex items-center gap-2.5 rounded-[var(--radius-card)] px-3 py-2 text-[13px] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:pointer-events-none"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} style={{ opacity: 0.5 }} />
-              Actualiser
-            </button>
-          </div>
+            <FileText size={17} />
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            title="Actualiser"
+            aria-label="Actualiser"
+            className={`${railButtonBase} disabled:opacity-40`}
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+          >
+            <RefreshCw size={17} className={isLoading ? 'animate-spin' : ''} />
+          </button>
         </div>
+      </div>
 
-        {/* Column 2: Email list */}
-        <div
-          className="flex w-[340px] shrink-0 flex-col border-r"
-          style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}
-        >
-          {/* Search bar */}
-          <div className="shrink-0 p-3">
-            <div
-              className="flex items-center gap-2 rounded-[var(--radius-card)] px-3 py-[7px]"
-              style={{ backgroundColor: 'var(--bg-primary)' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Rechercher"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-[13px] outline-none"
-                style={{ color: 'var(--text-primary)' }}
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="rounded-full p-0.5 transition-colors hover:bg-[var(--bg-hover)]">
-                  <X size={12} style={{ color: 'var(--text-muted)' }} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Folder header */}
-          <div className="flex shrink-0 items-center justify-between px-4 pb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              {FOLDERS.find((f) => f.id === folder)?.label}
-            </span>
-            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              {isLoading ? '…' : `${total} message${total !== 1 ? 's' : ''}`}
-            </span>
-          </div>
-
-          {/* Email list */}
-          <div className="flex-1 overflow-y-auto">
-            <EmailList
-              messages={enrichedMessages}
-              isLoading={isLoading}
-              selectedUid={selectedUid}
-              onSelect={handleSelectEmail}
+      {/* ── Panneau principal ──────────────────────────────────────────────── */}
+      <div
+        className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border"
+        style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-secondary)', boxShadow: 'var(--shadow-xs)' }}
+      >
+        {/* Barre du haut : recherche + actions */}
+        <div className="flex shrink-0 items-center gap-2 border-b p-3 md:gap-3" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-3 py-2"
+            style={{ backgroundColor: 'var(--bg-primary)' }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Rechercher un email, un expéditeur…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none"
+              style={{ color: 'var(--text-primary)' }}
             />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="rounded-full p-0.5 transition-colors hover:bg-[var(--bg-hover)]">
+                <X size={12} style={{ color: 'var(--text-muted)' }} />
+              </button>
+            )}
           </div>
+
+          <button
+            onClick={handleDetectLeads}
+            disabled={isDetecting || isLoading}
+            className="hidden shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors disabled:opacity-50 sm:flex"
+            style={{ backgroundColor: 'var(--memovia-violet-light)', color: 'var(--memovia-violet)' }}
+          >
+            {isDetecting ? <RefreshCw size={14} className="animate-spin" /> : <Zap size={14} />}
+            {isDetecting ? 'Analyse…' : 'Détecter leads'}
+          </button>
+
+          <button
+            onClick={handleCompose}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold text-white transition-transform active:scale-[0.97]"
+            style={{ backgroundColor: 'var(--text-primary)' }}
+          >
+            <Pencil size={14} />
+            <span className="hidden sm:inline">Nouveau message</span>
+            <span className="sm:hidden">Écrire</span>
+          </button>
         </div>
 
-        {/* Column 3: Reading pane */}
-        <div className="flex-1 overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-          <EmailDetail
-            email={emailDetail}
-            isLoading={isDetailLoading}
-            onReply={handleReply}
+        {/* Bandeau résultat détection */}
+        <AnimatePresence>
+          {detectionResult !== null && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+              className="shrink-0 overflow-hidden"
+            >
+              <div
+                className="flex items-center justify-between px-5 py-2.5 text-[13px]"
+                style={
+                  detectionResult.inserted > 0
+                    ? { backgroundColor: 'var(--success-bg)', color: 'var(--success)' }
+                    : detectionResult.inserted === 0
+                    ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-muted)' }
+                    : { backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }
+                }
+              >
+                <span>
+                  {detectionResult.inserted > 0 ? (
+                    <>
+                      {detectionResult.inserted} nouveau{detectionResult.inserted !== 1 ? 'x' : ''} lead{detectionResult.inserted !== 1 ? 's' : ''} détecté{detectionResult.inserted !== 1 ? 's' : ''}{' '}
+                      <a href="/leads" className="font-medium underline">Voir dans Leads</a>
+                    </>
+                  ) : detectionResult.inserted === 0 ? (
+                    'Aucun nouveau lead détecté'
+                  ) : (
+                    'Erreur lors de la détection'
+                  )}
+                </span>
+                <button onClick={() => setDetectionResult(null)} className="ml-4 rounded p-0.5 opacity-60 transition-opacity hover:opacity-100">
+                  <X size={14} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bandeau erreur */}
+        {error && !isLoading && (
+          <div
+            className="shrink-0 px-5 py-2.5 text-[13px]"
+            style={{ backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }}
+          >
+            {error} — Vérifiez les secrets Supabase (HOSTINGER_EMAIL, HOSTINGER_IMAP_PASSWORD)
+          </div>
+        )}
+
+        {/* En-tête de section */}
+        <div className="flex shrink-0 items-center gap-2 px-5 pb-1 pt-4">
+          <span className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {FOLDERS.find((f) => f.id === folder)?.label}
+          </span>
+          <span className="text-[12px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+            {isLoading ? '…' : total}
+          </span>
+        </div>
+
+        {/* Liste pleine largeur */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <EmailList
+            messages={enrichedMessages}
+            isLoading={isLoading}
+            selectedUid={selectedUid}
+            onSelect={handleSelectEmail}
           />
         </div>
+
+        {/* Panneau de lecture — glisse par-dessus la liste */}
+        <AnimatePresence>
+          {selectedUid !== null && (
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0, transition: { type: 'spring', damping: 30, stiffness: 320 } }}
+              exit={{ x: '100%', transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] } }}
+              className="absolute inset-y-0 right-0 z-20 flex w-full flex-col border-l md:w-[min(640px,80%)]"
+              style={{
+                borderColor: 'var(--border-color)',
+                backgroundColor: 'var(--bg-secondary)',
+                boxShadow: '-16px 0 48px rgba(0,0,0,0.08)',
+              }}
+            >
+              <button
+                onClick={handleCloseDetail}
+                aria-label="Fermer la lecture"
+                className="absolute right-3 top-3 z-30 flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-[var(--bg-hover)]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <X size={16} />
+              </button>
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <EmailDetail
+                  email={emailDetail}
+                  isLoading={isDetailLoading}
+                  onReply={handleReply}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Compose slide-in overlay */}
@@ -343,7 +360,7 @@ export default function EmailPage() {
             style={{
               bottom: '12px',
               right: '80px',
-              width: '540px',
+              width: 'min(540px, calc(100vw - 24px))',
               height: '420px',
               borderRadius: 'var(--radius-card)',
               backgroundColor: 'var(--bg-secondary)',
