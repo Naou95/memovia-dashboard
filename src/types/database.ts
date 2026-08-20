@@ -262,6 +262,45 @@ export interface Database {
         }
         Relationships: []
       }
+      rdv: {
+        Row: {
+          id: string
+          title: string
+          rdv_date: string
+          lead_id: string | null
+          gcal_event_id: string | null
+          audio_path: string | null
+          transcript: string | null
+          cr: string | null
+          cr_status: 'manquant' | 'en_cours' | 'fait'
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          rdv_date: string
+          lead_id?: string | null
+          gcal_event_id?: string | null
+          audio_path?: string | null
+          transcript?: string | null
+          cr?: string | null
+          cr_status?: 'manquant' | 'en_cours' | 'fait'
+          created_by?: string | null
+        }
+        Update: {
+          title?: string
+          rdv_date?: string
+          lead_id?: string | null
+          audio_path?: string | null
+          transcript?: string | null
+          cr?: string | null
+          cr_status?: 'manquant' | 'en_cours' | 'fait'
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_calls: {
         Row: {
           id: string
