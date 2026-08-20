@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@17'
-import { sendTelegramMessage } from '../_shared/telegram.ts'
+import { echapperMarkdown, sendTelegramMessage } from '../_shared/telegram.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 
 interface QontoBankAccount { balance_cents: number }
@@ -77,29 +77,42 @@ Deno.serve(async (req) => {
         return Math.round(totalCents) / 100
       })(),
 
-      // Today's tasks for naoufel (due today or overdue)
+      // Tâches échues, TOUTE L'ÉQUIPE et pas seulement naoufel.
+      // Avant : `.eq('assigned_to','naoufel')`. Le message annonçait « aucune tâche échue »
+      // alors qu'une tâche traînait depuis 92 jours chez emir (« Contacter TBS ALUMNI »), sur
+      // un lead qui figure justement dans la liste des dormants juste en dessous. Un briefing
+      // qui dit « aucune » en filtrant sur une personne dit quelque chose de faux.
       supabase
         .from('tasks')
-        .select('id, title, status, priority, due_date')
-        .eq('assigned_to', 'naoufel')
+        .select('id, title, status, priority, due_date, assigned_to')
         .in('status', ['todo', 'en_cours'])
         .lte('due_date', today)
-        .order('priority', { ascending: false }),
+        .order('due_date', { ascending: true }),
 
-      // Leads without action for 7+ days
+      // Leads sans contact depuis 7 jours et plus.
+      //
+      // ⚠️ On mesure `last_contact_date`, PAS `updated_at`. `updated_at` est bumpé par un trigger
+      // à la moindre modification de ligne : une session d'édition en lot le 26/05 avait remis
+      // quatre leads « à neuf » alors que personne ne les avait rappelés. Résultat mesuré le
+      // 15/08 : ISAE-SUPAERO et CFA Blagnac annoncés « 81j sans suivi » pour 122 jours réels,
+      // soit 41 jours d'écart, dans le sens qui rassure à tort.
+      // Repli sur `updated_at` quand `last_contact_date` est vide (leads saisis à la main).
+      //
+      // `count: 'exact'` : le titre doit dire COMBIEN il y en a, pas combien on en montre.
+      // On tire large (50) puis on trie côté TS, parce que PostgREST ne sait pas trier sur un
+      // coalesce des deux dates.
       supabase
         .from('leads')
-        .select('id, name, status, updated_at')
+        .select('id, name, status, updated_at, last_contact_date', { count: 'exact' })
         .not('status', 'in', '(gagne,perdu)')
-        .lt('updated_at', sevenDaysAgo)
-        .order('updated_at', { ascending: true })
-        .limit(10),
+        .or(`last_contact_date.lt.${sevenDaysAgo},and(last_contact_date.is.null,updated_at.lt.${sevenDaysAgo})`)
+        .limit(50),
     ])
 
     const dayLabel = new Date().toLocaleDateString('fr-FR', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     })
-    const lines: string[] = [`☀️ *Bonjour Naoufel — ${dayLabel}*`, '']
+    const lines: string[] = [`☀️ *Bonjour Naoufel, ${dayLabel}*`, '']
 
     // Finances
     lines.push('💰 *Finances*')
@@ -121,27 +134,65 @@ Deno.serve(async (req) => {
     // Tasks
     const tasks = tasksResult.status === 'fulfilled' ? (tasksResult.value.data ?? []) : []
     if (tasks.length > 0) {
-      lines.push(`✅ *Tâches du jour (${tasks.length})*`)
+      lines.push(`✅ *Tâches échues (${tasks.length})*`)
       for (const t of tasks) {
         const prio = t.priority === 'haute' ? '🔴' : t.priority === 'normale' ? '🟡' : '🟢'
-        const overdue = t.due_date && t.due_date < today ? ' ⚠️' : ''
-        lines.push(`• ${prio} ${t.title}${overdue}`)
+        const retard = t.due_date && t.due_date < today
+          ? ` ⚠️ ${Math.floor((Date.now() - new Date(t.due_date).getTime()) / 86400000)} j de retard`
+          : ''
+        // Dire QUI porte la tâche : sinon une tâche d'Emir ressemble à une tâche de Naoufel.
+        const qui = t.assigned_to ? ` _(${echapperMarkdown(String(t.assigned_to))})_` : ''
+        lines.push(`• ${prio} ${echapperMarkdown(t.title)}${qui}${retard}`)
       }
     } else {
-      lines.push('✅ *Tâches du jour* — aucune tâche échue')
+      lines.push('✅ *Tâches* : aucune tâche échue, toute l\'équipe')
     }
     lines.push('')
 
     // Stale leads
-    const staleLeads = leadsResult.status === 'fulfilled' ? (leadsResult.value.data ?? []) : []
+    const brutLeads = leadsResult.status === 'fulfilled' ? (leadsResult.value.data ?? []) : []
+    const totalStale = leadsResult.status === 'fulfilled'
+      ? (leadsResult.value.count ?? brutLeads.length)
+      : brutLeads.length
+
+    // Ancienneté réelle : dernier contact si on l'a, sinon dernière modif (et on le signale par
+    // un « ~ », pour ne pas donner à une approximation l'apparence d'une mesure).
+    const AVEC_AGE = brutLeads
+      .map((l) => {
+        const estime = !l.last_contact_date
+        const ref = new Date(l.last_contact_date ?? l.updated_at).getTime()
+        return { ...l, estime, jours: Math.floor((Date.now() - ref) / 86400000) }
+      })
+      .sort((a, b) => b.jours - a.jours)
+    const staleLeads = AVEC_AGE.slice(0, 10)
+
     if (staleLeads.length > 0) {
-      lines.push(`👥 *Leads sans action +7j (${staleLeads.length})*`)
+      // Dire explicitement quand la liste est tronquée, plutôt que de laisser croire au total.
+      const entete = totalStale > staleLeads.length
+        ? `👥 *Leads sans contact +7j : ${totalStale}* (les ${staleLeads.length} plus anciens)`
+        : `👥 *Leads sans contact +7j (${totalStale})*`
+      lines.push(entete)
       for (const l of staleLeads) {
-        const days = Math.floor((Date.now() - new Date(l.updated_at).getTime()) / (1000 * 60 * 60 * 24))
-        lines.push(`• ${l.name} _(${l.status})_ — ${days}j sans suivi`)
+        // `status` vaut par ex. `en_discussion` : son underscore cassait le Markdown et faisait
+        // partir tout le message en texte brut. On l'affiche en clair, c'est aussi plus lisible.
+        const statut = echapperMarkdown(String(l.status ?? '').replace(/_/g, ' '))
+        const approx = l.estime ? '~' : ''
+        lines.push(`• ${echapperMarkdown(l.name)} _(${statut})_ · ${approx}${l.jours} j sans contact`)
       }
+      if (staleLeads.some((l) => l.estime)) {
+        lines.push('_~ = pas de date de dernier contact, ancienneté estimée sur la dernière modif_')
+      }
+    } else if (leadsResult.status === 'rejected' || leadsResult.value.error) {
+      // ⚠️ Ne JAMAIS afficher « tous à jour » quand la requête a échoué : une liste vide parce
+      // qu'on n'a pas su lire la base ressemble mot pour mot à un pipeline sain. Même piège que
+      // le cron qui rapportait « succeeded » sans avoir rien fait.
+      const cause = leadsResult.status === 'rejected'
+        ? String(leadsResult.reason)
+        : String(leadsResult.value.error?.message ?? 'inconnue')
+      console.error('[briefing] lecture des leads en échec:', cause)
+      lines.push('👥 *Leads* : ⚠️ données indisponibles, requête en échec')
     } else {
-      lines.push('👥 *Leads* — tous à jour ✓')
+      lines.push('👥 *Leads* : tous à jour ✓')
     }
 
     lines.push('')
