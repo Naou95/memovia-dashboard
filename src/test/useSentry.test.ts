@@ -29,6 +29,7 @@ const mockData: SentryData = {
       lastSeen: '2026-04-19T08:00:00Z',
       permalink: 'https://memovia-ai.sentry.io/issues/abc123/',
       isCritical: true,
+      lastUser: null,
     },
     {
       id: 'def456',
@@ -40,6 +41,7 @@ const mockData: SentryData = {
       lastSeen: '2026-04-18T20:00:00Z',
       permalink: 'https://memovia-ai.sentry.io/issues/def456/',
       isCritical: false,
+      lastUser: null,
     },
   ],
   fetchedAt: '2026-04-19T09:00:00Z',

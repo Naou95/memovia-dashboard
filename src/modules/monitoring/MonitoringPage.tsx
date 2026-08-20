@@ -20,7 +20,7 @@ export default function MonitoringPage() {
       <motion.div variants={staggerItem} className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-            Monitoring Sentry
+            Bugs
           </h2>
           <CacheFreshness timestamp={lastFetchedAt} className="mt-1 text-[12px]" />
         </div>

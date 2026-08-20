@@ -67,8 +67,27 @@ Deno.serve(async (req) => {
         lastSeen: issue.lastSeen,
         permalink: issue.permalink,
         isCritical,
+        lastUser: null as string | null,
       }
     })
+
+    // « Qui a eu le bug » (refonte v2 Phase 5) : le dernier événement de chaque issue
+    // porte l'utilisateur (l'app appelle Sentry.setUser avec id + email). On enrichit
+    // les 10 issues les plus récentes ; un échec laisse lastUser à null, jamais bloquant.
+    const toEnrich = [...issues]
+      .sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime())
+      .slice(0, 10)
+    await Promise.allSettled(
+      toEnrich.map(async (issue) => {
+        const evRes = await fetch(`https://sentry.io/api/0/issues/${issue.id}/events/latest/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!evRes.ok) return
+        const ev = await evRes.json()
+        const u = ev?.user
+        if (u) issue.lastUser = u.email ?? u.id ?? null
+      }),
+    )
 
     const stats = {
       totalIssues: issues.length,

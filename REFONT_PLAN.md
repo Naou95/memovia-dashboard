@@ -68,12 +68,14 @@ tasks, roadmap, calendar (absorbé par RDV), utilisateurs. Admin = utilitaire ca
       actionnables seulement (veille / à déposer / jury)
 
 ### Phase 4 — Argent
-- [ ] Un écran fusionné Stripe + Qonto sur les fetchers existants, deltas, horodatage,
-      deep links vers Stripe/Qonto
+- [x] Écran fusionné Stripe + Qonto : solde, MRR (Stripe + contrats), runway calculé sur le
+      burn 3 mois, abos +/− du mois, mouvements des deux sources, horodatage « à jour il y a
+      X min », deep links Qonto/Stripe
 
 ### Phase 5 — Bugs
-- [ ] Monitoring recentré : issue Sentry + utilisateur affecté + occurrence
-- [ ] Vérifier que l'app envoie l'identité utilisateur à Sentry (sinon l'ajouter côté app)
+- [x] `get-sentry` v19 : les 10 issues les plus récentes portent le **dernier utilisateur
+      touché** (email/id) via l'événement latest ; affiché dans la liste, null si inconnu
+- [x] Vérifié : l'app appelle bien `Sentry.setUser` (id + email) — `src/lib/sentry.ts`
 
 ### Phase 6 — Briefing enrichi & ménage
 - [ ] Briefing Telegram : leads chauds, RDV sans CR, deadlines financements, bugs nouveaux,

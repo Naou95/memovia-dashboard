@@ -102,6 +102,15 @@ function IssueRow({ issue, isLast }: { issue: SentryIssue; isLast: boolean }) {
             <Users className="h-3 w-3" />
             {issue.usersAffected} utilisateur{issue.usersAffected > 1 ? 's' : ''}
           </span>
+          {issue.lastUser && (
+            <span
+              className="max-w-[220px] truncate font-medium"
+              style={{ color: 'var(--memovia-violet)' }}
+              title={`Dernier utilisateur touché : ${issue.lastUser}`}
+            >
+              {issue.lastUser}
+            </span>
+          )}
           <span>Première vue : {firstSeen}</span>
           <span>Dernière vue : {lastSeen}</span>
         </div>
