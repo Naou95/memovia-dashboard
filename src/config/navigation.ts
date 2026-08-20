@@ -1,20 +1,8 @@
 import {
-  LayoutDashboard,
-  CreditCard,
-  Landmark,
-  FileText,
   Users2,
-  KanbanSquare,
   Calendar,
-  UsersRound,
-  Zap,
-  Map,
-  Mail,
-  Github,
-  BarChart3,
-  BarChart2,
-  UserCog,
-  Receipt,
+  Trophy,
+  Wallet,
   Bug,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -32,202 +20,58 @@ export interface NavItem {
   allowedRoles: UserRole[]
 }
 
-export interface NavSection {
-  id: string
-  label: string
-  items: NavItem[]
-}
-
 /**
- * Sidebar structure — follows the MEMOVIA dashboard plan:
- * - PRINCIPAL      → Overview
- * - FINANCE        → Stripe & Finance, Qonto Trésorerie, Contrats B2B
- * - OPÉRATIONS     → Prospection CRM, Tâches IA, Calendrier, Email Hostinger, GitHub
- * - PLATEFORME     → Utilisateurs MEMOVIA, Realtime, Roadmap & Feedback
- * - GROWTH & IA    → SEO & Blog, Copilote IA
+ * Navigation v2 (refonte 20/08/2026, voir REFONT_PLAN.md) : 5 sections en top-bar.
+ * Les anciens modules restent accessibles par URL directe (liens du briefing
+ * Telegram intacts) mais n'apparaissent plus dans la navigation.
+ * Admin reste accessible via le menu utilisateur.
  */
-export const NAV_SECTIONS: NavSection[] = [
+export const NAV_ITEMS: NavItem[] = [
   {
-    id: 'main',
-    label: 'Principal',
-    items: [
-      {
-        id: 'overview',
-        label: 'Overview',
-        path: '/overview',
-        icon: LayoutDashboard,
-        status: 'active',
-        allowedRoles: [],
-      },
-    ],
+    id: 'leads',
+    label: 'Leads',
+    path: '/leads',
+    icon: Users2,
+    status: 'active',
+    allowedRoles: [],
   },
   {
-    id: 'finance',
-    label: 'Finance',
-    items: [
-      {
-        id: 'stripe',
-        label: 'Stripe & Finance',
-        path: '/stripe',
-        icon: CreditCard,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'qonto',
-        label: 'Qonto Trésorerie',
-        path: '/qonto',
-        icon: Landmark,
-        status: 'active',
-        allowedRoles: ['admin_full', 'admin_bizdev'],
-      },
-      {
-        id: 'contracts',
-        label: 'Contrats B2B',
-        path: '/contracts',
-        icon: FileText,
-        status: 'active',
-        allowedRoles: [],
-      },
-    ],
+    id: 'rdv',
+    label: 'RDV',
+    path: '/rdv',
+    icon: Calendar,
+    status: 'active',
+    allowedRoles: [],
   },
   {
-    id: 'ops',
-    label: 'Opérations',
-    items: [
-      {
-        id: 'prospection',
-        label: 'Prospection CRM',
-        path: '/prospection',
-        icon: Users2,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'tasks',
-        label: 'Tâches',
-        path: '/taches',
-        icon: KanbanSquare,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'calendar',
-        label: 'Calendrier',
-        path: '/calendrier',
-        icon: Calendar,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'email',
-        label: 'Email Hostinger',
-        path: '/email-drafter',
-        icon: Mail,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'github',
-        label: 'GitHub',
-        path: '/github',
-        icon: Github,
-        status: 'active',
-        allowedRoles: [],
-      },
-    ],
+    id: 'financements',
+    label: 'Financements',
+    path: '/financements',
+    icon: Trophy,
+    status: 'soon',
+    allowedRoles: [],
   },
   {
-    id: 'platform',
-    label: 'Plateforme',
-    items: [
-      {
-        id: 'users',
-        label: 'Utilisateurs MEMOVIA',
-        path: '/utilisateurs',
-        icon: UsersRound,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'realtime',
-        label: 'Realtime',
-        path: '/realtime',
-        icon: Zap,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'monitoring',
-        label: 'Monitoring',
-        path: '/monitoring',
-        icon: Bug,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'roadmap',
-        label: 'Roadmap & Feedback',
-        path: '/roadmap',
-        icon: Map,
-        status: 'active',
-        allowedRoles: [],
-      },
-    ],
+    id: 'argent',
+    label: 'Argent',
+    path: '/argent',
+    icon: Wallet,
+    status: 'active',
+    allowedRoles: [],
   },
   {
-    id: 'admin',
-    label: 'Administration',
-    items: [
-      {
-        id: 'admin-users',
-        label: 'Gestion admins',
-        path: '/admin',
-        icon: UserCog,
-        status: 'active',
-        allowedRoles: ['admin_full'],
-      },
-    ],
-  },
-  {
-    id: 'growth',
-    label: 'Growth & IA',
-    items: [
-      {
-        id: 'seo',
-        label: 'SEO & Blog',
-        path: '/seo',
-        icon: BarChart3,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'analytics',
-        label: 'Analytics PostHog',
-        path: '/analytics',
-        icon: BarChart2,
-        status: 'active',
-        allowedRoles: [],
-      },
-      {
-        id: 'api-costs',
-        label: 'Coûts API',
-        path: '/couts-api',
-        icon: Receipt,
-        status: 'active',
-        allowedRoles: ['admin_full'],
-      },
-    ],
+    id: 'bugs',
+    label: 'Bugs',
+    path: '/bugs',
+    icon: Bug,
+    status: 'active',
+    allowedRoles: [],
   },
 ]
 
-// Filter nav sections by role
-export function getNavForRole(role: UserRole): NavSection[] {
-  return NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter(
-      (item) =>
-        item.allowedRoles.length === 0 || item.allowedRoles.includes(role)
-    ),
-  })).filter((section) => section.items.length > 0)
+// Filter nav items by role
+export function getNavForRole(role: UserRole): NavItem[] {
+  return NAV_ITEMS.filter(
+    (item) => item.allowedRoles.length === 0 || item.allowedRoles.includes(role)
+  )
 }

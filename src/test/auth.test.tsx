@@ -44,79 +44,28 @@ describe('getRoleFromSession', () => {
   })
 })
 
-// ─── getNavForRole ─────────────────────────────────────────────────────────────
+// ─── getNavForRole (nav v2 : 5 entrées plates, voir REFONT_PLAN.md) ───────────
 describe('getNavForRole', () => {
-  it('admin_full sees admin section items', () => {
-    const sections = getNavForRole('admin_full')
-    const allItems = sections.flatMap((s) => s.items)
-    const adminItems = allItems.filter((i) => i.id.startsWith('admin'))
-    expect(adminItems.length).toBeGreaterThan(0)
+  it('les 5 sections v2 sont visibles pour les deux rôles', () => {
+    const expected = ['leads', 'rdv', 'financements', 'argent', 'bugs']
+    for (const role of ['admin_full', 'admin_bizdev'] as const) {
+      const ids = getNavForRole(role).map((i) => i.id)
+      expect(ids).toEqual(expected)
+    }
   })
 
-  it('admin_bizdev does NOT see admin section items', () => {
-    const sections = getNavForRole('admin_bizdev')
-    const allItems = sections.flatMap((s) => s.items)
-    const adminItems = allItems.filter((i) => i.allowedRoles.includes('admin_full') && !i.allowedRoles.includes('admin_bizdev'))
-    expect(adminItems).toHaveLength(0)
+  it('les anciens modules ne sont plus dans la nav', () => {
+    const ids = getNavForRole('admin_full').map((i) => i.id)
+    for (const dead of ['overview', 'stripe', 'qonto', 'email', 'github', 'seo', 'copilot']) {
+      expect(ids).not.toContain(dead)
+    }
   })
 
-  it('admin_full sees overview', () => {
-    const sections = getNavForRole('admin_full')
-    const allItems = sections.flatMap((s) => s.items)
-    const overview = allItems.find((i) => i.id === 'overview')
-    expect(overview).toBeDefined()
-  })
-
-  it('admin_bizdev sees overview', () => {
-    const sections = getNavForRole('admin_bizdev')
-    const allItems = sections.flatMap((s) => s.items)
-    const overview = allItems.find((i) => i.id === 'overview')
-    expect(overview).toBeDefined()
-  })
-
-  it('sections with no visible items are filtered out', () => {
-    // All returned sections must have at least one item
-    const sections = getNavForRole('admin_bizdev')
-    sections.forEach((section) => {
-      expect(section.items.length).toBeGreaterThan(0)
-    })
-  })
-})
-
-// ─── "soon" items ─────────────────────────────────────────────────────────────
-describe('Nav item status', () => {
-  it('overview, stripe and qonto are active items', () => {
-    const sections = getNavForRole('admin_full')
-    const activeItems = sections.flatMap((s) => s.items).filter((i) => i.status === 'active')
-    const activeIds = activeItems.map((i) => i.id)
-    expect(activeIds).toContain('overview')
-    expect(activeIds).toContain('stripe')
-    expect(activeIds).toContain('qonto')
-  })
-
-  it('qonto is accessible to admin_full and admin_bizdev', () => {
-    const sectionsAdmin = getNavForRole('admin_full')
-    const sectionsBizdev = getNavForRole('admin_bizdev')
-    const findQonto = (sections: ReturnType<typeof getNavForRole>) =>
-      sections.flatMap((s) => s.items).find((i) => i.id === 'qonto')
-
-    const qontoAdmin = findQonto(sectionsAdmin)
-    const qontoBizdev = findQonto(sectionsBizdev)
-
-    expect(qontoAdmin).toBeDefined()
-    expect(qontoAdmin?.status).toBe('active')
-    expect(qontoBizdev).toBeDefined()
-    expect(qontoBizdev?.status).toBe('active')
-  })
-
-  it('contracts is now "active"', () => {
-    const sections = getNavForRole('admin_full')
-    const activeItems = sections.flatMap((s) => s.items).filter((i) => i.status === 'active')
-    const activeIds = activeItems.map((i) => i.id)
-    expect(activeIds).toContain('contracts')
-    const soonItems = sections.flatMap((s) => s.items).filter((i) => i.status === 'soon')
-    const soonIds = soonItems.map((i) => i.id)
-    expect(soonIds).not.toContain('contracts')
+  it('financements est "soon" tant que la Phase 3 n\'est pas livrée', () => {
+    const financements = getNavForRole('admin_full').find((i) => i.id === 'financements')
+    expect(financements?.status).toBe('soon')
+    const actives = getNavForRole('admin_full').filter((i) => i.status === 'active')
+    expect(actives.map((i) => i.id)).toEqual(['leads', 'rdv', 'argent', 'bugs'])
   })
 })
 

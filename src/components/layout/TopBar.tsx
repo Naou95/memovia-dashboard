@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePrivacy } from '@/contexts/PrivacyContext'
 import { useNotifications, type Notification } from '@/hooks/useNotifications'
-import { NAV_SECTIONS } from '@/config/navigation'
+import { NAV_ITEMS } from '@/config/navigation'
 
 export function TopBar() {
   const { user, signOut } = useAuth()
@@ -27,10 +27,11 @@ export function TopBar() {
 
   return (
     <div className="flex flex-1 items-center justify-between">
-      {/* Page title */}
-      <h1 className="text-[17px] font-semibold tracking-tight text-[var(--text-primary)]">
+      {/* Page title — mobile only, doublonne la nav horizontale sur desktop */}
+      <h1 className="text-[17px] font-semibold tracking-tight text-[var(--text-primary)] md:hidden">
         {pageTitle}
       </h1>
+      <span className="hidden md:block" aria-hidden />{/* spacer : garde les actions à droite */}
 
       <div className="flex items-center gap-1">
         {/* Privacy toggle */}
@@ -281,12 +282,9 @@ function getInitials(name: string): string {
 }
 
 function getPageTitle(pathname: string): string {
-  for (const section of NAV_SECTIONS) {
-    for (const item of section.items) {
-      if (item.path === pathname) return item.label
-    }
-  }
-  return 'Dashboard'
+  const section = '/' + (pathname.split('/')[1] ?? '')
+  const item = NAV_ITEMS.find((i) => i.path === section)
+  return item?.label ?? 'Dashboard'
 }
 
 function formatRole(role: string | undefined): string {

@@ -23,6 +23,7 @@ const ApiCostsPage = lazy(() => import('@/modules/api-costs/ApiCostsPage'))
 const AnalyticsPage = lazy(() => import('@/modules/analytics/AnalyticsPage'))
 const CopilotPage = lazy(() => import('@/modules/copilot/CopilotPage'))
 const AdminPage = lazy(() => import('@/modules/admin/AdminPage'))
+const ArgentPage = lazy(() => import('@/modules/argent/ArgentPage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -54,11 +55,47 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      // Root redirects to /overview
+      // ── Refonte v2 (REFONT_PLAN.md) : 5 sections ────────────────────────────
+      // Root redirects to /leads
       {
         index: true,
-        element: <Navigate to="/overview" replace />,
+        element: <Navigate to="/leads" replace />,
       },
+      {
+        path: 'leads',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ProspectionPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'rdv',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CalendarPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'argent',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <ArgentPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'bugs',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <MonitoringPage />
+          </Suspense>
+        ),
+      },
+
+      // ── Anciennes routes : archivées, plus dans la nav, mais URLs intactes ──
+      // (liens du briefing Telegram et habitudes ; suppression réelle en Phase 6)
       {
         path: 'overview',
         element: (
@@ -206,9 +243,9 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Catch-all — redirect unknown routes to /overview (auth will gate)
+  // Catch-all — redirect unknown routes to /leads (auth will gate)
   {
     path: '*',
-    element: <Navigate to="/overview" replace />,
+    element: <Navigate to="/leads" replace />,
   },
 ])

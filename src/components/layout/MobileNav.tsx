@@ -13,7 +13,7 @@ export function MobileNav() {
   const [open, setOpen] = useState(false)
 
   const role = user?.role ?? 'admin_bizdev'
-  const sections = getNavForRole(role)
+  const items = getNavForRole(role)
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -43,23 +43,16 @@ export function MobileNav() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Navigation mobile">
-          {sections.map((section) => (
-            <div key={section.id} className="mb-5">
-              <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-label)]">
-                {section.label}
-              </div>
-              <ul className="space-y-0.5">
-                {section.items.map((item) => (
-                  <MobileNavItem
-                    key={item.id}
-                    item={item}
-                    isActive={location.pathname === item.path}
-                    onNavigate={() => setOpen(false)}
-                  />
-                ))}
-              </ul>
-            </div>
-          ))}
+          <ul className="space-y-0.5">
+            {items.map((item) => (
+              <MobileNavItem
+                key={item.id}
+                item={item}
+                isActive={location.pathname.startsWith(item.path)}
+                onNavigate={() => setOpen(false)}
+              />
+            ))}
+          </ul>
         </nav>
       </SheetContent>
     </Sheet>

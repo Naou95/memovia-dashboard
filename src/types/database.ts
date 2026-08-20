@@ -56,6 +56,23 @@ export interface Database {
         }
         Relationships: []
       }
+      section_visits: {
+        Row: {
+          id: number
+          section: string
+          user_id: string
+          visited_at: string
+        }
+        Insert: {
+          section: string
+          user_id?: string
+          visited_at?: string
+        }
+        Update: {
+          section?: string
+        }
+        Relationships: []
+      }
       dashboard_profiles: {
         Row: {
           id: string
