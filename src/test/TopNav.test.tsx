@@ -29,16 +29,16 @@ function renderTopNav(role: 'admin_full' | 'admin_bizdev', path = '/leads') {
 }
 
 describe('TopNav', () => {
-  it('affiche les 5 sections v2 pour admin_full', () => {
+  it('affiche les 6 sections v2 pour admin_full', () => {
     renderTopNav('admin_full')
-    for (const label of ['Leads', 'RDV', 'Financements', 'Argent', 'Bugs']) {
+    for (const label of ['Leads', 'RDV', 'Mail', 'Financements', 'Argent', 'Bugs']) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
   })
 
-  it('affiche les 5 sections v2 pour admin_bizdev', () => {
+  it('affiche les 6 sections v2 pour admin_bizdev', () => {
     renderTopNav('admin_bizdev')
-    for (const label of ['Leads', 'RDV', 'Financements', 'Argent', 'Bugs']) {
+    for (const label of ['Leads', 'RDV', 'Mail', 'Financements', 'Argent', 'Bugs']) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
   })

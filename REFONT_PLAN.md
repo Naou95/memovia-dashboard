@@ -18,11 +18,12 @@
 |---|---|---|
 | **Leads** | écriture, mobile-first | Liste CFA France (offre accessibilité), fiche lead avec **script d'appel affiché** + docs de vente attachés, log d'appel en < 30 s. Base = module prospection existant, liste actuelle archivée (périmée vs stratégie). |
 | **RDV** | écriture, mobile-first | Un RDV/appel = une fiche. Audio uploadé → transcription → **compte rendu généré** (au neutre, sans attribution de locuteur) ; saisie manuelle en secours. Fiche sans CR = état anormal → rappel briefing. Google Calendar déjà branché (OAuth existant). |
+| **Mail** | action | Boîte partagée contact@memovia.io (Hostinger) : réponse aux prospects + « Détecter leads » qui alimente la section Leads. Réintégré le 20/08 sur décision Naoufel — canal d'action partagé, pas un miroir d'outil perso. |
 | **Financements** | écriture | Concours & subventions : statut (veille → à déposer → déposé → jury → résultat), deadline, **prochaine action + qui**, docs. Rappels J-7 / J-1 dans le briefing. |
 | **Argent** | lecture | Fusion Stripe + Qonto en un écran : solde, runway, MRR, mouvements avec deltas. Fetchers existants (`get-stripe-*`, `get-qonto-*`). |
 | **Bugs** | lecture | Erreurs Sentry avec **l'utilisateur affecté**, deep link Sentry. Base = module monitoring. |
 
-Supprimés/archivés : overview, email, github, seo, analytics, realtime, api-costs, copilot,
+Supprimés/archivés : overview, github, seo, analytics, realtime, api-costs, copilot,
 tasks, roadmap, calendar (absorbé par RDV), utilisateurs. Admin = utilitaire caché.
 
 ## Règles UX (s'appliquent partout)

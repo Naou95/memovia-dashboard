@@ -1,6 +1,7 @@
 import {
   Users2,
   Calendar,
+  Mail,
   Trophy,
   Wallet,
   Bug,
@@ -40,6 +41,17 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'RDV',
     path: '/rdv',
     icon: Calendar,
+    status: 'active',
+    allowedRoles: [],
+  },
+  {
+    // Réintégré le 20/08/2026 sur décision Naoufel : la boîte partagée
+    // contact@memovia.io est le canal de réponse aux prospects (pas un miroir
+    // d'outil perso), et « Détecter leads » alimente directement la section Leads.
+    id: 'mail',
+    label: 'Mail',
+    path: '/mail',
+    icon: Mail,
     status: 'active',
     allowedRoles: [],
   },
