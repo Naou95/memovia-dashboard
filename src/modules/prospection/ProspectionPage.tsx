@@ -141,9 +141,10 @@ export default function ProspectionPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <ScriptPanel />
-          {/* View toggle */}
+          {/* View toggle — desktop seulement : la vue mobile est la liste de cartes,
+              ce toggle n'y a aucun effet */}
           <div
-            className="flex items-center rounded-lg p-1"
+            className="hidden items-center rounded-lg p-1 md:flex"
             style={{
               border: '1px solid var(--border-color)',
               backgroundColor: 'var(--bg-secondary)',
@@ -184,8 +185,10 @@ export default function ProspectionPage() {
         </motion.div>
       )}
 
-      {/* ── KPI Stats ────────────────────────────────────────────────────────── */}
-      <motion.div variants={staggerItem}>
+      {/* ── KPI Stats — desktop seulement : sur mobile (l'écran d'Emir entre deux
+          appels), 4 cartes empilées enterraient la liste sous deux écrans de chiffres.
+          La liste EST la page ; les stats sont un bonus de grand écran. */}
+      <motion.div variants={staggerItem} className="hidden md:block">
         <LeadStats leads={leads.filter((l) => !l.archived)} isLoading={isLoading} error={error} />
       </motion.div>
 
