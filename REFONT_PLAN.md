@@ -45,10 +45,10 @@ tasks, roadmap, calendar (absorbé par RDV), utilisateurs. Admin = utilitaire ca
 - [x] Compteur de visites par section (table `section_visits`, 1 insert par ouverture)
 
 ### Phase 1 — Leads (CFA France)
-- [ ] Archiver les leads existants (flag `archived`, pas de delete)
-- [ ] Champs fiche : script d'appel (markdown), docs attachés, prochaine action + date
-- [ ] Log d'appel < 30 s : issue (répondu/non/rappel), note courte, horodatage auto
-- [ ] Vue mobile : liste triée par prochaine action, fiche lisible pendant un appel
+- [x] Archiver les leads existants (flag `archived`, pas de delete) — 11 leads archivés le 20/08, désarchivage en un clic dans l'UI
+- [x] Script d'appel + docs de vente partagés (markdown dans `dashboard_settings`, éditables dans le panneau « Script & docs ») ; champ téléphone ajouté aux fiches
+- [x] Log d'appel < 30 s : issue (répondu/non/rappel), note courte, horodatage auto (table `lead_calls`)
+- [x] Vue mobile : cartes au pouce triées par relance, boutons Appeler (`tel:`) + Logger
 
 ### Phase 2 — RDV & comptes rendus
 - [ ] Table `rdv` : lien lead optionnel, lien événement Google Calendar, statut CR

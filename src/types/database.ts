@@ -262,6 +262,28 @@ export interface Database {
         }
         Relationships: []
       }
+      lead_calls: {
+        Row: {
+          id: string
+          lead_id: string
+          outcome: 'repondu' | 'pas_repondu' | 'rappel'
+          note: string | null
+          called_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          outcome: 'repondu' | 'pas_repondu' | 'rappel'
+          note?: string | null
+          called_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          note?: string | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           id: string
@@ -276,6 +298,8 @@ export interface Database {
           created_at: string
           updated_at: string
           created_by: string | null
+          contact_phone: string | null
+          archived: boolean
         }
         Insert: {
           id?: string

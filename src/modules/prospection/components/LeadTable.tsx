@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
+import { Pencil, Trash2, ArrowUp, ArrowDown, Phone, ArchiveRestore } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LeadStatusBadge } from './LeadStatusBadge'
 import { LeadMaturityBadge } from './LeadMaturityBadge'
@@ -18,6 +18,8 @@ interface LeadTableProps {
   onEdit: (lead: Lead) => void
   onDelete: (id: string) => Promise<void>
   canDelete: boolean
+  onLogCall: (lead: Lead) => void
+  onUnarchive: (lead: Lead) => void
 }
 
 type SortDir = 'asc' | 'desc'
@@ -43,7 +45,7 @@ function SkeletonRow() {
   )
 }
 
-export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: LeadTableProps) {
+export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete, onLogCall, onUnarchive }: LeadTableProps) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -168,6 +170,14 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
                 {/* Contact */}
                 <td className="truncate px-4 py-3 text-[var(--text-secondary)]">
                   {lead.contact_name ?? '—'}
+                  {lead.contact_phone && (
+                    <a
+                      href={`tel:${lead.contact_phone.replace(/\s/g, '')}`}
+                      className="block truncate text-[12px] tabular-nums text-[var(--memovia-violet)] hover:underline"
+                    >
+                      {lead.contact_phone}
+                    </a>
+                  )}
                 </td>
 
                 {/* Type */}
@@ -222,6 +232,27 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete }: Lea
                 {/* Actions */}
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
+                    {lead.archived ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onUnarchive(lead)}
+                        className="h-7 px-2 text-[12px] text-[var(--text-muted)] hover:text-[var(--memovia-violet)]"
+                      >
+                        <ArchiveRestore className="mr-1 h-3.5 w-3.5" />
+                        Désarchiver
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onLogCall(lead)}
+                        className="h-7 w-7 p-0 text-[var(--text-muted)] hover:text-[var(--memovia-violet)]"
+                      >
+                        <Phone className="h-3.5 w-3.5" />
+                        <span className="sr-only">Logger un appel</span>
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"

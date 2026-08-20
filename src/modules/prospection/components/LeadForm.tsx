@@ -16,6 +16,7 @@ interface LeadFormProps {
 interface FormState {
   name: string
   contact_name: string
+  contact_phone: string
   type: string
   canal: string
   status: string
@@ -29,7 +30,8 @@ function emptyForm(): FormState {
   return {
     name: '',
     contact_name: '',
-    type: 'entreprise',
+    contact_phone: '',
+    type: 'cfa',
     canal: 'linkedin',
     status: 'nouveau',
     next_action: '',
@@ -43,6 +45,7 @@ function leadToForm(lead: Lead): FormState {
   return {
     name: lead.name,
     contact_name: lead.contact_name ?? '',
+    contact_phone: lead.contact_phone ?? '',
     type: lead.type,
     canal: lead.canal,
     status: lead.status,
@@ -108,6 +111,8 @@ export function LeadForm({ open, onClose, lead, onSubmit }: LeadFormProps) {
         notes: form.notes.trim() || null,
         created_by: null,
         contact_name: form.contact_name.trim() || null,
+        contact_phone: form.contact_phone.trim() || null,
+        archived: lead?.archived ?? false,
         // Preserve AI-managed fields — carry through existing values on edit, null on create
         contact_email: lead?.contact_email ?? null,
         contact_role: lead?.contact_role ?? null,
@@ -159,16 +164,29 @@ export function LeadForm({ open, onClose, lead, onSubmit }: LeadFormProps) {
               {nameError && <p className="text-[12px] text-[var(--danger)]">{nameError}</p>}
             </div>
 
-            {/* Nom du contact */}
-            <div className="space-y-1.5">
-              <Label htmlFor="contact_name">Nom du contact</Label>
-              <Input
-                id="contact_name"
-                name="contact_name"
-                value={form.contact_name}
-                onChange={handleChange}
-                placeholder="Ex : Marie Dupont"
-              />
+            {/* Contact : nom + téléphone */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="contact_name">Nom du contact</Label>
+                <Input
+                  id="contact_name"
+                  name="contact_name"
+                  value={form.contact_name}
+                  onChange={handleChange}
+                  placeholder="Ex : Marie Dupont"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="contact_phone">Téléphone</Label>
+                <Input
+                  id="contact_phone"
+                  name="contact_phone"
+                  type="tel"
+                  value={form.contact_phone}
+                  onChange={handleChange}
+                  placeholder="Ex : 05 61 00 00 00"
+                />
+              </div>
             </div>
 
             {/* Type + Canal */}

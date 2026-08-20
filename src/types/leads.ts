@@ -41,10 +41,32 @@ export interface Lead {
   relance_count: number
   last_contact_date: string | null
   timeline: TimelineEntry[] | null
+  // Refonte v2 Phase 1
+  contact_phone: string | null
+  archived: boolean
 }
 
 export type LeadInsert = Omit<Lead, 'id' | 'created_at' | 'updated_at'>
 export type LeadUpdate = Partial<Omit<Lead, 'id' | 'created_at' | 'updated_at'>>
+
+// ── Log d'appel (refonte v2 Phase 1) ──────────────────────────────────────────
+
+export type CallOutcome = 'repondu' | 'pas_repondu' | 'rappel'
+
+export interface LeadCall {
+  id: string
+  lead_id: string
+  outcome: CallOutcome
+  note: string | null
+  called_at: string
+  created_by: string | null
+}
+
+export const CALL_OUTCOME_LABELS: Record<CallOutcome, string> = {
+  repondu: 'Répondu',
+  pas_repondu: 'Pas de réponse',
+  rappel: 'À rappeler',
+}
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   nouveau: 'Nouveau',

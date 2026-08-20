@@ -10,6 +10,9 @@ import { LeadStats } from './components/LeadStats'
 import { LeadTable } from './components/LeadTable'
 import { LeadKanban } from './components/LeadKanban'
 import { LeadForm } from './components/LeadForm'
+import { LeadListMobile } from './components/LeadListMobile'
+import { LogCallDialog } from './components/LogCallDialog'
+import { ScriptPanel } from './components/ScriptPanel'
 import type { Lead, LeadStatus, LeadAssignee, LeadInsert, LeadUpdate } from '@/types/leads'
 import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER } from '@/types/leads'
 
@@ -27,20 +30,25 @@ const ASSIGNEE_FILTERS: { label: string; value: LeadAssignee | null }[] = [
 ]
 
 export default function ProspectionPage() {
-  const { leads, isLoading, error, createLead, updateLead, deleteLead } = useLeads()
+  const { leads, isLoading, error, createLead, updateLead, deleteLead, logCall } = useLeads()
   const { user } = useAuth()
 
   const [view, setView] = useState<ViewMode>('table')
   const [filterStatus, setFilterStatus] = useState<LeadStatus | null>(null)
   const [filterAssignee, setFilterAssignee] = useState<LeadAssignee | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
+  const [logCallLead, setLogCallLead] = useState<Lead | null>(null)
 
-  const filteredLeads = leads
+  const visibleLeads = leads.filter((l) => l.archived === showArchived)
+  const archivedCount = leads.filter((l) => l.archived).length
+
+  const filteredLeads = visibleLeads
     .filter((l) => filterStatus == null || l.status === filterStatus)
     .filter((l) => filterAssignee == null || l.assigned_to === filterAssignee)
 
-  const activeCount = leads.filter((l) => !['gagne', 'perdu'].includes(l.status)).length
+  const activeCount = leads.filter((l) => !l.archived && !['gagne', 'perdu'].includes(l.status)).length
 
   function handleNewLead() {
     setEditingLead(null)
@@ -90,6 +98,25 @@ export default function ProspectionPage() {
     }
   }
 
+  async function handleLogCall(leadId: string, input: Parameters<typeof logCall>[1]) {
+    try {
+      await logCall(leadId, input)
+      toast.success('Appel loggé.')
+    } catch {
+      toast.error("Impossible d'enregistrer l'appel.")
+      throw new Error('log call failed')
+    }
+  }
+
+  async function handleUnarchive(lead: Lead) {
+    try {
+      await updateLead(lead.id, { archived: false })
+      toast.success(`« ${lead.name} » désarchivé.`)
+    } catch {
+      toast.error('Impossible de désarchiver.')
+    }
+  }
+
   const canDelete = user?.role === 'admin_full'
 
   return (
@@ -99,7 +126,7 @@ export default function ProspectionPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-              Prospection CRM
+              Leads
             </h1>
             {!isLoading && (
               <span className="rounded-full bg-[var(--accent-purple-bg)] px-2.5 py-0.5 text-[12px] font-semibold text-[var(--memovia-violet)]">
@@ -108,11 +135,12 @@ export default function ProspectionPage() {
             )}
           </div>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Pipeline de leads et suivi commercial MEMOVIA AI.
+            Prospection CFA France — offre accessibilité.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ScriptPanel />
           {/* View toggle */}
           <div
             className="flex items-center rounded-lg p-1"
@@ -158,7 +186,7 @@ export default function ProspectionPage() {
 
       {/* ── KPI Stats ────────────────────────────────────────────────────────── */}
       <motion.div variants={staggerItem}>
-        <LeadStats leads={leads} isLoading={isLoading} error={error} />
+        <LeadStats leads={leads.filter((l) => !l.archived)} isLoading={isLoading} error={error} />
       </motion.div>
 
       {/* ── Filters ──────────────────────────────────────────────────────────── */}
@@ -230,6 +258,26 @@ export default function ProspectionPage() {
           })}
         </div>
 
+        {/* Archivés (liste pré-refonte, récupérable) */}
+        {archivedCount > 0 && (
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            aria-pressed={showArchived}
+            className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
+            style={
+              showArchived
+                ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
+                : {
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-muted)',
+                    border: '1px dashed var(--border-color)',
+                  }
+            }
+          >
+            Archivés ({archivedCount})
+          </button>
+        )}
+
         {/* Active filter count */}
         {(filterStatus != null || filterAssignee != null) && (
           <button
@@ -243,22 +291,38 @@ export default function ProspectionPage() {
 
       {/* ── Content view ─────────────────────────────────────────────────────── */}
       <motion.div variants={staggerItem}>
-        {view === 'table' ? (
-          <LeadTable
+        {/* Mobile : cartes au pouce (usage Emir) */}
+        <div className="md:hidden">
+          <LeadListMobile
             leads={filteredLeads}
             isLoading={isLoading}
             onEdit={handleEdit}
-            onDelete={handleDelete}
-            canDelete={canDelete}
+            onLogCall={setLogCallLead}
+            onUnarchive={handleUnarchive}
           />
-        ) : (
-          <LeadKanban
-            leads={filteredLeads}
-            isLoading={isLoading}
-            onEdit={handleEdit}
-            onStatusChange={handleStatusChange}
-          />
-        )}
+        </div>
+
+        {/* Desktop : table dense ou kanban */}
+        <div className="hidden md:block">
+          {view === 'table' ? (
+            <LeadTable
+              leads={filteredLeads}
+              isLoading={isLoading}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              canDelete={canDelete}
+              onLogCall={setLogCallLead}
+              onUnarchive={handleUnarchive}
+            />
+          ) : (
+            <LeadKanban
+              leads={filteredLeads}
+              isLoading={isLoading}
+              onEdit={handleEdit}
+              onStatusChange={handleStatusChange}
+            />
+          )}
+        </div>
       </motion.div>
 
       {/* ── Modal Form ───────────────────────────────────────────────────────── */}
@@ -267,6 +331,13 @@ export default function ProspectionPage() {
         onClose={handleFormClose}
         lead={editingLead}
         onSubmit={handleFormSubmit}
+      />
+
+      {/* ── Log d'appel ──────────────────────────────────────────────────────── */}
+      <LogCallDialog
+        lead={logCallLead}
+        onClose={() => setLogCallLead(null)}
+        onSubmit={handleLogCall}
       />
     </motion.div>
   )
