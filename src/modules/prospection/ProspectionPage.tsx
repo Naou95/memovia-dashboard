@@ -141,9 +141,10 @@ export default function ProspectionPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <ScriptPanel />
-          {/* View toggle */}
+          {/* View toggle — desktop seulement : la vue mobile est la liste de cartes,
+              ce toggle n'y a aucun effet */}
           <div
-            className="flex items-center rounded-lg p-1"
+            className="hidden items-center rounded-lg p-1 md:flex"
             style={{
               border: '1px solid var(--border-color)',
               backgroundColor: 'var(--bg-secondary)',
@@ -184,8 +185,10 @@ export default function ProspectionPage() {
         </motion.div>
       )}
 
-      {/* ── KPI Stats ────────────────────────────────────────────────────────── */}
-      <motion.div variants={staggerItem}>
+      {/* ── KPI Stats — desktop seulement : sur mobile (l'écran d'Emir entre deux
+          appels), 4 cartes empilées enterraient la liste sous deux écrans de chiffres.
+          La liste EST la page ; les stats sont un bonus de grand écran. */}
+      <motion.div variants={staggerItem} className="hidden md:block">
         <LeadStats leads={leads.filter((l) => !l.archived)} isLoading={isLoading} error={error} />
       </motion.div>
 
@@ -206,7 +209,7 @@ export default function ProspectionPage() {
                 key={pill.label}
                 onClick={() => setFilterStatus(pill.value)}
                 aria-pressed={isActive}
-                className="rounded-full px-3 py-1 text-[12px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
+                className="rounded-full px-3 py-2 text-[12px] md:py-1 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
                 style={
                   isActive
                     ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
@@ -237,7 +240,7 @@ export default function ProspectionPage() {
               <button
                 key={pill.label}
                 onClick={() => setFilterAssignee(pill.value)}
-                className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
+                className="rounded-full px-3 py-2 text-[12px] md:py-1 font-medium transition-all"
                 style={
                   isActive
                     ? {
@@ -263,7 +266,7 @@ export default function ProspectionPage() {
           <button
             onClick={() => setShowArchived((v) => !v)}
             aria-pressed={showArchived}
-            className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
+            className="rounded-full px-3 py-2 text-[12px] md:py-1 font-medium transition-all"
             style={
               showArchived
                 ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
@@ -299,6 +302,7 @@ export default function ProspectionPage() {
             onEdit={handleEdit}
             onLogCall={setLogCallLead}
             onUnarchive={handleUnarchive}
+            onCreate={handleNewLead}
           />
         </div>
 
@@ -313,6 +317,7 @@ export default function ProspectionPage() {
               canDelete={canDelete}
               onLogCall={setLogCallLead}
               onUnarchive={handleUnarchive}
+              onCreate={handleNewLead}
             />
           ) : (
             <LeadKanban

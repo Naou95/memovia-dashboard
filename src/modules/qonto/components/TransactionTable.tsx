@@ -136,7 +136,9 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
                   <td className="whitespace-nowrap py-3 pr-4 text-[13px] tabular-nums text-[var(--text-secondary)]">
                     {formatDate(tx.settledAt)}
                   </td>
-                  <td className="max-w-[220px] truncate py-3 pr-4 text-[13px] text-[var(--text-primary)]">
+                  {/* max-w réduit sur mobile : sans lui, un long libellé poussait la
+                      colonne Montant hors écran — la donnée clé devenait invisible */}
+                  <td className="max-w-[140px] truncate py-3 pr-4 text-[13px] text-[var(--text-primary)] sm:max-w-[220px]">
                     {tx.label}
                   </td>
                   <td className="hidden py-3 pr-4 sm:table-cell">

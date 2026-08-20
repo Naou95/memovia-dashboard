@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Pencil, Trash2, ArrowUp, ArrowDown, Phone, ArchiveRestore } from 'lucide-react'
+import { Pencil, Trash2, ArrowUp, ArrowDown, Phone, ArchiveRestore, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LeadStatusBadge } from './LeadStatusBadge'
 import { LeadMaturityBadge } from './LeadMaturityBadge'
@@ -20,6 +20,7 @@ interface LeadTableProps {
   canDelete: boolean
   onLogCall: (lead: Lead) => void
   onUnarchive: (lead: Lead) => void
+  onCreate: () => void
 }
 
 type SortDir = 'asc' | 'desc'
@@ -45,7 +46,7 @@ function SkeletonRow() {
   )
 }
 
-export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete, onLogCall, onUnarchive }: LeadTableProps) {
+export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete, onLogCall, onUnarchive, onCreate }: LeadTableProps) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -152,8 +153,12 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete, onLog
                   Aucun lead trouvé
                 </p>
                 <p className="mt-1 text-[13px] text-[var(--text-muted)]">
-                  Créez votre premier lead pour démarrer le pipeline.
+                  La liste CFA France se construit ici.
                 </p>
+                <Button onClick={onCreate} className="mt-4 gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  Créer le premier lead
+                </Button>
               </td>
             </tr>
           ) : (

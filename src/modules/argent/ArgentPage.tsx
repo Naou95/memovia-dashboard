@@ -1,4 +1,4 @@
-import { ExternalLink, Landmark, TrendingUp, UserPlus, UserMinus } from 'lucide-react'
+import { ExternalLink, Landmark, TrendingUp, UserPlus, UserMinus, AlertTriangle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { KpiCard } from '@/components/shared/KpiCard'
@@ -27,14 +27,23 @@ export default function ArgentPage() {
 
   // Runway = solde / burn net moyen des 3 derniers mois. Un burn positif (on
   // gagne de l'argent) n'a pas de runway : on affiche « — ».
+  // Le rouge est réservé aux vrais problèmes — un runway court en est un :
+  // rouge sous 3 mois, cyan sinon.
   let runway: string | null = null
+  let runwayMois: number | null = null
   if (qonto.data) {
     const flows = qonto.data.monthlyCashFlow.slice(-3)
     const avgNet = flows.length
       ? flows.reduce((s, f) => s + (f.income - f.expenses), 0) / flows.length
       : 0
-    runway = avgNet < 0 ? `${Math.floor(qonto.data.balance / -avgNet)} mois` : '—'
+    if (avgNet < 0) {
+      runwayMois = Math.floor(qonto.data.balance / -avgNet)
+      runway = `${runwayMois} mois`
+    } else {
+      runway = '—'
+    }
   }
+  const runwayCritique = runwayMois !== null && runwayMois < 3
 
   return (
     <motion.div className="space-y-6" variants={staggerContainer} initial="hidden" animate="show">
@@ -86,15 +95,15 @@ export default function ArgentPage() {
         <KpiCard
           label="Runway (burn 3 mois)"
           value={runway}
-          accent="cyan"
-          icon={Landmark}
+          accent={runwayCritique ? 'red' : 'cyan'}
+          icon={runwayCritique ? AlertTriangle : Landmark}
           isLoading={qonto.isLoading}
           error={qonto.error}
         />
         <KpiCard
-          label="Abos ce mois (+ / −)"
+          label="Abos du mois"
           value={
-            stripe.data ? `+${stripe.data.newThisMonth} / −${stripe.data.churnsThisMonth}` : null
+            stripe.data ? `+${stripe.data.newThisMonth} −${stripe.data.churnsThisMonth}` : null
           }
           accent={stripe.data && stripe.data.churnsThisMonth > stripe.data.newThisMonth ? 'red' : 'blue'}
           icon={stripe.data && stripe.data.churnsThisMonth > stripe.data.newThisMonth ? UserMinus : UserPlus}

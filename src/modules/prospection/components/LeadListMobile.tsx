@@ -1,4 +1,4 @@
-import { Phone, PhoneCall, Pencil, ArchiveRestore } from 'lucide-react'
+import { Phone, PhoneCall, Pencil, ArchiveRestore, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LeadStatusBadge } from './LeadStatusBadge'
 import type { Lead } from '@/types/leads'
@@ -9,6 +9,7 @@ interface LeadListMobileProps {
   onEdit: (lead: Lead) => void
   onLogCall: (lead: Lead) => void
   onUnarchive: (lead: Lead) => void
+  onCreate: () => void
 }
 
 function formatDate(dateStr: string | null): string {
@@ -21,7 +22,7 @@ function formatDate(dateStr: string | null): string {
  * date de relance (le tri vient du hook), pensées pour l'usage d'Emir entre
  * deux rendez-vous — appeler, puis logger en < 30 s.
  */
-export function LeadListMobile({ leads, isLoading, onEdit, onLogCall, onUnarchive }: LeadListMobileProps) {
+export function LeadListMobile({ leads, isLoading, onEdit, onLogCall, onUnarchive, onCreate }: LeadListMobileProps) {
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -39,6 +40,10 @@ export function LeadListMobile({ leads, isLoading, onEdit, onLogCall, onUnarchiv
         <p className="mt-1 text-[13px] text-[var(--text-muted)]">
           La nouvelle liste CFA France se construit ici.
         </p>
+        <Button onClick={onCreate} className="mt-4 h-10 gap-1.5">
+          <Plus className="h-4 w-4" />
+          Créer le premier lead
+        </Button>
       </div>
     )
   }
