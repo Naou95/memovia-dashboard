@@ -25,7 +25,10 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 262 83% 58%;
+    /* Refonte design 20/08/2026 (direction Dribbble « panneaux flottants, nav
+       sombre ») : les CTA primaires passent en sombre — le violet reste
+       l'accent (pills actives, liens, chips), plus le fond des boutons. */
+    --primary: 240 8% 8%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -109,11 +112,20 @@
   --info: #3B82F6;
 
   /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-xs: 0 1px 2px rgba(16,24,40,0.04), 0 6px 20px rgba(16,24,40,0.05);
+  --shadow-sm: 0 2px 4px rgba(16,24,40,0.05), 0 10px 32px rgba(16,24,40,0.07);
+
+  /* Nav sombre (refonte 20/08/2026) */
+  --nav-bg: #101014;
+  --nav-fg: rgba(255,255,255,0.68);
+  --nav-fg-active: #FFFFFF;
+  --nav-hover: rgba(255,255,255,0.08);
+
+  /* Toile de fond douce derrière les panneaux flottants */
+  --bg-app: linear-gradient(165deg, #F7F7FB 0%, #EEF0F6 55%, #ECEEF5 100%);
 
   /* Border radius */
-  --radius-card: 8px;
+  --radius-card: 14px;
 }
 
 /* ── Animation foundation ─────────────────────────────────────────────────── */

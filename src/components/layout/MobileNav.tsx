@@ -21,7 +21,7 @@ export function MobileNav() {
         <button
           type="button"
           aria-label="Ouvrir le menu de navigation"
-          className="flex items-center justify-center rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-colors"
+          className="flex items-center justify-center rounded-lg p-2 text-[var(--nav-fg)] hover:bg-[var(--nav-hover)] hover:text-white transition-colors"
         >
           <Menu className="h-5 w-5" />
         </button>

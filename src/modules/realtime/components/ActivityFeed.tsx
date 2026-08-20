@@ -45,7 +45,7 @@ function SkeletonRow() {
 
 export function ActivityFeed({ users, isLoading }: ActivityFeedProps) {
   return (
-    <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-3.5">
         <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">
           Dernières connexions — 24h

@@ -94,7 +94,7 @@ export default function UtilisateursPage() {
       {error && !isLoading && (
         <motion.div
           variants={staggerItem}
-          className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
+          className="rounded-[var(--radius-card)] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
         >
           {error}
         </motion.div>
@@ -116,14 +116,14 @@ export default function UtilisateursPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Rechercher un utilisateur..."
-          className="w-full rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] py-2 pl-9 pr-4 text-sm text-[var(--text-primary)] shadow-[var(--shadow-xs)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--memovia-violet)]"
+          className="w-full rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] py-2 pl-9 pr-4 text-sm text-[var(--text-primary)] shadow-[var(--shadow-xs)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--memovia-violet)]"
         />
       </motion.div>
 
       {/* ── Filters ──────────────────────────────────────────────────────────── */}
       <motion.div
         variants={staggerItem}
-        className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
+        className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
       >
         {/* Type */}
         <div className="flex flex-wrap items-center gap-2">

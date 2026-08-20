@@ -97,7 +97,7 @@ export default function RoadmapPage() {
       {error && !isLoading && (
         <motion.div
           variants={staggerItem}
-          className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
+          className="rounded-[var(--radius-card)] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger)]"
         >
           {error}
         </motion.div>
@@ -110,7 +110,7 @@ export default function RoadmapPage() {
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="h-20 skeleton rounded-[8px]"
+                className="h-20 skeleton rounded-[var(--radius-card)]"
               />
             ))}
           </div>
@@ -152,7 +152,7 @@ export default function RoadmapPage() {
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="h-64 skeleton rounded-[8px]"
+                className="h-64 skeleton rounded-[var(--radius-card)]"
               />
             ))}
           </div>

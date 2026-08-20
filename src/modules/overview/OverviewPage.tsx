@@ -408,7 +408,7 @@ export default function OverviewPage() {
       <ErrorBoundary>
       <motion.div
         variants={staggerItem}
-        className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+        className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center gap-2">
           <Sun size={15} className="text-amber-500" />
@@ -516,7 +516,7 @@ export default function OverviewPage() {
       {/* ── Briefing IA du jour ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-[8px] border border-[var(--memovia-violet-light)] bg-[var(--memovia-violet-light)]/60 p-5"
+        className="rounded-[var(--radius-card)] border border-[var(--memovia-violet-light)] bg-[var(--memovia-violet-light)]/60 p-5"
       >
         <div className="mb-3 flex items-center gap-2">
           <Bot size={15} className="text-[var(--memovia-violet)]" />
@@ -620,7 +620,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <motion.div
           variants={staggerItem}
-          className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+          className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
         >
           <div className="mb-2 flex items-start justify-between">
             <div>
@@ -662,7 +662,7 @@ export default function OverviewPage() {
 
         <motion.div
           variants={staggerItem}
-          className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+          className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
         >
           <div className="mb-4 flex items-end justify-between">
             <div>
@@ -693,7 +693,7 @@ export default function OverviewPage() {
       {/* ── Alertes prioritaires — format actionnable ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+        className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center gap-2">
           <AlertTriangle size={15} className="text-[var(--text-secondary)]" />
@@ -744,7 +744,7 @@ export default function OverviewPage() {
       {/* ── Activité récente ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+        className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center gap-2">
           <Activity size={15} className="text-[var(--text-secondary)]" />
@@ -801,7 +801,7 @@ export default function OverviewPage() {
       {/* ── Actus MEMOVIA du matin — 24h ── */}
       <motion.div
         variants={staggerItem}
-        className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+        className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex items-center gap-2">
           <UserPlus size={15} className="text-[var(--text-secondary)]" />

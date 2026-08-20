@@ -30,7 +30,7 @@ function LevelBadge({ level }: { level: SentryLevel }) {
 export function IssueListSkeleton() {
   return (
     <div
-      className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]"
+      className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]"
     >
       <div
         className="flex items-center gap-2 border-b px-4 py-3"
@@ -142,7 +142,7 @@ export function IssueList({ issues }: Props) {
 
   return (
     <div
-      className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]"
+      className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]"
     >
       <div
         className="flex items-center gap-2 border-b px-4 py-3"

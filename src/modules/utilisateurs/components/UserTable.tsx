@@ -35,7 +35,7 @@ function SkeletonRow() {
 
 export function UserTable({ users, isLoading }: UserTableProps) {
   return (
-    <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <table className="w-full table-fixed text-sm">
         <colgroup>
           <col className="w-[30%]" />

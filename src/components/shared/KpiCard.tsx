@@ -64,7 +64,7 @@ export function KpiCard({
 
   return (
     <motion.article
-      className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)] transition-shadow duration-200 hover:shadow-[var(--shadow-sm)]"
+      className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)] transition-shadow duration-200 hover:shadow-[var(--shadow-sm)]"
       whileHover={{ y: -1 }}
       transition={{ type: 'spring', stiffness: 240, damping: 20 }}
     >

@@ -44,7 +44,7 @@ export function ArticlesList({
   if (isLoading) {
     return (
       <div
-        className="rounded-[8px] border p-5"
+        className="rounded-[var(--radius-card)] border p-5"
         style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
       >
         <div className="space-y-3">
@@ -61,7 +61,7 @@ export function ArticlesList({
   return (
     <>
       <div
-        className="rounded-[8px] border"
+        className="rounded-[var(--radius-card)] border"
         style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
       >
         {/* Header */}
@@ -205,7 +205,7 @@ export function ArticlesList({
           onClick={() => setDeletingId(null)}
         >
           <div
-            className="w-full max-w-sm rounded-[8px] border p-6 shadow-2xl"
+            className="w-full max-w-sm rounded-[var(--radius-card)] border p-6 shadow-2xl"
             style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
             onClick={(e) => e.stopPropagation()}
           >

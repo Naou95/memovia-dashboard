@@ -87,7 +87,7 @@ function ProfileModal({ profile, onClose, onSaved }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
-      <div className="w-full max-w-md rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
+      <div className="w-full max-w-md rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 id="profile-modal-title" className="text-base font-semibold text-[var(--text-primary)]">
             {isEdit ? 'Modifier le collaborateur' : 'Inviter un collaborateur'}
@@ -141,7 +141,7 @@ function ProfileModal({ profile, onClose, onSaved }: ModalProps) {
           </div>
 
           {error && (
-            <p className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-3 py-2 text-xs text-[var(--danger)]">{error}</p>
+            <p className="rounded-[var(--radius-card)] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-3 py-2 text-xs text-[var(--danger)]">{error}</p>
           )}
 
           <div className="flex justify-end gap-2 pt-1">
@@ -187,7 +187,7 @@ function DeleteConfirm({ profile, onClose, onDeleted }: DeleteConfirmProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
-      <div className="w-full max-w-sm rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
+      <div className="w-full max-w-sm rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-6 shadow-xl">
         <h2 id="delete-confirm-title" className="mb-2 text-base font-semibold text-[var(--text-primary)]">Supprimer ce collaborateur ?</h2>
         <p className="mb-5 text-sm text-[var(--text-muted)]">
           <strong>{profile.full_name}</strong> ({profile.email}) sera retiré du dashboard. Cette action est irréversible.
@@ -256,7 +256,7 @@ export default function AdminPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
+        <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
           {loading ? (
             <div className="flex h-40 items-center justify-center">
               <Loader2 className="h-5 w-5 animate-spin text-[var(--memovia-violet)]" />

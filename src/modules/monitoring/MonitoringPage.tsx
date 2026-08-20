@@ -38,7 +38,7 @@ export default function MonitoringPage() {
       {error && (
         <motion.div
           variants={staggerItem}
-          className="flex items-center gap-3 rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3"
+          className="flex items-center gap-3 rounded-[var(--radius-card)] border border-[var(--danger)]/20 bg-[var(--danger-bg)] px-4 py-3"
         >
           <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--danger)]" />
           <p className="text-[13px] text-[var(--danger)]">{error}</p>

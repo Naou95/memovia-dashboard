@@ -65,7 +65,7 @@ function CardContent({ lead, onEdit, dragHandleProps, isOverlay, isPlaceholder }
   return (
     <div
       className={[
-        'group rounded-[8px] bg-white transition-all',
+        'group rounded-[var(--radius-card)] bg-white transition-all',
         isPlaceholder
           ? 'border border-dashed border-[var(--memovia-violet)] opacity-30 pointer-events-none'
           : isOverlay
@@ -254,7 +254,7 @@ function DroppableColumn({ status, leads, isLoading, onEdit, activeLeadId }: Dro
 
 function SkeletonCard() {
   return (
-    <div className="rounded-[8px] border border-[#E8E8F0] bg-white p-[14px] space-y-2">
+    <div className="rounded-[var(--radius-card)] border border-[#E8E8F0] bg-white p-[14px] space-y-2">
       <div className="h-4 animate-pulse rounded bg-[var(--border-color)]" />
       <div className="h-3 w-2/3 animate-pulse rounded bg-[var(--border-color)]" />
     </div>

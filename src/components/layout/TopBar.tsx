@@ -29,7 +29,7 @@ export function TopBar() {
     <div className="flex flex-1 items-center justify-between">
       {/* Page title — mobile only ; <p> et pas <h1> : chaque page a déjà son h1,
           deux h1 par document cassent la hiérarchie d'accessibilité */}
-      <p className="text-[17px] font-semibold tracking-tight text-[var(--text-primary)] md:hidden">
+      <p className="text-[17px] font-semibold tracking-tight text-white md:hidden">
         {pageTitle}
       </p>
       <span className="hidden md:block" aria-hidden />{/* spacer : garde les actions à droite */}
@@ -39,7 +39,7 @@ export function TopBar() {
         <button
           type="button"
           onClick={togglePrivacy}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--border-subtle)] hover:text-[var(--text-primary)] md:h-8 md:w-8"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--nav-fg)] transition-colors hover:bg-[var(--nav-hover)] hover:text-white md:h-8 md:w-8"
           aria-label={isPrivate ? 'Afficher les chiffres' : 'Masquer les chiffres'}
           title={isPrivate ? 'Afficher les chiffres sensibles' : 'Masquer les chiffres sensibles'}
         >
@@ -51,7 +51,7 @@ export function TopBar() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--border-subtle)] hover:text-[var(--text-primary)] md:h-8 md:w-8"
+              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--nav-fg)] transition-colors hover:bg-[var(--nav-hover)] hover:text-white md:h-8 md:w-8"
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />
@@ -126,7 +126,7 @@ export function TopBar() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2 rounded-lg px-1 py-1 hover:bg-[var(--border-subtle)] transition-colors ml-1"
+              className="flex items-center gap-2 rounded-lg px-1 py-1 hover:bg-[var(--nav-hover)] transition-colors ml-1"
               aria-label="Menu utilisateur"
             >
               <Avatar className="h-8 w-8">
@@ -134,25 +134,25 @@ export function TopBar() {
                   src={user?.profile.avatar_url ?? undefined}
                   alt={user?.profile.full_name ?? ''}
                 />
-                <AvatarFallback className="bg-[var(--memovia-violet-light)] text-[var(--memovia-violet)] text-[11px] font-semibold">
+                <AvatarFallback className="bg-[var(--memovia-violet)] text-white text-[11px] font-semibold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden sm:block text-left leading-tight">
-                <div className="text-[13px] font-medium text-[var(--text-primary)]">
+                <div className="text-[13px] font-medium text-white">
                   {user?.profile.full_name ?? 'Admin'}
                 </div>
-                <div className="text-[11px] text-[var(--text-muted)]">
+                <div className="text-[11px] text-[var(--nav-fg)]">
                   {formatRole(user?.role)}
                 </div>
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+              <ChevronDown className="h-3.5 w-3.5 text-[var(--nav-fg)]" />
             </button>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
             align="end"
-            className="z-50 w-64 rounded-[8px] border border-[#E5E7EB] bg-white p-0 shadow-md"
+            className="z-50 w-64 rounded-[var(--radius-card)] border border-[#E5E7EB] bg-white p-0 shadow-md"
             sideOffset={8}
           >
             {/* Header : avatar + nom + email + badge rôle */}

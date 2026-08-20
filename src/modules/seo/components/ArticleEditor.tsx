@@ -236,7 +236,7 @@ export function ArticleEditor({
 
   return (
     <div
-      className="flex flex-col gap-4 rounded-[8px] border p-5"
+      className="flex flex-col gap-4 rounded-[var(--radius-card)] border p-5"
       style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-card)' }}
     >
       {/* Header */}

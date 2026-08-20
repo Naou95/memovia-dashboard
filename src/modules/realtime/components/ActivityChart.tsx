@@ -132,7 +132,7 @@ export function ActivityChart({ users, period, isLoading }: ActivityChartProps) 
   const isEmpty = data.every((d) => d.count === 0)
 
   return (
-    <div className="rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
+    <div className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
       <div className="mb-4">
         <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{meta.title}</h3>
         <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">{meta.subtitle}</p>

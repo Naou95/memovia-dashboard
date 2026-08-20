@@ -21,7 +21,7 @@ export function EmailAlerts({ alerts, onSelectEmail, onDismiss }: EmailAlertsPro
 
   return (
     <div
-      className="rounded-[8px] border border-[var(--danger)]/20 bg-[var(--danger-bg)] p-4 shadow-[var(--shadow-xs)]"
+      className="rounded-[var(--radius-card)] border border-[var(--danger)]/20 bg-[var(--danger-bg)] p-4 shadow-[var(--shadow-xs)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">

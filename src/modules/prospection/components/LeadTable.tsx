@@ -88,7 +88,7 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete, onLog
   ]
 
   return (
-    <div className="overflow-hidden rounded-[8px] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-[var(--shadow-xs)]">
       <table className="w-full table-fixed text-sm" aria-label="Liste des leads commerciaux">
         <colgroup>
           <col className="w-[13%]" />
