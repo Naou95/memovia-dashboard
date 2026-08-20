@@ -38,7 +38,7 @@ export function TopBar() {
         <button
           type="button"
           onClick={togglePrivacy}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--border-subtle)] hover:text-[var(--text-primary)]"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--border-subtle)] hover:text-[var(--text-primary)] md:h-8 md:w-8"
           aria-label={isPrivate ? 'Afficher les chiffres' : 'Masquer les chiffres'}
           title={isPrivate ? 'Afficher les chiffres sensibles' : 'Masquer les chiffres sensibles'}
         >
@@ -50,7 +50,7 @@ export function TopBar() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--border-subtle)] hover:text-[var(--text-primary)]"
+              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--border-subtle)] hover:text-[var(--text-primary)] md:h-8 md:w-8"
               aria-label="Notifications"
             >
               <Bell className="h-4 w-4" />

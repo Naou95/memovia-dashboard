@@ -209,7 +209,7 @@ export default function ProspectionPage() {
                 key={pill.label}
                 onClick={() => setFilterStatus(pill.value)}
                 aria-pressed={isActive}
-                className="rounded-full px-3 py-1 text-[12px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
+                className="rounded-full px-3 py-2 text-[12px] md:py-1 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-1"
                 style={
                   isActive
                     ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
@@ -240,7 +240,7 @@ export default function ProspectionPage() {
               <button
                 key={pill.label}
                 onClick={() => setFilterAssignee(pill.value)}
-                className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
+                className="rounded-full px-3 py-2 text-[12px] md:py-1 font-medium transition-all"
                 style={
                   isActive
                     ? {
@@ -266,7 +266,7 @@ export default function ProspectionPage() {
           <button
             onClick={() => setShowArchived((v) => !v)}
             aria-pressed={showArchived}
-            className="rounded-full px-3 py-1 text-[12px] font-medium transition-all"
+            className="rounded-full px-3 py-2 text-[12px] md:py-1 font-medium transition-all"
             style={
               showArchived
                 ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
