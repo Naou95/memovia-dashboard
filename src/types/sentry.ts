@@ -10,6 +10,8 @@ export interface SentryIssue {
   lastSeen: string
   permalink: string
   isCritical: boolean
+  /** Dernier utilisateur touché (email ou id), null si inconnu ou issue non enrichie */
+  lastUser: string | null
 }
 
 export interface SentryStats {
