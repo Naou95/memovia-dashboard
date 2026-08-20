@@ -52,7 +52,10 @@ Deno.serve(async (req) => {
     const raw: any[] = await sentryRes.json()
 
     const issues = raw.map((issue) => {
-      const occurrences = issue.times_seen ?? 0
+      // L'API issues de Sentry expose le compteur dans `count` (string), pas
+      // `times_seen` : l'ancien champ affichait « 0 occurrence » sur des bugs
+      // avec des utilisateurs affectés. Vu en prod le 20/08/2026.
+      const occurrences = Number(issue.count ?? issue.times_seen ?? 0)
       const usersAffected = issue.userCount ?? issue.users?.count ?? 0
       const level = issue.level ?? 'error'
       const isCritical = level === 'error' || level === 'fatal'
