@@ -27,10 +27,11 @@ export function TopBar() {
 
   return (
     <div className="flex flex-1 items-center justify-between">
-      {/* Page title — mobile only, doublonne la nav horizontale sur desktop */}
-      <h1 className="text-[17px] font-semibold tracking-tight text-[var(--text-primary)] md:hidden">
+      {/* Page title — mobile only ; <p> et pas <h1> : chaque page a déjà son h1,
+          deux h1 par document cassent la hiérarchie d'accessibilité */}
+      <p className="text-[17px] font-semibold tracking-tight text-[var(--text-primary)] md:hidden">
         {pageTitle}
-      </h1>
+      </p>
       <span className="hidden md:block" aria-hidden />{/* spacer : garde les actions à droite */}
 
       <div className="flex items-center gap-1">
