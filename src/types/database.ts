@@ -413,7 +413,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          type: 'lead_stale' | 'email_critical' | 'new_lead' | 'stripe_cancel'
+          type: 'lead_stale' | 'email_critical' | 'new_lead' | 'stripe_cancel' | 'sentry_critical' | (string & {})
           title: string
           message: string
           read: boolean
@@ -422,7 +422,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          type: 'lead_stale' | 'email_critical' | 'new_lead' | 'stripe_cancel'
+          type: 'lead_stale' | 'email_critical' | 'new_lead' | 'stripe_cancel' | 'sentry_critical' | (string & {})
           title: string
           message: string
           read?: boolean

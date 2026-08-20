@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LogOut, ChevronDown, Eye, EyeOff, Bell, CheckCheck, AlertCircle, Mail, UserPlus, XCircle, Settings, Users as UsersIcon } from 'lucide-react'
+import { LogOut, ChevronDown, Eye, EyeOff, Bell, CheckCheck, AlertCircle, Mail, UserPlus, XCircle, Settings, Users as UsersIcon, Bug } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import {
@@ -217,14 +217,22 @@ export function TopBar() {
 // ── Notification item ──────────────────────────────────────────────────────────
 
 const NOTIF_CONFIG: Record<
-  Notification['type'],
+  string,
   { icon: React.ElementType; iconColor: string; iconBg: string }
 > = {
-  lead_stale:     { icon: AlertCircle, iconColor: '#F59E0B', iconBg: 'rgba(245,158,11,0.12)' },
-  email_critical: { icon: Mail,        iconColor: '#EF4444', iconBg: 'rgba(239,68,68,0.12)' },
-  new_lead:       { icon: UserPlus,    iconColor: '#10B981', iconBg: 'rgba(16,185,129,0.12)' },
-  stripe_cancel:  { icon: XCircle,     iconColor: '#EF4444', iconBg: 'rgba(239,68,68,0.12)' },
+  lead_stale:      { icon: AlertCircle, iconColor: '#F59E0B', iconBg: 'rgba(245,158,11,0.12)' },
+  email_critical:  { icon: Mail,        iconColor: '#EF4444', iconBg: 'rgba(239,68,68,0.12)' },
+  new_lead:        { icon: UserPlus,    iconColor: '#10B981', iconBg: 'rgba(16,185,129,0.12)' },
+  stripe_cancel:   { icon: XCircle,     iconColor: '#EF4444', iconBg: 'rgba(239,68,68,0.12)' },
+  sentry_critical: { icon: Bug,         iconColor: '#EF4444', iconBg: 'rgba(239,68,68,0.12)' },
 }
+
+// Tout type absent du dictionnaire tombe ici. Sans ce repli, une notification
+// d'un type inconnu (ex. `sentry_critical` créé par get-sentry, jamais ajouté
+// ici) faisait crasher TOUTE l'app d'un clic sur la cloche — vu en prod le
+// 20/08/2026. La colonne `type` est du texte libre côté base : ce dictionnaire
+// ne peut jamais être supposé exhaustif.
+const NOTIF_FALLBACK = { icon: Bell, iconColor: 'var(--text-muted)', iconBg: 'var(--bg-primary)' }
 
 function NotificationItem({
   notification: n,
@@ -233,7 +241,7 @@ function NotificationItem({
   notification: Notification
   onRead: (id: string) => void
 }) {
-  const cfg = NOTIF_CONFIG[n.type]
+  const cfg = NOTIF_CONFIG[n.type] ?? NOTIF_FALLBACK
   const Icon = cfg.icon
 
   return (
