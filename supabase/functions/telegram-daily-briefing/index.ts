@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0]
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    const [stripeResult, qontoResult, tasksResult, leadsResult, rdvResult] = await Promise.allSettled([
+    const [stripeResult, qontoResult, tasksResult, leadsResult, rdvResult, finResult] = await Promise.allSettled([
       // Stripe MRR
       (async () => {
         const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
@@ -119,6 +119,18 @@ Deno.serve(async (req) => {
         .eq('cr_status', 'manquant')
         .lt('rdv_date', new Date().toISOString())
         .order('rdv_date', { ascending: false })
+        .limit(10),
+
+      // Deadlines financements ≤ 14 jours (refonte v2 Phase 3), y compris dépassées tant
+      // que le statut reste actionnable (veille / à déposer / jury). Un « déposé » ne se
+      // relance pas : sa deadline est derrière lui par définition.
+      supabase
+        .from('financements')
+        .select('id, name, deadline, status, next_action')
+        .in('status', ['veille', 'a_deposer', 'jury'])
+        .not('deadline', 'is', null)
+        .lte('deadline', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0])
+        .order('deadline', { ascending: true })
         .limit(10),
     ])
 
@@ -209,6 +221,24 @@ Deno.serve(async (req) => {
     }
 
     lines.push('')
+
+    // Deadlines financements — le compte à rebours s'affiche chaque jour sous 14 j :
+    // une deadline de concours ratée ne se rattrape pas.
+    const finProches = finResult.status === 'fulfilled' ? (finResult.value.data ?? []) : []
+    if (finProches.length > 0) {
+      lines.push(`🏆 *Financements — deadlines proches (${finProches.length})*`)
+      for (const f of finProches) {
+        const jours = Math.ceil((new Date(f.deadline).getTime() - Date.now()) / 86400000)
+        const compte = jours < 0 ? `⚠️ dépassée de ${-jours} j` : jours === 0 ? '🔴 AUJOURD\'HUI' : jours <= 7 ? `🔴 J-${jours}` : `J-${jours}`
+        lines.push(`• ${echapperMarkdown(f.name)} · ${compte}`)
+        if (f.next_action) lines.push(`  ↳ ${echapperMarkdown(f.next_action)}`)
+      }
+      lines.push('')
+    } else if (finResult.status === 'rejected' || finResult.value.error) {
+      console.error('[briefing] lecture des financements en échec')
+      lines.push('🏆 *Financements* : ⚠️ données indisponibles, requête en échec')
+      lines.push('')
+    }
 
     // RDV sans compte rendu — même règle que les leads : ne jamais confondre
     // « rien à signaler » et « requête en échec ».

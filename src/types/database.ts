@@ -262,6 +262,46 @@ export interface Database {
         }
         Relationships: []
       }
+      financements: {
+        Row: {
+          id: string
+          name: string
+          type: 'concours' | 'subvention' | 'pret' | 'autre'
+          status: 'veille' | 'a_deposer' | 'depose' | 'jury' | 'gagne' | 'perdu' | 'abandonne'
+          deadline: string | null
+          next_action: string | null
+          assigned_to: 'naoufel' | 'emir' | null
+          notes: string | null
+          url: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          type?: 'concours' | 'subvention' | 'pret' | 'autre'
+          status?: 'veille' | 'a_deposer' | 'depose' | 'jury' | 'gagne' | 'perdu' | 'abandonne'
+          deadline?: string | null
+          next_action?: string | null
+          assigned_to?: 'naoufel' | 'emir' | null
+          notes?: string | null
+          url?: string | null
+          created_by?: string | null
+        }
+        Update: {
+          name?: string
+          type?: 'concours' | 'subvention' | 'pret' | 'autre'
+          status?: 'veille' | 'a_deposer' | 'depose' | 'jury' | 'gagne' | 'perdu' | 'abandonne'
+          deadline?: string | null
+          next_action?: string | null
+          assigned_to?: 'naoufel' | 'emir' | null
+          notes?: string | null
+          url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rdv: {
         Row: {
           id: string

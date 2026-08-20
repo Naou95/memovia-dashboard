@@ -62,9 +62,11 @@ describe('TopNav', () => {
     expect(rdvEl).not.toBeNull()
   })
 
-  it('Financements est "soon" : pas de lien', () => {
+  it('Financements est actif : lien vers /financements', () => {
     renderTopNav('admin_full')
-    expect(screen.getByText('Financements').closest('a')).toBeNull()
+    const anchor = screen.getByText('Financements').closest('a')
+    expect(anchor).not.toBeNull()
+    expect(anchor).toHaveAttribute('href', '/financements')
   })
 
   it('Leads est actif : lien vers /leads', () => {

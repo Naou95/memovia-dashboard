@@ -60,10 +60,12 @@ tasks, roadmap, calendar (absorbé par RDV), utilisateurs. Admin = utilitaire ca
       filtre `archived` sur les leads dormants (sans lui, les 11 archivés spammaient)
 
 ### Phase 3 — Financements & concours
-- [ ] Table `financements` + CRUD (statut, deadline, prochaine action, responsable, docs)
-- [ ] Seed : Handitech 2143-Emploi (dépôt 1/09, jury 14-15/09, 13/10 Paris, 16/11 remise),
-      Agefiph AMI Handinnov, prêts d'honneur, concours cash
-- [ ] Briefing : rappel J-7 et J-1 sur chaque deadline
+- [x] Table `financements` + CRUD (migration 00045, appliquée) : statut, deadline, prochaine
+      action, responsable, URL, notes
+- [x] Seed : Handitech 2143-Emploi (dépôt 1/09, jury 14-15/09, 13/10 Paris, 16/11 remise),
+      Agefiph AMI Handinnov, prêts d'honneur
+- [x] Briefing v29 : compte à rebours quotidien sous J-14 (rouge sous J-7), statuts
+      actionnables seulement (veille / à déposer / jury)
 
 ### Phase 4 — Argent
 - [ ] Un écran fusionné Stripe + Qonto sur les fetchers existants, deltas, horodatage,
