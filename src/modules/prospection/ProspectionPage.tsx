@@ -302,6 +302,7 @@ export default function ProspectionPage() {
             onEdit={handleEdit}
             onLogCall={setLogCallLead}
             onUnarchive={handleUnarchive}
+            onCreate={handleNewLead}
           />
         </div>
 
@@ -316,6 +317,7 @@ export default function ProspectionPage() {
               canDelete={canDelete}
               onLogCall={setLogCallLead}
               onUnarchive={handleUnarchive}
+              onCreate={handleNewLead}
             />
           ) : (
             <LeadKanban

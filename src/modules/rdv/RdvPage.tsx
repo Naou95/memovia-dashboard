@@ -91,9 +91,19 @@ export default function RdvPage() {
     await updateRdv(id, { cr, cr_status: 'fait' })
   }
 
-  function RdvList({ items, emptyLabel }: { items: Rdv[]; emptyLabel: string }) {
+  function RdvList({ items, emptyLabel, emptyAction }: { items: Rdv[]; emptyLabel: string; emptyAction?: boolean }) {
     if (items.length === 0) {
-      return <p className="px-1 py-3 text-[13px] text-[var(--text-muted)]">{emptyLabel}</p>
+      return (
+        <div className="px-1 py-3">
+          <p className="text-[13px] text-[var(--text-muted)]">{emptyLabel}</p>
+          {emptyAction && (
+            <Button variant="outline" onClick={() => setCreateOpen(true)} className="mt-3 gap-1.5">
+              <Plus className="h-4 w-4" />
+              Planifier un RDV
+            </Button>
+          )}
+        </div>
+      )
     }
     return (
       <ul className="space-y-2">
@@ -162,7 +172,7 @@ export default function RdvPage() {
             <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               À venir
             </h2>
-            <RdvList items={upcoming} emptyLabel="Aucun RDV planifié." />
+            <RdvList items={upcoming} emptyLabel="Aucun RDV planifié." emptyAction />
           </motion.section>
 
           <motion.section variants={staggerItem}>
