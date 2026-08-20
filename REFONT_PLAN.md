@@ -51,11 +51,13 @@ tasks, roadmap, calendar (absorbé par RDV), utilisateurs. Admin = utilitaire ca
 - [x] Vue mobile : cartes au pouce triées par relance, boutons Appeler (`tel:`) + Logger
 
 ### Phase 2 — RDV & comptes rendus
-- [ ] Table `rdv` : lien lead optionnel, lien événement Google Calendar, statut CR
-- [ ] Upload audio sur la fiche → edge function transcription (même fournisseur que l'app)
-      → CR généré (résumé + décisions + prochaine action), éditable
-- [ ] Saisie manuelle en secours (formulaire court)
-- [ ] Briefing : « RDV d'hier sans compte rendu » tant que le CR manque
+- [x] Table `rdv` (migration 00044, appliquée) : lien lead optionnel, colonne `gcal_event_id`
+      (import agenda repoussé : création manuelle en 10 s, l'import viendra si le besoin se prouve)
+- [x] Upload audio (bucket privé `rdv-audio`) → edge function `rdv-transcribe` (Gladia +
+      Gemini, déployée v1, verify_jwt) → CR généré au NEUTRE (pas de diarisation), éditable
+- [x] Saisie manuelle en secours (même éditeur markdown)
+- [x] Briefing v28 déployé : section « RDV sans compte rendu » (relance quotidienne) + fix
+      filtre `archived` sur les leads dormants (sans lui, les 11 archivés spammaient)
 
 ### Phase 3 — Financements & concours
 - [ ] Table `financements` + CRUD (statut, deadline, prochaine action, responsable, docs)

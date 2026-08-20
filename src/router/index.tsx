@@ -24,6 +24,7 @@ const AnalyticsPage = lazy(() => import('@/modules/analytics/AnalyticsPage'))
 const CopilotPage = lazy(() => import('@/modules/copilot/CopilotPage'))
 const AdminPage = lazy(() => import('@/modules/admin/AdminPage'))
 const ArgentPage = lazy(() => import('@/modules/argent/ArgentPage'))
+const RdvPage = lazy(() => import('@/modules/rdv/RdvPage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -73,7 +74,7 @@ export const router = createBrowserRouter([
         path: 'rdv',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <CalendarPage />
+            <RdvPage />
           </Suspense>
         ),
       },
