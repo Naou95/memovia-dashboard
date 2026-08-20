@@ -101,9 +101,9 @@ export default function ArgentPage() {
           error={qonto.error}
         />
         <KpiCard
-          label="Abos ce mois (+ / −)"
+          label="Abos du mois"
           value={
-            stripe.data ? `+${stripe.data.newThisMonth} / −${stripe.data.churnsThisMonth}` : null
+            stripe.data ? `+${stripe.data.newThisMonth} −${stripe.data.churnsThisMonth}` : null
           }
           accent={stripe.data && stripe.data.churnsThisMonth > stripe.data.newThisMonth ? 'red' : 'blue'}
           icon={stripe.data && stripe.data.churnsThisMonth > stripe.data.newThisMonth ? UserMinus : UserPlus}
