@@ -80,6 +80,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'mail',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <EmailPage />
+          </Suspense>
+        ),
+      },
+      {
         path: 'financements',
         element: (
           <Suspense fallback={<PageLoader />}>

@@ -46,8 +46,8 @@ describe('getRoleFromSession', () => {
 
 // ─── getNavForRole (nav v2 : 5 entrées plates, voir REFONT_PLAN.md) ───────────
 describe('getNavForRole', () => {
-  it('les 5 sections v2 sont visibles pour les deux rôles', () => {
-    const expected = ['leads', 'rdv', 'financements', 'argent', 'bugs']
+  it('les 6 sections v2 sont visibles pour les deux rôles', () => {
+    const expected = ['leads', 'rdv', 'mail', 'financements', 'argent', 'bugs']
     for (const role of ['admin_full', 'admin_bizdev'] as const) {
       const ids = getNavForRole(role).map((i) => i.id)
       expect(ids).toEqual(expected)
@@ -56,14 +56,14 @@ describe('getNavForRole', () => {
 
   it('les anciens modules ne sont plus dans la nav', () => {
     const ids = getNavForRole('admin_full').map((i) => i.id)
-    for (const dead of ['overview', 'stripe', 'qonto', 'email', 'github', 'seo', 'copilot']) {
+    for (const dead of ['overview', 'stripe', 'qonto', 'github', 'seo', 'copilot']) {
       expect(ids).not.toContain(dead)
     }
   })
 
-  it('les 5 sections sont actives (Phase 3 livrée)', () => {
+  it('les 6 sections sont actives', () => {
     const actives = getNavForRole('admin_full').filter((i) => i.status === 'active')
-    expect(actives.map((i) => i.id)).toEqual(['leads', 'rdv', 'financements', 'argent', 'bugs'])
+    expect(actives.map((i) => i.id)).toEqual(['leads', 'rdv', 'mail', 'financements', 'argent', 'bugs'])
   })
 })
 
