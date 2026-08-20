@@ -76,10 +76,11 @@ tasks, roadmap, calendar (absorbé par RDV), utilisateurs. Admin = utilitaire ca
 - [ ] Vérifier que l'app envoie l'identité utilisateur à Sentry (sinon l'ajouter côté app)
 
 ### Phase 6 — Briefing enrichi & ménage
-- [ ] Briefing Telegram : leads chauds, RDV sans CR, deadlines financements, bugs nouveaux,
-      avec deep links vers les sections
-- [ ] Après 4 semaines : suppression réelle des modules archivés jamais rouverts
-      (edge functions et crons associés compris)
+- [x] Briefing v30 : deep links vers /argent, /leads, /rdv, /financements sur chaque section.
+      Leads chauds et bugs nouveaux : déjà couverts en push immédiat par `lead-hot-trigger`
+      et `get-sentry` (notifs Telegram dédiées), pas dupliqués dans le briefing.
+- [ ] **~17/09/2026, PAS AVANT** : suppression réelle des modules archivés jamais rouverts
+      selon `section_visits` (edge functions et crons associés compris)
 
 ## Règles de chantier
 
