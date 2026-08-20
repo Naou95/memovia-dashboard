@@ -61,11 +61,9 @@ describe('getNavForRole', () => {
     }
   })
 
-  it('financements est "soon" tant que la Phase 3 n\'est pas livrée', () => {
-    const financements = getNavForRole('admin_full').find((i) => i.id === 'financements')
-    expect(financements?.status).toBe('soon')
+  it('les 5 sections sont actives (Phase 3 livrée)', () => {
     const actives = getNavForRole('admin_full').filter((i) => i.status === 'active')
-    expect(actives.map((i) => i.id)).toEqual(['leads', 'rdv', 'argent', 'bugs'])
+    expect(actives.map((i) => i.id)).toEqual(['leads', 'rdv', 'financements', 'argent', 'bugs'])
   })
 })
 

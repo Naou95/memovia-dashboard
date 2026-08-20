@@ -48,7 +48,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Financements',
     path: '/financements',
     icon: Trophy,
-    status: 'soon',
+    status: 'active',
     allowedRoles: [],
   },
   {

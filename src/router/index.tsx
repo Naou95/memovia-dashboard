@@ -25,6 +25,7 @@ const CopilotPage = lazy(() => import('@/modules/copilot/CopilotPage'))
 const AdminPage = lazy(() => import('@/modules/admin/AdminPage'))
 const ArgentPage = lazy(() => import('@/modules/argent/ArgentPage'))
 const RdvPage = lazy(() => import('@/modules/rdv/RdvPage'))
+const FinancementsPage = lazy(() => import('@/modules/financements/FinancementsPage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -75,6 +76,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <RdvPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'financements',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <FinancementsPage />
           </Suspense>
         ),
       },
