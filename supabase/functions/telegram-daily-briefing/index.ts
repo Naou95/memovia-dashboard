@@ -139,8 +139,12 @@ Deno.serve(async (req) => {
     })
     const lines: string[] = [`☀️ *Bonjour Naoufel, ${dayLabel}*`, '']
 
+    // Le briefing est la porte d'entrée du dashboard (refonte v2 Phase 6) :
+    // chaque section porte le lien profond vers sa page.
+    const DASH = 'https://dashboard.memovia.io'
+
     // Finances
-    lines.push('💰 *Finances*')
+    lines.push(`💰 *Finances* · [ouvrir](${DASH}/argent)`)
     if (stripeResult.status === 'fulfilled' && stripeResult.value) {
       const { mrr, activeCount } = stripeResult.value
       lines.push(`• MRR : *${Math.round(mrr).toLocaleString('fr-FR')} €*`)
@@ -196,7 +200,7 @@ Deno.serve(async (req) => {
       const entete = totalStale > staleLeads.length
         ? `👥 *Leads sans contact +7j : ${totalStale}* (les ${staleLeads.length} plus anciens)`
         : `👥 *Leads sans contact +7j (${totalStale})*`
-      lines.push(entete)
+      lines.push(`${entete} · [ouvrir](${DASH}/leads)`)
       for (const l of staleLeads) {
         // `status` vaut par ex. `en_discussion` : son underscore cassait le Markdown et faisait
         // partir tout le message en texte brut. On l'affiche en clair, c'est aussi plus lisible.
@@ -226,7 +230,7 @@ Deno.serve(async (req) => {
     // une deadline de concours ratée ne se rattrape pas.
     const finProches = finResult.status === 'fulfilled' ? (finResult.value.data ?? []) : []
     if (finProches.length > 0) {
-      lines.push(`🏆 *Financements — deadlines proches (${finProches.length})*`)
+      lines.push(`🏆 *Financements — deadlines proches (${finProches.length})* · [ouvrir](${DASH}/financements)`)
       for (const f of finProches) {
         const jours = Math.ceil((new Date(f.deadline).getTime() - Date.now()) / 86400000)
         const compte = jours < 0 ? `⚠️ dépassée de ${-jours} j` : jours === 0 ? '🔴 AUJOURD\'HUI' : jours <= 7 ? `🔴 J-${jours}` : `J-${jours}`
@@ -244,7 +248,7 @@ Deno.serve(async (req) => {
     // « rien à signaler » et « requête en échec ».
     const rdvManquants = rdvResult.status === 'fulfilled' ? (rdvResult.value.data ?? []) : []
     if (rdvManquants.length > 0) {
-      lines.push(`📝 *RDV sans compte rendu (${rdvManquants.length})*`)
+      lines.push(`📝 *RDV sans compte rendu (${rdvManquants.length})* · [ouvrir](${DASH}/rdv)`)
       for (const r of rdvManquants) {
         const jours = Math.floor((Date.now() - new Date(r.rdv_date).getTime()) / 86400000)
         const age = jours === 0 ? 'aujourd\'hui' : jours === 1 ? 'hier' : `il y a ${jours} j`
