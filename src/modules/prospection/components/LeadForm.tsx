@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { LeadEngagements } from './LeadEngagements'
 import type { Lead, LeadInsert, LeadUpdate } from '@/types/leads'
 
 interface LeadFormProps {
@@ -320,6 +321,9 @@ export function LeadForm({ open, onClose, lead, onSubmit, partnerMode = false }:
                 />
               </div>
             )}
+
+            {/* Engagements — fiche existante seulement (la tâche a besoin du lead_id) */}
+            {isEdit && lead && <LeadEngagements leadId={lead.id} />}
 
             {/* Notes */}
             <div className="space-y-1.5">

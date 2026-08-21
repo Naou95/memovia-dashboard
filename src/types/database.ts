@@ -26,6 +26,7 @@ export interface Database {
           created_at: string
           updated_at: string
           created_by: string | null
+          lead_id: string | null
         }
         Insert: {
           id?: string
@@ -40,6 +41,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           created_by?: string | null
+          lead_id?: string | null
         }
         Update: {
           id?: string
@@ -53,6 +55,7 @@ export interface Database {
           is_private?: boolean
           updated_at?: string
           created_by?: string | null
+          lead_id?: string | null
         }
         Relationships: []
       }
