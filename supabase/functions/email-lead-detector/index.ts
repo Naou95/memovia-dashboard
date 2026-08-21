@@ -5,6 +5,10 @@ import { simpleParser } from 'npm:mailparser'
 import { Buffer } from 'node:buffer'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
+// Fourni par le runtime edge Supabase (absent des types Deno) : garde le worker vivant
+// jusqu'à la fin de la promesse sans retenir la réponse HTTP.
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void }
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const INTERNAL_EMAILS = ['bassou.naoufel@gmail.com', 'boutaleb.emir99@gmail.com']
@@ -38,8 +42,12 @@ const CLAUDE_DELAY_MS = 100
 // nuit lente n'analysait plus qu'1-2 conversations. 350 s reste sous le wall clock edge (400 s)
 // et couvre ~4-8 conversations par nuit ; le reliquat éventuel est rattrapé les nuits suivantes
 // (fenêtre DAYS_BACK = 14 j).
-// ⚠️ À garder cohérent avec le `timeout_milliseconds` du cron (migration 00041, avant : 00036) :
-// un pg_net qui abandonne avant ce délai fait croire à un échec alors que la fonction travaille.
+// 21/08/2026 : la gateway Supabase coupe toute réponse HTTP à ~150 s (504 constaté au run du
+// 20/08 23h UTC, 0 lead écrit) — un budget de 350 s porté par la réponse HTTP était intenable
+// par construction. Le handler répond donc 202 immédiatement et le batch tourne en
+// EdgeRuntime.waitUntil (wall clock edge 400 s) : ce budget borne le travail de fond, plus la
+// réponse. Le `timeout_milliseconds` du cron (00041) n'a plus à le suivre : pg_net reçoit son
+// 202 en quelques secondes.
 const GLOBAL_TIMEOUT_MS = 350_000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -306,9 +314,10 @@ async function analyzeConversation(
       ],
     }),
     // Le tier gratuit met parfois en file (529/latence) : borner l'appel pour qu'une
-    // conversation coincée ne mange pas le budget des suivantes. 100 s et pas moins :
-    // 94 s observés au banc sur un appel RÉUSSI — un garde plus court tuerait des succès.
-    signal: AbortSignal.timeout(100_000),
+    // conversation coincée ne mange pas le budget des suivantes. 120 s et pas moins :
+    // 94 s observés au banc sur un appel RÉUSSI, et un TimeoutError à 100 s au run du
+    // 20/08 23h UTC — un garde plus court tue des succès.
+    signal: AbortSignal.timeout(120_000),
   })
 
   if (!resp.ok) {
@@ -404,14 +413,14 @@ async function upsertLead(
   return 'inserted'
 }
 
-// ── Core logic (extracted for timeout wrapping) ────────────────────────────────
+// ── Core logic (tâche de fond derrière le 202) ─────────────────────────────────
 
 async function runDetector(
   supabaseAdmin: ReturnType<typeof createClient>,
   imapUser: string,
   imapPass: string,
   nimKey: string,
-): Promise<Response> {
+): Promise<void> {
   const client = new ImapFlow({
     host: 'imap.hostinger.com',
     port: 993,
@@ -484,11 +493,12 @@ async function runDetector(
     }
 
     await client.logout()
-    return Response.json(stats, { headers: corsHeaders })
+    // Ligne de fin de run : le contrôle du matin se fait sur ELLE + les stats en base,
+    // jamais sur l'absence d'un motif d'erreur. La réponse HTTP (202) ne porte rien.
+    console.log('email-lead-detector run terminé:', JSON.stringify(stats))
   } catch (err) {
     try { await client.logout() } catch { /* ignore */ }
-    console.error('email-lead-detector error:', err)
-    return errorResponse('imap_connection_failed', 503)
+    console.error('email-lead-detector error:', err, '— stats partielles:', JSON.stringify(stats))
   }
 }
 
@@ -527,15 +537,24 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  const timeout = new Promise<Response>((resolve) =>
-    setTimeout(
-      () => resolve(Response.json({ error: 'global_timeout', partial: true }, { status: 504, headers: corsHeaders })),
-      GLOBAL_TIMEOUT_MS,
-    )
+  // 202 immédiat, batch en fond : la gateway Supabase coupe toute réponse HTTP à ~150 s
+  // (504 du 20/08 23h UTC, 0 lead écrit) alors que le batch IMAP + NIM dure légitimement
+  // plusieurs minutes. En fond, le batch dispose du wall clock edge (400 s) ; le budget de
+  // 350 s reste le garde-fou qui borne le travail. Résultat du run : la ligne de fin dans
+  // les logs + la table `leads`, jamais la réponse HTTP.
+  let budgetTimer: ReturnType<typeof setTimeout> | undefined
+  const budget = new Promise<'global_timeout'>((resolve) => {
+    budgetTimer = setTimeout(() => resolve('global_timeout'), GLOBAL_TIMEOUT_MS)
+  })
+  EdgeRuntime.waitUntil(
+    Promise.race([runDetector(supabaseAdmin, imapUser, imapPass, nimKey), budget]).then(
+      (outcome) => {
+        clearTimeout(budgetTimer)
+        if (outcome === 'global_timeout') {
+          console.error('email-lead-detector: global_timeout — budget 350 s épuisé, batch abandonné avant la ligne de fin')
+        }
+      },
+    ),
   )
-
-  return Promise.race([
-    runDetector(supabaseAdmin, imapUser, imapPass, nimKey),
-    timeout,
-  ])
+  return Response.json({ accepted: true }, { status: 202, headers: corsHeaders })
 })
