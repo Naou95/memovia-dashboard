@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0]
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    const [stripeResult, qontoResult, tasksResult, leadsResult, rdvResult, finResult, detectorResult] = await Promise.allSettled([
+    const [stripeResult, qontoResult, tasksResult, leadsResult, rdvResult, finResult, detectorResult, milestonesResult] = await Promise.allSettled([
       // Stripe MRR
       (async () => {
         const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
@@ -82,9 +82,11 @@ Deno.serve(async (req) => {
       // alors qu'une tâche traînait depuis 92 jours chez emir (« Contacter TBS ALUMNI »), sur
       // un lead qui figure justement dans la liste des dormants juste en dessous. Un briefing
       // qui dit « aucune » en filtrant sur une personne dit quelque chose de faux.
+      // `leads(name)` : jointure PostgREST via la FK tasks.lead_id (00047) — une tâche
+      // liée à une fiche affiche « → <fiche> » pour dire à QUI on doit quoi.
       supabase
         .from('tasks')
-        .select('id, title, status, priority, due_date, assigned_to')
+        .select('id, title, status, priority, due_date, assigned_to, lead_id, leads(name)')
         .in('status', ['todo', 'en_cours'])
         .lte('due_date', today)
         .order('due_date', { ascending: true }),
@@ -103,10 +105,13 @@ Deno.serve(async (req) => {
       // coalesce des deux dates.
       // ⚠️ `archived = false` : depuis la refonte v2 Phase 1 (20/08/2026), la liste pré-refonte
       // est archivée. Sans ce filtre, 11 leads morts rempliraient la section chaque matin.
+      // Les partenaires (type='partenaire') sont gérés en low-touch : la relance
+      // « +7j sans contact » serait un mensonge de priorité.
       supabase
         .from('leads')
         .select('id, name, status, updated_at, last_contact_date', { count: 'exact' })
         .eq('archived', false)
+        .neq('type', 'partenaire')
         .not('status', 'in', '(gagne,perdu)')
         .or(`last_contact_date.lt.${sevenDaysAgo},and(last_contact_date.is.null,updated_at.lt.${sevenDaysAgo})`)
         .limit(50),
@@ -142,6 +147,13 @@ Deno.serve(async (req) => {
         .order('started_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
+
+      // Candidats changelog à trier (mémoire d'entreprise, 21/08/2026) : versés
+      // chaque lundi par changelog-collect, la ligne relance tant qu'il en reste.
+      supabase
+        .from('product_milestones')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'candidat'),
     ])
 
     const dayLabel = new Date().toLocaleDateString('fr-FR', {
@@ -181,7 +193,9 @@ Deno.serve(async (req) => {
           : ''
         // Dire QUI porte la tâche : sinon une tâche d'Emir ressemble à une tâche de Naoufel.
         const qui = t.assigned_to ? ` _(${echapperMarkdown(String(t.assigned_to))})_` : ''
-        lines.push(`• ${prio} ${echapperMarkdown(t.title)}${qui}${retard}`)
+        // Et envers QUI on s'est engagé, quand la tâche est liée à une fiche (00047).
+        const fiche = (t as { leads?: { name?: string } | null }).leads?.name
+        lines.push(`• ${prio} ${echapperMarkdown(t.title)}${qui}${fiche ? ` → ${echapperMarkdown(fiche)}` : ''}${retard}`)
       }
     } else {
       lines.push('✅ *Tâches* : aucune tâche échue, toute l\'équipe')
@@ -261,6 +275,17 @@ Deno.serve(async (req) => {
       // Le cron tire chaque nuit à 23h UTC : un dernier run de plus de 30 h = une nuit ratée.
       const retard = run.outcome !== 'running' && heures > 30 ? ' · ⚠️ plus de 30 h sans nouveau run' : ''
       lines.push(`🤖 *Détecteur leads* : ${libelle}${retard}`)
+    }
+
+    // Candidats changelog — ligne optionnelle : n'apparaît que s'il y a du tri à
+    // faire ; une lecture en échec se loggue sans fausse alerte dans le message.
+    if (milestonesResult.status === 'fulfilled' && !milestonesResult.value.error) {
+      const nCandidats = milestonesResult.value.count ?? 0
+      if (nCandidats > 0) {
+        lines.push(`🗂 *Historique produit* : ${nCandidats} candidat${nCandidats > 1 ? 's' : ''} à trier · [ouvrir](${DASH}/historique)`)
+      }
+    } else {
+      console.error('[briefing] lecture product_milestones en échec')
     }
 
     lines.push('')
