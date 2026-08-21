@@ -1,6 +1,6 @@
 import { corsHeaders, errorResponse } from '../_shared/auth.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 
 // Historique produit (mémoire d'entreprise, 21/08/2026) : chaque lundi 05:30 UTC
 // (cron 00048), les PRs mergées de la semaine sur les 5 dépôts MEMOVIA deviennent
@@ -85,6 +85,93 @@ Deno.serve(async (req) => {
     inserted += count ?? 0
   }
 
-  console.log(`changelog-collect terminé: ${items.length} PRs trouvées, ${inserted} candidats insérés`)
-  return Response.json({ found: items.length, inserted }, { headers: corsHeaders })
+  const translated = await translateMissingTitles(supabaseAdmin)
+
+  console.log(`changelog-collect terminé: ${items.length} PRs trouvées, ${inserted} candidats insérés, ${translated} titres traduits`)
+  return Response.json({ found: items.length, inserted, translated }, { headers: corsHeaders })
 })
+
+// ── Titres en clair (00049) ────────────────────────────────────────────────────
+// Réécrit chaque titre de PR en une phrase compréhensible par un non-technicien
+// (retour Naoufel 21/08). Auto-rattrapage : traite TOUTES les lignes sans
+// title_public, pas seulement les nouvelles — un échec Gemini laisse NULL (le
+// front affiche alors le titre technique nettoyé) et sera retenté au run suivant.
+// La phrase est RELUE au tri : Gemini reformule, l'humain valide — rien d'inventé
+// ne devient un jalon retenu sans relecture.
+// deno-lint-ignore no-explicit-any — même client non typé que dans le handler :
+// `ReturnType<typeof createClient>` s'instancie en `never` sur les payloads (le
+// piège documenté par les 9 erreurs héritées d'email-lead-detector).
+async function translateMissingTitles(
+  supabaseAdmin: SupabaseClient<any>,
+): Promise<number> {
+  const googleKey = Deno.env.get('GOOGLE_API_KEY')
+  if (!googleKey) {
+    console.error('changelog-collect: GOOGLE_API_KEY absent, titres en clair non générés')
+    return 0
+  }
+
+  const { data: rows, error: selError } = await supabaseAdmin
+    .from('product_milestones')
+    .select('id, title, repo')
+    .is('title_public', null)
+    .limit(60)
+  if (selError || !rows || rows.length === 0) {
+    if (selError) console.error('changelog-collect select sans titre:', selError.message)
+    return 0
+  }
+
+  const liste = (rows as Array<{ id: string; title: string; repo: string }>)
+    .map((r) => `${r.id} | ${r.repo} | ${r.title}`)
+    .join('\n')
+  const prompt =
+    'Voici des titres de changements techniques des produits MEMOVIA (un par ligne, format id | dépôt | titre).\n' +
+    'Réécris CHAQUE titre en une phrase courte en français, compréhensible par quelqu\'un de non technique, ' +
+    'FIDÈLE au titre : n\'invente aucun détail, ne promets aucun impact qui n\'y figure pas, pas de jargon ' +
+    '(pas de « PR », « edge function », « cache », « 202 », noms de librairies). Dis ce que ça change pour ' +
+    'l\'utilisateur ou l\'équipe.\n' +
+    'Réponds UNIQUEMENT en JSON : [{"id": "...", "titre": "..."}]\n\n' + liste
+
+  let text = ''
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${googleKey}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          // thinkingBudget:0 obligatoire : sans lui, 500 intermittents constatés sur le projet
+          generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
+        }),
+        signal: AbortSignal.timeout(45_000),
+      },
+    )
+    if (!res.ok) throw new Error(`gemini_${res.status}`)
+    const data = await res.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }
+    text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? ''
+  } catch (err) {
+    console.error('changelog-collect traduction Gemini:', err)
+    return 0
+  }
+
+  const match = text.match(/\[[\s\S]*\]/)
+  if (!match) { console.error('changelog-collect: réponse Gemini sans JSON'); return 0 }
+  let parsed: Array<{ id?: string; titre?: string }>
+  try { parsed = JSON.parse(match[0]) } catch { console.error('changelog-collect: JSON Gemini invalide'); return 0 }
+
+  const validIds = new Set((rows as Array<{ id: string }>).map((r) => r.id))
+  let updated = 0
+  for (const item of parsed) {
+    // On ne met à jour QUE les lignes demandées : un id fabriqué par le modèle est ignoré.
+    if (!item.id || !validIds.has(item.id)) continue
+    const titre = (item.titre ?? '').trim()
+    if (!titre) continue
+    const { error } = await supabaseAdmin
+      .from('product_milestones')
+      .update({ title_public: titre.slice(0, 200) })
+      .eq('id', item.id)
+    if (error) { console.error('changelog-collect update titre:', error.message); continue }
+    updated++
+  }
+  return updated
+}
