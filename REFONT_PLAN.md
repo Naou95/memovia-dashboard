@@ -22,6 +22,7 @@
 | **Financements** | écriture | Concours & subventions : statut (veille → à déposer → déposé → jury → résultat), deadline, **prochaine action + qui**, docs. Rappels J-7 / J-1 dans le briefing. |
 | **Argent** | lecture | Fusion Stripe + Qonto en un écran : solde, runway, MRR, mouvements avec deltas. Fetchers existants (`get-stripe-*`, `get-qonto-*`). |
 | **Bugs** | lecture | Erreurs Sentry avec **l'utilisateur affecté**, deep link Sentry. Base = module monitoring. |
+| **Historique** | écriture | Jalons produit datés et sourcés (PRs mergées des 5 dépôts → candidats hebdo, tri retenir/écarter en un clic). Ajouté en Phase 7, kill-counter comme les autres. |
 
 Supprimés/archivés : overview, github, seo, analytics, realtime, api-costs, copilot,
 tasks, roadmap, calendar (absorbé par RDV), utilisateurs. Admin = utilitaire caché.
@@ -84,6 +85,23 @@ tasks, roadmap, calendar (absorbé par RDV), utilisateurs. Admin = utilitaire ca
       et `get-sentry` (notifs Telegram dédiées), pas dupliqués dans le briefing.
 - [ ] **~17/09/2026, PAS AVANT** : suppression réelle des modules archivés jamais rouverts
       selon `section_visits` (edge functions et crons associés compris)
+
+### Phase 7 — Mémoire d'entreprise (21/08/2026)
+
+> Spec : `docs/superpowers/specs/2026-08-21-memoire-entreprise-design.md` ·
+> Plan : `docs/superpowers/plans/2026-08-21-memoire-entreprise.md`
+
+- [x] **A. Partenaires** : onglet dans Leads (`leads.type='partenaire'`, `status='actif'`,
+      migration 00047), fiche sans champs pipeline + email/rôle éditables ; exclus de la
+      relance « +7j sans contact » du briefing
+- [x] **B. RDV historiques** : zéro code (Phase 2 couvre) — backfill validé post-deploy
+- [x] **C. Historique produit** : table `product_milestones` (00047), page `/historique`
+      (timeline + tri candidats), cron hebdo `changelog-collect` lundi 05:30 UTC (00048,
+      secret `GITHUB_CHANGELOG_TOKEN` lecture seule), ligne briefing « candidats à trier »
+- [x] **D. Engagements** : `tasks.lead_id` (00047), bloc Engagements sur la fiche,
+      suffixe « → fiche » sur les tâches échues du briefing
+- [x] **E. Concours passés** : déjà couvert (toggle « Afficher les clos » de la Phase 3) —
+      backfill validé post-deploy
 
 ## Règles de chantier
 
