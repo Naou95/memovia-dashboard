@@ -415,12 +415,14 @@ async function upsertLead(
 
 // ── Core logic (tâche de fond derrière le 202) ─────────────────────────────────
 
+type RunStats = { analyzed: number; inserted: number; updated: number; skipped: number; errors: number }
+
 async function runDetector(
   supabaseAdmin: ReturnType<typeof createClient>,
   imapUser: string,
   imapPass: string,
   nimKey: string,
-): Promise<void> {
+): Promise<{ ok: boolean; stats: RunStats }> {
   const client = new ImapFlow({
     host: 'imap.hostinger.com',
     port: 993,
@@ -432,7 +434,7 @@ async function runDetector(
     connectionTimeout: 10000,
   })
 
-  const stats = { analyzed: 0, inserted: 0, updated: 0, skipped: 0, errors: 0 }
+  const stats: RunStats = { analyzed: 0, inserted: 0, updated: 0, skipped: 0, errors: 0 }
 
   try {
     await client.connect()
@@ -493,12 +495,15 @@ async function runDetector(
     }
 
     await client.logout()
-    // Ligne de fin de run : le contrôle du matin se fait sur ELLE + les stats en base,
-    // jamais sur l'absence d'un motif d'erreur. La réponse HTTP (202) ne porte rien.
+    // Ligne de fin de run : le contrôle du matin se fait sur elle, sur la table
+    // `lead_detector_runs` et sur les stats en base — jamais sur l'absence d'un motif
+    // d'erreur. La réponse HTTP (202) ne porte rien.
     console.log('email-lead-detector run terminé:', JSON.stringify(stats))
+    return { ok: true, stats }
   } catch (err) {
     try { await client.logout() } catch { /* ignore */ }
     console.error('email-lead-detector error:', err, '— stats partielles:', JSON.stringify(stats))
+    return { ok: false, stats }
   }
 }
 
@@ -542,19 +547,43 @@ Deno.serve(async (req) => {
   // plusieurs minutes. En fond, le batch dispose du wall clock edge (400 s) ; le budget de
   // 350 s reste le garde-fou qui borne le travail. Résultat du run : la ligne de fin dans
   // les logs + la table `leads`, jamais la réponse HTTP.
-  let budgetTimer: ReturnType<typeof setTimeout> | undefined
-  const budget = new Promise<'global_timeout'>((resolve) => {
-    budgetTimer = setTimeout(() => resolve('global_timeout'), GLOBAL_TIMEOUT_MS)
-  })
-  EdgeRuntime.waitUntil(
-    Promise.race([runDetector(supabaseAdmin, imapUser, imapPass, nimKey), budget]).then(
-      (outcome) => {
-        clearTimeout(budgetTimer)
-        if (outcome === 'global_timeout') {
-          console.error('email-lead-detector: global_timeout — budget 350 s épuisé, batch abandonné avant la ligne de fin')
-        }
-      },
-    ),
-  )
+  EdgeRuntime.waitUntil((async () => {
+    // Statut du run en base (00046), écrit par le détecteur lui-même : le briefing lit la
+    // dernière ligne au lieu de deviner la santé du robot depuis la table `leads`. La ligne
+    // s'ouvre en 'running' AVANT le travail : un run tué par le wall clock edge sans
+    // repasser par la mise à jour reste 'running', ce qui se lit comme « mort en vol ».
+    const { data: runRow, error: runError } = await supabaseAdmin
+      .from('lead_detector_runs')
+      .insert({})
+      .select('id')
+      .single()
+    if (runError) console.error('lead_detector_runs insert failed:', runError.message)
+
+    let budgetTimer: ReturnType<typeof setTimeout> | undefined
+    const budget = new Promise<'global_timeout'>((resolve) => {
+      budgetTimer = setTimeout(() => resolve('global_timeout'), GLOBAL_TIMEOUT_MS)
+    })
+    const result = await Promise.race([
+      runDetector(supabaseAdmin, imapUser, imapPass, nimKey),
+      budget,
+    ])
+    clearTimeout(budgetTimer)
+
+    const outcome = result === 'global_timeout' ? 'global_timeout' : result.ok ? 'ok' : 'error'
+    if (outcome === 'global_timeout') {
+      console.error('email-lead-detector: global_timeout — budget 350 s épuisé, batch abandonné avant la ligne de fin')
+    }
+    if (runRow) {
+      const { error: updateError } = await supabaseAdmin
+        .from('lead_detector_runs')
+        .update({
+          finished_at: new Date().toISOString(),
+          outcome,
+          stats: result === 'global_timeout' ? null : result.stats,
+        })
+        .eq('id', runRow.id)
+      if (updateError) console.error('lead_detector_runs update failed:', updateError.message)
+    }
+  })())
   return Response.json({ accepted: true }, { status: 202, headers: corsHeaders })
 })

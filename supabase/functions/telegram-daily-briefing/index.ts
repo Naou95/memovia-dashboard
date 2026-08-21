@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const today = new Date().toISOString().split('T')[0]
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-    const [stripeResult, qontoResult, tasksResult, leadsResult, rdvResult, finResult] = await Promise.allSettled([
+    const [stripeResult, qontoResult, tasksResult, leadsResult, rdvResult, finResult, detectorResult] = await Promise.allSettled([
       // Stripe MRR
       (async () => {
         const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
@@ -132,6 +132,16 @@ Deno.serve(async (req) => {
         .lte('deadline', new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0])
         .order('deadline', { ascending: true })
         .limit(10),
+
+      // Dernier run du détecteur de leads (00046), écrit par le détecteur lui-même.
+      // Sans cette lecture, « Leads : tous à jour ✓ » restait vert pendant que le
+      // détecteur était mort (504 du 20/08, 0 écriture).
+      supabase
+        .from('lead_detector_runs')
+        .select('started_at, finished_at, outcome, stats')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ])
 
     const dayLabel = new Date().toLocaleDateString('fr-FR', {
@@ -222,6 +232,35 @@ Deno.serve(async (req) => {
       lines.push('👥 *Leads* : ⚠️ données indisponibles, requête en échec')
     } else {
       lines.push('👥 *Leads* : tous à jour ✓')
+    }
+
+    // Santé du détecteur : la ligne au-dessus parle du CRM, celle-ci du robot qui
+    // l'alimente. Trois morts silencieuses couvertes : le cron ne tire plus (dernière
+    // ligne vieille), run parti jamais fini ('running' ancien), run en échec ou coupé
+    // par son budget. Même règle que le reste du briefing : une lecture en échec
+    // s'affiche comme telle, jamais comme du vert.
+    if (detectorResult.status === 'rejected' || detectorResult.value.error) {
+      console.error('[briefing] lecture lead_detector_runs en échec')
+      lines.push('🤖 *Détecteur leads* : ⚠️ statut illisible')
+    } else if (!detectorResult.value.data) {
+      lines.push('🤖 *Détecteur leads* : aucun run enregistré')
+    } else {
+      const run = detectorResult.value.data
+      const heures = Math.floor((Date.now() - new Date(run.started_at).getTime()) / 3600000)
+      const age = heures < 1 ? 'il y a moins d\'1 h' : heures < 48 ? `il y a ${heures} h` : `il y a ${Math.floor(heures / 24)} j`
+      const s = run.stats as { analyzed?: number; inserted?: number; updated?: number; errors?: number } | null
+      const detail = s
+        ? ` (${s.analyzed ?? 0} analysées · ${s.inserted ?? 0} nouvelles · ${s.updated ?? 0} màj${s.errors ? ` · ${s.errors} erreurs` : ''})`
+        : ''
+      const libelle =
+        run.outcome === 'ok' ? `dernier run OK ${age}${detail}`
+        : run.outcome === 'global_timeout' ? `⚠️ dernier run coupé par son budget ${age} — partiel, stats en base seulement`
+        : run.outcome === 'error' ? `⚠️ dernier run en échec ${age}${detail}`
+        : heures < 1 ? 'run en cours'
+        : `⚠️ run parti ${age}, jamais fini (mort en vol)`
+      // Le cron tire chaque nuit à 23h UTC : un dernier run de plus de 30 h = une nuit ratée.
+      const retard = run.outcome !== 'running' && heures > 30 ? ' · ⚠️ plus de 30 h sans nouveau run' : ''
+      lines.push(`🤖 *Détecteur leads* : ${libelle}${retard}`)
     }
 
     lines.push('')
