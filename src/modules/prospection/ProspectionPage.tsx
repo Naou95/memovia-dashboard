@@ -13,8 +13,8 @@ import { LeadForm } from './components/LeadForm'
 import { LeadListMobile } from './components/LeadListMobile'
 import { LogCallDialog } from './components/LogCallDialog'
 import { ScriptPanel } from './components/ScriptPanel'
-import type { Lead, LeadStatus, LeadAssignee, LeadInsert, LeadUpdate } from '@/types/leads'
-import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER } from '@/types/leads'
+import type { Lead, LeadStatus, LeadAssignee, LeadInsert, LeadUpdate, LeadTab } from '@/types/leads'
+import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER, filterLeadsByTab } from '@/types/leads'
 
 type ViewMode = 'table' | 'kanban'
 
@@ -34,6 +34,7 @@ export default function ProspectionPage() {
   const { user } = useAuth()
 
   const [view, setView] = useState<ViewMode>('table')
+  const [tab, setTab] = useState<LeadTab>('cfa')
   const [filterStatus, setFilterStatus] = useState<LeadStatus | null>(null)
   const [filterAssignee, setFilterAssignee] = useState<LeadAssignee | null>(null)
   const [showArchived, setShowArchived] = useState(false)
@@ -41,14 +42,26 @@ export default function ProspectionPage() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
   const [logCallLead, setLogCallLead] = useState<Lead | null>(null)
 
-  const visibleLeads = leads.filter((l) => l.archived === showArchived)
-  const archivedCount = leads.filter((l) => l.archived).length
+  // Onglets : la prospection CFA garde strictement son comportement d'avant,
+  // les partenaires (Compagnons, Paidea, TBS…) vivent à côté, hors pipeline.
+  const isPartnersTab = tab === 'partenaires'
+  const tabLeads = filterLeadsByTab(leads, tab)
+
+  const visibleLeads = tabLeads.filter((l) => l.archived === showArchived)
+  const archivedCount = tabLeads.filter((l) => l.archived).length
 
   const filteredLeads = visibleLeads
     .filter((l) => filterStatus == null || l.status === filterStatus)
     .filter((l) => filterAssignee == null || l.assigned_to === filterAssignee)
 
-  const activeCount = leads.filter((l) => !l.archived && !['gagne', 'perdu'].includes(l.status)).length
+  const activeCount = tabLeads.filter((l) => !l.archived && !['gagne', 'perdu'].includes(l.status)).length
+
+  function handleTabChange(next: LeadTab) {
+    setTab(next)
+    // Les pills de statut pipeline n'existent pas côté partenaires : un filtre
+    // resté armé filtrerait en silence.
+    setFilterStatus(null)
+  }
 
   function handleNewLead() {
     setEditingLead(null)
@@ -130,50 +143,81 @@ export default function ProspectionPage() {
             </h1>
             {!isLoading && (
               <span className="rounded-full bg-[var(--accent-purple-bg)] px-2.5 py-0.5 text-[12px] font-semibold text-[var(--memovia-violet)]">
-                {activeCount} actifs
+                {activeCount} {isPartnersTab ? 'partenaires' : 'actifs'}
               </span>
             )}
           </div>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
-            Prospection CFA France — offre accessibilité.
+            {isPartnersTab
+              ? 'Partenaires & institutions — hors pipeline de prospection.'
+              : 'Prospection CFA France — offre accessibilité.'}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <ScriptPanel />
-          {/* View toggle — desktop seulement : la vue mobile est la liste de cartes,
-              ce toggle n'y a aucun effet */}
+          {/* Onglets Prospection / Partenaires (mémoire d'entreprise, 21/08/2026) */}
           <div
-            className="hidden items-center rounded-lg p-1 md:flex"
+            className="flex items-center rounded-lg p-1"
             style={{
               border: '1px solid var(--border-color)',
               backgroundColor: 'var(--bg-secondary)',
             }}
           >
-            {([['table', 'Tableau', LayoutList], ['kanban', 'Kanban', Kanban]] as const).map(
-              ([mode, label, Icon]) => (
+            {([['cfa', 'Prospection CFA'], ['partenaires', 'Partenaires']] as const).map(
+              ([value, label]) => (
                 <button
-                  key={mode}
-                  onClick={() => setView(mode)}
-                  aria-pressed={view === mode}
-                  aria-label={`Vue ${label}`}
-                  className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
+                  key={value}
+                  onClick={() => handleTabChange(value)}
+                  aria-pressed={tab === value}
+                  className="rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
                   style={
-                    view === mode
+                    tab === value
                       ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
                       : { color: 'var(--text-secondary)' }
                   }
                 >
-                  <Icon className="h-3.5 w-3.5" />
                   {label}
                 </button>
               )
             )}
           </div>
 
+          {!isPartnersTab && <ScriptPanel />}
+          {/* View toggle — desktop seulement : la vue mobile est la liste de cartes,
+              ce toggle n'y a aucun effet. Pas de kanban côté partenaires (hors pipeline). */}
+          {!isPartnersTab && (
+            <div
+              className="hidden items-center rounded-lg p-1 md:flex"
+              style={{
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-secondary)',
+              }}
+            >
+              {([['table', 'Tableau', LayoutList], ['kanban', 'Kanban', Kanban]] as const).map(
+                ([mode, label, Icon]) => (
+                  <button
+                    key={mode}
+                    onClick={() => setView(mode)}
+                    aria-pressed={view === mode}
+                    aria-label={`Vue ${label}`}
+                    className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
+                    style={
+                      view === mode
+                        ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
+                        : { color: 'var(--text-secondary)' }
+                    }
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </button>
+                )
+              )}
+            </div>
+          )}
+
           <Button onClick={handleNewLead} className="gap-1.5">
             <Plus className="h-4 w-4" />
-            Nouveau lead
+            {isPartnersTab ? 'Nouveau partenaire' : 'Nouveau lead'}
           </Button>
         </div>
       </motion.header>
@@ -187,17 +231,22 @@ export default function ProspectionPage() {
 
       {/* ── KPI Stats — desktop seulement : sur mobile (l'écran d'Emir entre deux
           appels), 4 cartes empilées enterraient la liste sous deux écrans de chiffres.
-          La liste EST la page ; les stats sont un bonus de grand écran. */}
-      <motion.div variants={staggerItem} className="hidden md:block">
-        <LeadStats leads={leads.filter((l) => !l.archived)} isLoading={isLoading} error={error} />
-      </motion.div>
+          La liste EST la page ; les stats sont un bonus de grand écran.
+          Alimentées par l'onglet courant : les partenaires ne polluent pas les
+          chiffres de prospection (et n'ont pas de stats pipeline du tout). */}
+      {!isPartnersTab && (
+        <motion.div variants={staggerItem} className="hidden md:block">
+          <LeadStats leads={tabLeads.filter((l) => !l.archived)} isLoading={isLoading} error={error} />
+        </motion.div>
+      )}
 
       {/* ── Filters ──────────────────────────────────────────────────────────── */}
       <motion.div
         variants={staggerItem}
         className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 shadow-[var(--shadow-xs)]"
       >
-        {/* Statut label + pills */}
+        {/* Statut label + pills — pipeline de prospection uniquement */}
+        {!isPartnersTab && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
             Statut
@@ -225,9 +274,12 @@ export default function ProspectionPage() {
             )
           })}
         </div>
+        )}
 
         {/* Divider */}
-        <div className="hidden h-5 w-px sm:block" style={{ backgroundColor: 'var(--border-color)' }} />
+        {!isPartnersTab && (
+          <div className="hidden h-5 w-px sm:block" style={{ backgroundColor: 'var(--border-color)' }} />
+        )}
 
         {/* Assigné label + pills */}
         <div className="flex items-center gap-2">
@@ -306,9 +358,9 @@ export default function ProspectionPage() {
           />
         </div>
 
-        {/* Desktop : table dense ou kanban */}
+        {/* Desktop : table dense ou kanban (pas de kanban côté partenaires) */}
         <div className="hidden md:block">
-          {view === 'table' ? (
+          {view === 'table' || isPartnersTab ? (
             <LeadTable
               leads={filteredLeads}
               isLoading={isLoading}
@@ -336,6 +388,7 @@ export default function ProspectionPage() {
         onClose={handleFormClose}
         lead={editingLead}
         onSubmit={handleFormSubmit}
+        partnerMode={isPartnersTab}
       />
 
       {/* ── Log d'appel ──────────────────────────────────────────────────────── */}

@@ -44,6 +44,9 @@ const COLUMN_TOP_COLOR: Record<LeadStatus, string> = {
   proposition: '#f59e0b',
   gagne: 'var(--success)',
   perdu: 'var(--trend-down-text)',
+  // Jamais affiché en colonne (absent de LEAD_STATUS_ORDER) : les partenaires
+  // n'entrent pas dans le kanban. Présent pour l'exhaustivité du Record.
+  actif: 'var(--success)',
 }
 
 // ── Card content (shared between draggable + overlay) ─────────────────────────
