@@ -44,7 +44,7 @@ export default function EmailPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isDetecting, setIsDetecting] = useState(false)
-  const [detectionResult, setDetectionResult] = useState<{ inserted: number } | null>(null)
+  const [detectionResult, setDetectionResult] = useState<'lancee' | 'erreur' | null>(null)
 
   useEffect(() => {
     loadEmails(folder, 1)
@@ -94,11 +94,13 @@ export default function EmailPage() {
     setIsDetecting(true)
     setDetectionResult(null)
     try {
+      // La fonction répond 202 immédiatement et analyse en tâche de fond (plusieurs
+      // minutes) : on confirme le lancement, le résultat arrive dans la table leads.
       const { data, error } = await supabase.functions.invoke('email-lead-detector', { body: {} })
       if (error) throw error
-      setDetectionResult({ inserted: data?.inserted ?? 0 })
+      setDetectionResult(data?.accepted ? 'lancee' : 'erreur')
     } catch {
-      setDetectionResult({ inserted: -1 })
+      setDetectionResult('erreur')
     } finally {
       setIsDetecting(false)
     }
@@ -258,21 +260,18 @@ export default function EmailPage() {
               <div
                 className="flex items-center justify-between px-5 py-2.5 text-[13px]"
                 style={
-                  detectionResult.inserted > 0
-                    ? { backgroundColor: 'var(--success-bg)', color: 'var(--success)' }
-                    : detectionResult.inserted === 0
+                  detectionResult === 'lancee'
                     ? { backgroundColor: 'var(--bg-primary)', color: 'var(--text-muted)' }
                     : { backgroundColor: 'var(--danger-bg)', color: 'var(--danger)' }
                 }
               >
                 <span>
-                  {detectionResult.inserted > 0 ? (
+                  {detectionResult === 'lancee' ? (
                     <>
-                      {detectionResult.inserted} nouveau{detectionResult.inserted !== 1 ? 'x' : ''} lead{detectionResult.inserted !== 1 ? 's' : ''} détecté{detectionResult.inserted !== 1 ? 's' : ''}{' '}
-                      <a href="/leads" className="font-medium underline">Voir dans Leads</a>
+                      {"Analyse lancée en arrière-plan — les nouveaux leads apparaîtront dans "}
+                      <a href="/leads" className="font-medium underline">Leads</a>
+                      {" d'ici quelques minutes"}
                     </>
-                  ) : detectionResult.inserted === 0 ? (
-                    'Aucun nouveau lead détecté'
                   ) : (
                     'Erreur lors de la détection'
                   )}
