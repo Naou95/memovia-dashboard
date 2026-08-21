@@ -65,6 +65,7 @@ export interface Database {
           date: string
           repo: string
           title: string
+          title_public: string | null
           detail: string | null
           source_url: string | null
           status: 'candidat' | 'retenu' | 'ecarte'
@@ -75,12 +76,14 @@ export interface Database {
           date: string
           repo: string
           title: string
+          title_public?: string | null
           detail?: string | null
           source_url?: string | null
           status?: 'candidat' | 'retenu' | 'ecarte'
         }
         Update: {
           status?: 'candidat' | 'retenu' | 'ecarte'
+          title_public?: string | null
           detail?: string | null
         }
         Relationships: []

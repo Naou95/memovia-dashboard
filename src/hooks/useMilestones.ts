@@ -7,6 +7,7 @@ export interface UseMilestonesResult {
   isLoading: boolean
   error: string | null
   setStatus: (id: string, status: 'retenu' | 'ecarte') => Promise<void>
+  updateTitle: (id: string, titlePublic: string) => Promise<void>
 }
 
 export function useMilestones(): UseMilestonesResult {
@@ -56,5 +57,15 @@ export function useMilestones(): UseMilestonesResult {
     await fetchAll()
   }
 
-  return { milestones, isLoading, error, setStatus }
+  // Relecture humaine de la phrase en clair (générée par Gemini) au moment du tri.
+  const updateTitle = async (id: string, titlePublic: string): Promise<void> => {
+    const { error: sbError } = await supabase
+      .from('product_milestones')
+      .update({ title_public: titlePublic.trim() || null })
+      .eq('id', id)
+    if (sbError) throw sbError
+    await fetchAll()
+  }
+
+  return { milestones, isLoading, error, setStatus, updateTitle }
 }
