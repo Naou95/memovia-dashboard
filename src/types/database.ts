@@ -26,6 +26,7 @@ export interface Database {
           created_at: string
           updated_at: string
           created_by: string | null
+          lead_id: string | null
         }
         Insert: {
           id?: string
@@ -40,6 +41,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
           created_by?: string | null
+          lead_id?: string | null
         }
         Update: {
           id?: string
@@ -53,6 +55,33 @@ export interface Database {
           is_private?: boolean
           updated_at?: string
           created_by?: string | null
+          lead_id?: string | null
+        }
+        Relationships: []
+      }
+      product_milestones: {
+        Row: {
+          id: string
+          date: string
+          repo: string
+          title: string
+          detail: string | null
+          source_url: string | null
+          status: 'candidat' | 'retenu' | 'ecarte'
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          date: string
+          repo: string
+          title: string
+          detail?: string | null
+          source_url?: string | null
+          status?: 'candidat' | 'retenu' | 'ecarte'
+        }
+        Update: {
+          status?: 'candidat' | 'retenu' | 'ecarte'
+          detail?: string | null
         }
         Relationships: []
       }

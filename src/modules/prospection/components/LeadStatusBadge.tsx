@@ -27,6 +27,12 @@ const STATUS_STYLES: Record<LeadStatus, React.CSSProperties> = {
     backgroundColor: 'color-mix(in oklab, var(--success) 15%, var(--bg-primary))',
     color: 'var(--success)',
   },
+  // Partenaires (hors pipeline) : même vert apaisé que « gagné », c'est une
+  // relation établie, pas une étape à franchir.
+  actif: {
+    backgroundColor: 'color-mix(in oklab, var(--success) 15%, var(--bg-primary))',
+    color: 'var(--success)',
+  },
   perdu: {
     backgroundColor: 'var(--trend-down-bg)',
     color: 'var(--trend-down-text)',

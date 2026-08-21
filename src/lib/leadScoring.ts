@@ -20,6 +20,9 @@ const STATUS_POINTS: Record<LeadStatus, number> = {
   proposition: 20,
   gagne: 30,
   perdu: -50,
+  // Partenaires : hors pipeline, jamais scorés en pratique (l'onglet Prospection
+  // les exclut). Neutre pour l'exhaustivité du Record.
+  actif: 0,
 }
 
 function relancePoints(count: number): number {

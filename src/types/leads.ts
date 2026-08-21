@@ -5,8 +5,11 @@ export type LeadStatus =
   | 'proposition'
   | 'gagne'
   | 'perdu'
+  // Réservé aux partenaires (mémoire d'entreprise, 21/08/2026) : le cycle
+  // nouveau→perdu n'a pas de sens pour Christelle/Compagnons, Paidea, TBS.
+  | 'actif'
 
-export type LeadType = 'ecole' | 'cfa' | 'entreprise' | 'autre'
+export type LeadType = 'ecole' | 'cfa' | 'entreprise' | 'autre' | 'partenaire'
 export type LeadCanal = 'linkedin' | 'email' | 'referral' | 'appel' | 'autre'
 export type LeadAssignee = 'naoufel' | 'emir'
 export type LeadMaturity = 'froid' | 'tiede' | 'chaud'
@@ -75,6 +78,7 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   proposition: 'Proposition envoyée',
   gagne: 'Gagné',
   perdu: 'Perdu',
+  actif: 'Actif',
 }
 
 export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
@@ -82,6 +86,7 @@ export const LEAD_TYPE_LABELS: Record<LeadType, string> = {
   cfa: 'CFA',
   entreprise: 'Entreprise',
   autre: 'Autre',
+  partenaire: 'Partenaire',
 }
 
 export const LEAD_CANAL_LABELS: Record<LeadCanal, string> = {
@@ -103,6 +108,7 @@ export const LEAD_MATURITY_LABELS: Record<LeadMaturity, string> = {
   chaud: 'Chaud',
 }
 
+// ⚠️ Pilote le kanban de prospection : 'actif' (partenaires) n'y figure pas, exprès.
 export const LEAD_STATUS_ORDER: LeadStatus[] = [
   'nouveau',
   'contacte',
@@ -111,3 +117,15 @@ export const LEAD_STATUS_ORDER: LeadStatus[] = [
   'gagne',
   'perdu',
 ]
+
+// ── Onglets de la section Leads (mémoire d'entreprise, 21/08/2026) ────────────
+
+export type LeadTab = 'cfa' | 'partenaires'
+
+// L'onglet Prospection CFA garde STRICTEMENT le comportement d'avant l'arrivée des
+// partenaires : tout ce qui n'est pas type='partenaire' y reste visible.
+export function filterLeadsByTab(leads: Lead[], tab: LeadTab): Lead[] {
+  return leads.filter((l) =>
+    tab === 'partenaires' ? l.type === 'partenaire' : l.type !== 'partenaire',
+  )
+}

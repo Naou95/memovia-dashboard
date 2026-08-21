@@ -5,6 +5,7 @@ import {
   Trophy,
   Wallet,
   Bug,
+  History,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { UserRole } from '@/types/auth'
@@ -76,6 +77,16 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Bugs',
     path: '/bugs',
     icon: Bug,
+    status: 'active',
+    allowedRoles: [],
+  },
+  {
+    // Mémoire d'entreprise (21/08/2026) : jalons produit datés et sourcés.
+    // Dernière position exprès — consultation, pas action quotidienne.
+    id: 'historique',
+    label: 'Historique',
+    path: '/historique',
+    icon: History,
     status: 'active',
     allowedRoles: [],
   },
