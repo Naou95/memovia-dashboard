@@ -56,6 +56,32 @@ export interface Database {
         }
         Relationships: []
       }
+      product_milestones: {
+        Row: {
+          id: string
+          date: string
+          repo: string
+          title: string
+          detail: string | null
+          source_url: string | null
+          status: 'candidat' | 'retenu' | 'ecarte'
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          date: string
+          repo: string
+          title: string
+          detail?: string | null
+          source_url?: string | null
+          status?: 'candidat' | 'retenu' | 'ecarte'
+        }
+        Update: {
+          status?: 'candidat' | 'retenu' | 'ecarte'
+          detail?: string | null
+        }
+        Relationships: []
+      }
       section_visits: {
         Row: {
           id: number

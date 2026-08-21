@@ -26,6 +26,7 @@ const AdminPage = lazy(() => import('@/modules/admin/AdminPage'))
 const ArgentPage = lazy(() => import('@/modules/argent/ArgentPage'))
 const RdvPage = lazy(() => import('@/modules/rdv/RdvPage'))
 const FinancementsPage = lazy(() => import('@/modules/financements/FinancementsPage'))
+const HistoriquePage = lazy(() => import('@/modules/historique/HistoriquePage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -108,6 +109,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <MonitoringPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'historique',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <HistoriquePage />
           </Suspense>
         ),
       },
