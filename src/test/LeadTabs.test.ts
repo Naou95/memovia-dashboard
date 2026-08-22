@@ -8,7 +8,7 @@ const lead = (over: Partial<Lead>): Lead => ({
   created_at: '', updated_at: '', created_by: null, contact_email: null,
   contact_name: null, contact_role: null, source: null, maturity: null,
   relance_count: 0, last_contact_date: null, timeline: null,
-  contact_phone: null, archived: false, ...over,
+  contact_phone: null, archived: false, why: null, pitch: null, ...over,
 })
 
 describe('filterLeadsByTab', () => {

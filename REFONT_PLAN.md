@@ -103,6 +103,25 @@ tasks, roadmap, calendar (absorbé par RDV), utilisateurs. Admin = utilitaire ca
 - [x] **E. Concours passés** : déjà couvert (toggle « Afficher les clos » de la Phase 3) —
       backfill validé post-deploy
 
+### Phase 8 — Accueil + assistant IA (22/08/2026)
+
+- [x] **Page d'accueil `/`** (fin du redirect vers /leads) sur la maquette validée par Naoufel :
+      planning 14 jours (RDV, deadlines financements, relances leads), échéances, leads à
+      contacter avec fiche argumentaire, carte assistant. Nav 8 entrées, `section_visits`
+      compte `accueil` (même critère de kill que les autres).
+- [x] **`leads.why` + `leads.pitch`** (migration 00050, appliquée) : pourquoi cette école +
+      pitch aligné sur POSITIONNEMENT.md, éditables dans la fiche, affichés via la fiche
+      argumentaire (table desktop, cartes mobile, accueil).
+- [x] **Seeds réels depuis le vault** : 4 leads pipeline réactivés (Compagnons, CFA Blagnac,
+      Toulouse INP, TBS) + 4 partenaires prescripteurs (Christelle Navereau, FUSO France,
+      Dys-Positif, Le Cartable Fantastique) ; 6 RDV (5 CR historiques au neutre + RDV
+      Petrache du 24/08) ; 13 financements (veille du 19/08, notes « option scoutée »).
+- [x] **Edge function `accueil-assistant`** (Gemini 2.5 Flash via GOOGLE_API_KEY,
+      `thinkingBudget: 0`, verify_jwt + garde `dashboard_profiles`) : Q&A sur les données
+      live (leads/pitch, RDV + CR, financements) et 3 actions bornées — `update_lead`,
+      `update_financement`, `create_rdv`. L'ancien `copilot-chat` (Anthropic, compte sans
+      crédit) reste en place pour le ménage de Phase 6.
+
 ## Règles de chantier
 
 - Une phase = une branche = une PR. `npm run typecheck` comparé à la baseline de main

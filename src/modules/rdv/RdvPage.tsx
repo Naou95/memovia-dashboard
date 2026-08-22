@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Plus, X, FileWarning, Loader2, FileCheck2 } from 'lucide-react'
+import { Plus, X, FileWarning, Loader2, FileCheck2, Calendar } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { staggerContainer, staggerItem } from '@/lib/motion'
@@ -26,7 +26,7 @@ function CrBadge({ rdv }: { rdv: Rdv }) {
   }
   if (rdv.cr_status === 'fait') {
     return (
-      <span className="flex items-center gap-1 rounded-full bg-[rgba(16,185,129,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[#059669]">
+      <span className="flex items-center gap-1 rounded-full bg-[rgba(16,185,129,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[#047857]">
         <FileCheck2 className="h-3 w-3" /> CR fait
       </span>
     )
@@ -50,6 +50,7 @@ export default function RdvPage() {
   const { leads } = useLeads()
   const [createOpen, setCreateOpen] = useState(false)
   const [selected, setSelected] = useState<Rdv | null>(null)
+  const [view, setView] = useState<'avenir' | 'passes' | 'cr'>('avenir')
   const [title, setTitle] = useState('')
   const [dateTime, setDateTime] = useState('')
   const [leadId, setLeadId] = useState('')
@@ -91,6 +92,10 @@ export default function RdvPage() {
     await updateRdv(id, { cr, cr_status: 'fait' })
   }
 
+  async function handleSavePrep(id: string, prep: string) {
+    await updateRdv(id, { prep })
+  }
+
   function RdvList({ items, emptyLabel, emptyAction }: { items: Rdv[]; emptyLabel: string; emptyAction?: boolean }) {
     if (items.length === 0) {
       return (
@@ -112,7 +117,7 @@ export default function RdvPage() {
             <button
               type="button"
               onClick={() => setSelected(rdv)}
-              className="flex w-full items-center justify-between gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 text-left shadow-[var(--shadow-xs)] transition-colors hover:border-[var(--memovia-violet)]"
+              className="flex w-full items-center justify-between gap-3 rounded-xl border border-transparent bg-[var(--bg-primary)] px-4 py-3 text-left transition-colors hover:border-[var(--memovia-violet)]"
             >
               <div className="min-w-0">
                 <div className="truncate text-[14px] font-medium text-[var(--text-primary)]">
@@ -167,21 +172,66 @@ export default function RdvPage() {
           ))}
         </div>
       ) : (
-        <>
-          <motion.section variants={staggerItem}>
-            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
-              À venir
-            </h2>
-            <RdvList items={upcoming} emptyLabel="Aucun RDV planifié." emptyAction />
-          </motion.section>
+        /* Conseil design 22/08 (pattern Cal.com) : UN flux avec chips de vue
+           au lieu de deux panneaux empilés qui se disputent la hauteur.
+           « CR manquant » = l'état actionnable, il a sa chip de premier rang. */
+        <motion.section
+          variants={staggerItem}
+          className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+        >
+          {upcoming[0] && (
+            <button
+              type="button"
+              onClick={() => setSelected(upcoming[0])}
+              className="mb-3 flex w-full flex-wrap items-center gap-2 rounded-xl bg-[rgba(124,58,237,0.06)] px-3.5 py-2.5 text-left text-[13px] transition-colors hover:bg-[rgba(124,58,237,0.10)]"
+            >
+              <Calendar className="h-4 w-4 shrink-0 text-[var(--memovia-violet)]" aria-hidden />
+              <span className="font-semibold text-[var(--memovia-violet)]">Prochain RDV</span>
+              <span className="tabular-nums font-semibold text-[var(--text-primary)]">
+                {new Date(upcoming[0].rdv_date).toLocaleString('fr-FR', {
+                  weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                })}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[var(--text-secondary)]">{upcoming[0].title}</span>
+            </button>
+          )}
 
-          <motion.section variants={staggerItem}>
-            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
-              Passés
-            </h2>
-            <RdvList items={past} emptyLabel="Aucun RDV passé." />
-          </motion.section>
-        </>
+          <div className="mb-3 flex flex-wrap items-center gap-2" role="tablist" aria-label="Filtrer les RDV">
+            {(
+              [
+                ['avenir', `À venir (${upcoming.length})`],
+                ['passes', `Passés (${past.length})`],
+                ['cr', `CR manquant (${missingCount})`],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={view === key}
+                onClick={() => setView(key)}
+                className={`rounded-full px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                  view === key
+                    ? 'bg-[var(--memovia-violet)] text-white'
+                    : key === 'cr' && missingCount > 0
+                      ? 'bg-[var(--danger-bg)] text-[var(--danger)] hover:bg-[var(--danger-bg)]'
+                      : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {view === 'avenir' && <RdvList items={upcoming} emptyLabel="Aucun RDV planifié." emptyAction />}
+          {view === 'passes' && <RdvList items={past} emptyLabel="Aucun RDV passé." />}
+          {view === 'cr' && (
+            <RdvList
+              items={past.filter((r) => r.cr_status === 'manquant')}
+              emptyLabel="Aucun CR manquant — tout est à jour."
+            />
+          )}
+        </motion.section>
       )}
 
       {/* Création */}
@@ -244,6 +294,7 @@ export default function RdvPage() {
         rdv={selectedFresh}
         onClose={() => setSelected(null)}
         onSaveCr={handleSaveCr}
+        onSavePrep={handleSavePrep}
         onUploadAudio={uploadAndTranscribe}
       />
     </motion.div>

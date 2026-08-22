@@ -27,6 +27,9 @@ const ArgentPage = lazy(() => import('@/modules/argent/ArgentPage'))
 const RdvPage = lazy(() => import('@/modules/rdv/RdvPage'))
 const FinancementsPage = lazy(() => import('@/modules/financements/FinancementsPage'))
 const HistoriquePage = lazy(() => import('@/modules/historique/HistoriquePage'))
+const PositionnementPage = lazy(() => import('@/modules/positionnement/PositionnementPage'))
+const AccueilPage = lazy(() => import('@/modules/accueil/AccueilPage'))
+const RoadmapProduitPage = lazy(() => import('@/modules/roadmap-produit/RoadmapProduitPage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -58,11 +61,14 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      // ── Refonte v2 (REFONT_PLAN.md) : 5 sections ────────────────────────────
-      // Root redirects to /leads
+      // ── Refonte v2 (REFONT_PLAN.md) : 5 sections + accueil (22/08/2026) ─────
       {
         index: true,
-        element: <Navigate to="/leads" replace />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AccueilPage />
+          </Suspense>
+        ),
       },
       {
         path: 'leads',
@@ -113,6 +119,27 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'positionnement',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <PositionnementPage />
+          </Suspense>
+        ),
+      },
+      {
+        // Roadmap produit (22/08/2026) : kanban par horizon. /roadmap reste le
+        // board de feedback utilisateurs, autre chose — d'où le chemin distinct.
+        path: 'roadmap-produit',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <RoadmapProduitPage />
+          </Suspense>
+        ),
+      },
+
+      // ── Anciennes routes : archivées, plus dans la nav, mais URLs intactes ──
+      // Historique retiré de la nav le 22/08 (décision Naoufel : « sert à rien »)
+      {
         path: 'historique',
         element: (
           <Suspense fallback={<PageLoader />}>
@@ -120,8 +147,6 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
-
-      // ── Anciennes routes : archivées, plus dans la nav, mais URLs intactes ──
       // (liens du briefing Telegram et habitudes ; suppression réelle en Phase 6)
       {
         path: 'overview',
@@ -270,9 +295,9 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Catch-all — redirect unknown routes to /leads (auth will gate)
+  // Catch-all — redirect unknown routes to l'accueil (auth will gate)
   {
     path: '*',
-    element: <Navigate to="/leads" replace />,
+    element: <Navigate to="/" replace />,
   },
 ])

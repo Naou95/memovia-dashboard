@@ -343,6 +343,7 @@ export interface Database {
           gcal_event_id: string | null
           audio_path: string | null
           transcript: string | null
+          prep: string | null
           cr: string | null
           cr_status: 'manquant' | 'en_cours' | 'fait'
           created_by: string | null
@@ -357,6 +358,7 @@ export interface Database {
           gcal_event_id?: string | null
           audio_path?: string | null
           transcript?: string | null
+          prep?: string | null
           cr?: string | null
           cr_status?: 'manquant' | 'en_cours' | 'fait'
           created_by?: string | null
@@ -367,8 +369,38 @@ export interface Database {
           lead_id?: string | null
           audio_path?: string | null
           transcript?: string | null
+          prep?: string | null
           cr?: string | null
           cr_status?: 'manquant' | 'en_cours' | 'fait'
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      roadmap_items: {
+        Row: {
+          id: string
+          title: string
+          why: string | null
+          horizon: 'maintenant' | 'ensuite' | 'plus_tard' | 'parque'
+          tag: string | null
+          ordre: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          why?: string | null
+          horizon?: 'maintenant' | 'ensuite' | 'plus_tard' | 'parque'
+          tag?: string | null
+          ordre?: number
+        }
+        Update: {
+          title?: string
+          why?: string | null
+          horizon?: 'maintenant' | 'ensuite' | 'plus_tard' | 'parque'
+          tag?: string | null
+          ordre?: number
           updated_at?: string
         }
         Relationships: []

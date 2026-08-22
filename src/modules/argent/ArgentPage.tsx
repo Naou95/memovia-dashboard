@@ -5,6 +5,8 @@ import { KpiCard } from '@/components/shared/KpiCard'
 import { useStripeFinance } from '@/hooks/useStripeFinance'
 import { useQontoFinance } from '@/hooks/useQontoFinance'
 import { TransactionTable } from '@/modules/qonto/components/TransactionTable'
+import { CashFlowChart } from '@/modules/qonto/components/CashFlowChart'
+import { CategoryDonut } from '@/modules/qonto/components/CategoryDonut'
 import { TransactionList } from '@/modules/stripe/components/TransactionList'
 
 const fmtEur = (n: number) =>
@@ -103,7 +105,7 @@ export default function ArgentPage() {
         <KpiCard
           label="Abos du mois"
           value={
-            stripe.data ? `+${stripe.data.newThisMonth} −${stripe.data.churnsThisMonth}` : null
+            stripe.data ? `+${stripe.data.newThisMonth} · −${stripe.data.churnsThisMonth}` : null
           }
           accent={stripe.data && stripe.data.churnsThisMonth > stripe.data.newThisMonth ? 'red' : 'blue'}
           icon={stripe.data && stripe.data.churnsThisMonth > stripe.data.newThisMonth ? UserMinus : UserPlus}
@@ -112,34 +114,95 @@ export default function ArgentPage() {
         />
       </motion.div>
 
-      {/* Horodatage : l'honnêteté de la fraîcheur prime sur la fraîcheur */}
-      <motion.p variants={staggerItem} className="text-[11px] tabular-nums text-[var(--text-muted)]">
-        {[
-          qonto.lastFetchedAt ? `Qonto ${freshness(qonto.lastFetchedAt)}` : null,
-          stripe.lastFetchedAt ? `Stripe ${freshness(stripe.lastFetchedAt)}` : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-      </motion.p>
+      {/* Corps (maquette Naoufel 22/08) : zone d'analyse à gauche (donut
+          catégories + carte totaux sombre + courbe in/out + table Qonto),
+          flux Stripe en rail droit — panneaux standard partout */}
+      <motion.div variants={staggerItem} className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="min-w-0 space-y-4">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_230px]">
+            <section className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
+              <h2 className="mb-3 font-display text-[17px] font-bold text-[var(--text-primary)]">
+                Dépenses par catégorie
+              </h2>
+              {qonto.data ? (
+                <CategoryDonut transactions={qonto.data.transactions} days={90} />
+              ) : (
+                <div className="h-[180px] animate-pulse rounded-lg bg-[var(--border-color)]" />
+              )}
+            </section>
+            {/* Carte totaux — l'accent sombre assumé de la maquette, violet uni */}
+            <section
+              className="flex flex-col justify-between gap-3 rounded-[var(--radius-card)] p-5 text-white"
+              style={{ backgroundColor: '#2E1065', boxShadow: 'var(--shadow-sm)' }}
+              aria-label="Totaux sur 3 mois"
+            >
+              {(() => {
+                const flows = qonto.data?.monthlyCashFlow.slice(-3) ?? []
+                const tin = flows.reduce((s, f) => s + f.income, 0)
+                const tout = flows.reduce((s, f) => s + f.expenses, 0)
+                return (
+                  <>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-white/60">Entrées 3 mois</p>
+                      <p className="tabular-nums text-[22px] font-bold">{qonto.data ? fmtEur(tin) : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-white/60">Sorties 3 mois</p>
+                      <p className="tabular-nums text-[22px] font-bold">{qonto.data ? fmtEur(tout) : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-white/60">Net</p>
+                      <p className="tabular-nums text-[22px] font-bold">{qonto.data ? fmtEur(tin - tout) : '—'}</p>
+                    </div>
+                  </>
+                )
+              })()}
+            </section>
+          </div>
 
-      {/* Mouvements */}
-      <motion.div variants={staggerItem} className="grid gap-6 xl:grid-cols-2">
-        <section>
-          <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
-            Mouvements Qonto
-          </h2>
-          {qonto.data ? (
-            <TransactionTable transactions={qonto.data.transactions} />
-          ) : qonto.error ? (
-            <p className="text-[13px] text-[var(--danger)]">{qonto.error}</p>
-          ) : (
-            <div className="h-40 animate-pulse rounded-lg bg-[var(--border-color)]" />
-          )}
-        </section>
-        <section>
-          <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
-            Paiements Stripe
-          </h2>
+          <section className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
+            <h2 className="mb-3 font-display text-[17px] font-bold text-[var(--text-primary)]">
+              Entrées &amp; sorties par mois
+            </h2>
+            {qonto.data ? (
+              <CashFlowChart data={qonto.data.monthlyCashFlow} />
+            ) : (
+              <div className="h-[260px] animate-pulse rounded-lg bg-[var(--border-color)]" />
+            )}
+          </section>
+
+          <section className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
+            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">
+                Mouvements Qonto
+              </h2>
+              {qonto.lastFetchedAt && (
+                <span className="text-[11px] tabular-nums text-[var(--text-muted)]">
+                  {freshness(qonto.lastFetchedAt)}
+                </span>
+              )}
+            </div>
+            {qonto.data ? (
+              <TransactionTable transactions={qonto.data.transactions} />
+            ) : qonto.error ? (
+              <p className="text-[13px] text-[var(--danger)]">{qonto.error}</p>
+            ) : (
+              <div className="h-40 animate-pulse rounded-lg bg-[var(--border-color)]" />
+            )}
+          </section>
+        </div>
+
+        <section className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">
+              Paiements Stripe
+            </h2>
+            {stripe.lastFetchedAt && (
+              <span className="text-[11px] tabular-nums text-[var(--text-muted)]">
+                {freshness(stripe.lastFetchedAt)}
+              </span>
+            )}
+          </div>
           {stripe.data ? (
             <TransactionList transactions={stripe.data.recentTransactions} />
           ) : stripe.error ? (

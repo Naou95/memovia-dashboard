@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, Sparkles } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { getNavForRole } from '@/config/navigation'
@@ -33,9 +33,17 @@ export function MobileNav() {
         <SheetTitle className="sr-only">Navigation</SheetTitle>
         {/* Logo */}
         <div className="flex h-16 items-center gap-2.5 px-5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--memovia-violet)]">
-            <Sparkles className="h-4 w-4 text-white" strokeWidth={2.5} />
-          </div>
+          {/* Monogramme M — même identité que le header desktop (AppLayout) */}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+            <path
+              d="M2 17V4.5a1.5 1.5 0 0 1 2.56-1.06L10 8.88l5.44-5.44A1.5 1.5 0 0 1 18 4.5V17"
+              stroke="#7C3AED"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle cx="10" cy="15.5" r="1.3" fill="#7C3AED" />
+          </svg>
           <span className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
             MEMOVIA
           </span>

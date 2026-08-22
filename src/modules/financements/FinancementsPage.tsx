@@ -35,7 +35,7 @@ function DeadlineBadge({ deadline }: { deadline: string | null }) {
       : days <= 7
       ? { text: `${label} — J-${days}`, cls: 'bg-[var(--danger-bg)] text-[var(--danger)]' }
       : days <= 14
-      ? { text: `${label} — J-${days}`, cls: 'bg-[rgba(245,158,11,0.12)] text-[#B45309]' }
+      ? { text: `${label} — J-${days}`, cls: 'bg-[rgba(245,158,11,0.12)] text-[#92400E]' }
       : { text: label, cls: 'bg-[var(--bg-primary)] text-[var(--text-secondary)]' }
   return (
     <span className={cn('flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums', urgency.cls)}>
@@ -92,8 +92,14 @@ export default function FinancementsPage() {
     if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline)
     return a.deadline ? -1 : b.deadline ? 1 : 0
   })
-  const open = sorted.filter((f) => !CLOSED_STATUSES.includes(f.status as (typeof CLOSED_STATUSES)[number]))
+  // Conseil design 22/08 : l'unité de décision d'un dossier est sa DEADLINE —
+  // les ouverts se trient par urgence (sans deadline en bas), pas par statut.
+  const open = financements
+    .filter((f) => !CLOSED_STATUSES.includes(f.status as (typeof CLOSED_STATUSES)[number]))
+    .sort((a, b) => (a.deadline ?? '9999-99').localeCompare(b.deadline ?? '9999-99'))
   const closed = sorted.filter((f) => CLOSED_STATUSES.includes(f.status as (typeof CLOSED_STATUSES)[number]))
+  // Le dossier qui brûle : première deadline à venir
+  const hottest = open.find((f) => f.deadline && daysUntil(f.deadline) >= 0)
 
   function openCreate() {
     setEditing(null)
@@ -144,48 +150,47 @@ export default function FinancementsPage() {
     }
   }
 
-  function Card({ f }: { f: Financement }) {
+  // Conseil design 22/08 (pattern Linear projects / Stripe) : LIGNE dense, pas
+  // carte — la deadline s'aligne en colonne pour la comparaison verticale, la
+  // prochaine action reste inline (un dossier sans next_action est mort), les
+  // notes vivent dans la fiche (clic sur la ligne).
+  function Row({ f }: { f: Financement }) {
     return (
-      <li className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)]">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[15px] font-semibold text-[var(--text-primary)]">{f.name}</span>
+      <li>
+        <button
+          type="button"
+          onClick={() => openEdit(f)}
+          className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-xl border border-transparent bg-[var(--bg-primary)] px-4 py-2.5 text-left transition-colors hover:border-[var(--memovia-violet)] sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)_auto]"
+        >
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5">
+              <span className="truncate text-[14px] font-semibold text-[var(--text-primary)]">{f.name}</span>
               {f.url && (
                 <a
                   href={f.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-[var(--text-muted)] hover:text-[var(--memovia-violet)]"
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0 text-[var(--text-muted)] hover:text-[var(--memovia-violet)]"
                   aria-label="Ouvrir le site"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               )}
-            </div>
-            <div className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+            </span>
+            <span className="mt-0.5 block truncate text-[12px] text-[var(--text-secondary)]">
               {FINANCEMENT_TYPE_LABELS[f.type]} · {FINANCEMENT_STATUS_LABELS[f.status]}
               {f.assigned_to ? ` · ${f.assigned_to === 'naoufel' ? 'Naoufel' : 'Emir'}` : ''}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+            </span>
+          </span>
+          <span className="col-span-2 min-w-0 truncate text-[13px] text-[var(--text-secondary)] sm:col-span-1" title={f.next_action ?? undefined}>
+            {f.next_action ?? <span className="text-[var(--danger)]">Pas de prochaine action</span>}
+          </span>
+          <span className="col-start-2 row-start-1 flex shrink-0 items-center gap-2 sm:col-start-3">
             <DeadlineBadge deadline={f.deadline} />
-            <button
-              type="button"
-              onClick={() => openEdit(f)}
-              className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--bg-primary)] hover:text-[var(--memovia-violet)]"
-              aria-label="Modifier"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-        {f.next_action && (
-          <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
-            <span className="font-medium text-[var(--text-primary)]">À faire :</span> {f.next_action}
-          </p>
-        )}
-        {f.notes && <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-muted)]">{f.notes}</p>}
+            <Pencil className="h-3.5 w-3.5 text-[var(--text-muted)]" aria-hidden />
+          </span>
+        </button>
       </li>
     )
   }
@@ -221,32 +226,53 @@ export default function FinancementsPage() {
         </div>
       ) : (
         <>
-          <motion.ul variants={staggerItem} className="space-y-3">
-            {open.length === 0 ? (
-              <p className="px-1 py-3 text-[13px] text-[var(--text-muted)]">Rien en cours.</p>
-            ) : (
-              open.map((f) => <Card key={f.id} f={f} />)
+          {/* Panneau blanc standard (langue de l'accueil/historique) : les items
+              vivent DANS une carte, pas nus sur le fond de page. */}
+          <motion.section
+            variants={staggerItem}
+            className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+          >
+            {/* Ce qui brûle — pattern « requires attention » (Stripe) */}
+            {hottest && hottest.deadline && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl bg-[rgba(124,58,237,0.06)] px-3.5 py-2.5 text-[13px]">
+                <AlarmClock className="h-4 w-4 shrink-0 text-[var(--memovia-violet)]" aria-hidden />
+                <span className="font-semibold text-[var(--text-primary)]">{hottest.name}</span>
+                <span className="tabular-nums font-semibold text-[var(--memovia-violet)]">J-{daysUntil(hottest.deadline)}</span>
+                {hottest.next_action && (
+                  <span className="min-w-0 flex-1 truncate text-[var(--text-secondary)]">{hottest.next_action}</span>
+                )}
+              </div>
             )}
-          </motion.ul>
-
-          {closed.length > 0 && (
-            <motion.div variants={staggerItem}>
-              <button
-                type="button"
-                onClick={() => setShowClosed((v) => !v)}
-                className="text-[12px] text-[var(--text-muted)] underline-offset-2 hover:underline"
-              >
-                {showClosed ? 'Masquer' : 'Afficher'} les clos ({closed.length})
-              </button>
-              {showClosed && (
-                <ul className="mt-3 space-y-3 opacity-70">
-                  {closed.map((f) => (
-                    <Card key={f.id} f={f} />
-                  ))}
-                </ul>
+            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+              En cours ({open.length})
+            </h2>
+            <ul className="space-y-1.5">
+              {open.length === 0 ? (
+                <p className="px-1 py-3 text-[13px] text-[var(--text-muted)]">Rien en cours.</p>
+              ) : (
+                open.map((f) => <Row key={f.id} f={f} />)
               )}
-            </motion.div>
-          )}
+            </ul>
+
+            {closed.length > 0 && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowClosed((v) => !v)}
+                  className="text-[12px] text-[var(--text-muted)] underline-offset-2 hover:underline"
+                >
+                  {showClosed ? 'Masquer' : 'Afficher'} les clos ({closed.length})
+                </button>
+                {showClosed && (
+                  <ul className="mt-3 space-y-1.5 opacity-70">
+                    {closed.map((f) => (
+                      <Row key={f.id} f={f} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </motion.section>
         </>
       )}
 

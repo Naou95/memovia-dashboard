@@ -86,7 +86,8 @@ describe('useSentry', () => {
     await waitFor(() => expect(r2.current.isLoading).toBe(false))
 
     // invoke appelé une seule fois (2e hook utilise le cache)
-    expect(mockInvoke).toHaveBeenCalledTimes(1)
+    // SWR : revalidation en arrière-plan attendue même sur cache hit
+    expect(mockInvoke).toHaveBeenCalledTimes(2)
     expect(r2.current.data).toEqual(mockData)
   })
 

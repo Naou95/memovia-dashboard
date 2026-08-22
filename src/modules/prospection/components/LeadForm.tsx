@@ -30,6 +30,8 @@ interface FormState {
   follow_up_date: string
   assigned_to: string
   notes: string
+  why: string
+  pitch: string
 }
 
 function emptyForm(partner: boolean): FormState {
@@ -46,6 +48,8 @@ function emptyForm(partner: boolean): FormState {
     follow_up_date: '',
     assigned_to: '',
     notes: '',
+    why: '',
+    pitch: '',
   }
 }
 
@@ -63,6 +67,8 @@ function leadToForm(lead: Lead): FormState {
     follow_up_date: lead.follow_up_date ?? '',
     assigned_to: lead.assigned_to ?? '',
     notes: lead.notes ?? '',
+    why: lead.why ?? '',
+    pitch: lead.pitch ?? '',
   }
 }
 
@@ -138,6 +144,8 @@ export function LeadForm({ open, onClose, lead, onSubmit, partnerMode = false }:
         relance_count: lead?.relance_count ?? 0,
         last_contact_date: lead?.last_contact_date ?? null,
         timeline: lead?.timeline ?? null,
+        why: form.why.trim() || null,
+        pitch: form.pitch.trim() || null,
       }
       await onSubmit(payload)
     } finally {
@@ -321,6 +329,33 @@ export function LeadForm({ open, onClose, lead, onSubmit, partnerMode = false }:
                 />
               </div>
             )}
+
+            {/* Argumentaire (accueil v2, 22/08/2026) : le pourquoi et le pitch
+                vivent sur la fiche — affichés via la fiche argumentaire. */}
+            <div className="space-y-1.5">
+              <Label htmlFor="why">{isPartner ? 'Pourquoi ce partenaire' : 'Pourquoi cette école'}</Label>
+              <textarea
+                id="why"
+                name="why"
+                value={form.why}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Le fit avec le positionnement : public, décideur, rail de financement…"
+                className="w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--memovia-violet)] focus:ring-1 focus:ring-[var(--memovia-violet)]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pitch">Pitch</Label>
+              <textarea
+                id="pitch"
+                name="pitch"
+                value={form.pitch}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Le pitch à dérouler (et les interdits à ne pas franchir)…"
+                className="w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 text-[13px] text-[var(--text-primary)] outline-none focus:border-[var(--memovia-violet)] focus:ring-1 focus:ring-[var(--memovia-violet)]"
+              />
+            </div>
 
             {/* Engagements — fiche existante seulement (la tâche a besoin du lead_id) */}
             {isEdit && lead && <LeadEngagements leadId={lead.id} />}

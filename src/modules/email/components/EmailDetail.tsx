@@ -46,12 +46,10 @@ function getAvatarColor(address: string): string {
   for (let i = 0; i < address.length; i++) {
     hash = address.charCodeAt(i) + ((hash << 5) - hash)
   }
+  // Gamme violette seule (22/08) : le cycle 8 couleurs (bleu/vert/orange/rouge)
+  // etait l'arc-en-ciel arbitraire type "template IA", sans signification.
   const colors = [
     'var(--memovia-violet)',
-    'var(--accent-blue)',
-    'var(--success)',
-    'var(--warning)',
-    'var(--danger)',
     'var(--chart-purple-400)',
     'var(--memovia-violet-hover)',
     'var(--chart-purple-600)',

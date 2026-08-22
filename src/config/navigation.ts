@@ -1,11 +1,13 @@
 import {
+  House,
   Users2,
   Calendar,
   Mail,
   Trophy,
   Wallet,
   Bug,
-  History,
+  Compass,
+  Map,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { UserRole } from '@/types/auth'
@@ -29,6 +31,15 @@ export interface NavItem {
  * Admin reste accessible via le menu utilisateur.
  */
 export const NAV_ITEMS: NavItem[] = [
+  {
+    // Accueil (22/08/2026) : planning, échéances, leads à contacter, assistant IA.
+    id: 'accueil',
+    label: 'Accueil',
+    path: '/',
+    icon: House,
+    status: 'active',
+    allowedRoles: [],
+  },
   {
     id: 'leads',
     label: 'Leads',
@@ -81,12 +92,23 @@ export const NAV_ITEMS: NavItem[] = [
     allowedRoles: [],
   },
   {
-    // Mémoire d'entreprise (21/08/2026) : jalons produit datés et sourcés.
-    // Dernière position exprès — consultation, pas action quotidienne.
-    id: 'historique',
-    label: 'Historique',
-    path: '/historique',
-    icon: History,
+    // Positionnement (22/08/2026, remplace Historique jugé inutile par Naoufel) :
+    // la thèse, l'offre, ce qui est construit, les concurrents — l'armurerie
+    // commerciale d'Emir, alignée sur POSITIONNEMENT.md du vault (18/07/2026).
+    id: 'positionnement',
+    label: 'Positionnement',
+    path: '/positionnement',
+    icon: Compass,
+    status: 'active',
+    allowedRoles: [],
+  },
+  {
+    // Roadmap produit (22/08/2026) : sortie de Positionnement où elle était en dur,
+    // donc morte entre deux sessions. Kanban par horizon, adossé à roadmap_items.
+    id: 'roadmap-produit',
+    label: 'Roadmap',
+    path: '/roadmap-produit',
+    icon: Map,
     status: 'active',
     allowedRoles: [],
   },

@@ -8,6 +8,7 @@ export interface Rdv {
   gcal_event_id: string | null
   audio_path: string | null
   transcript: string | null
+  prep: string | null
   cr: string | null
   cr_status: CrStatus
   created_by: string | null
@@ -16,7 +17,7 @@ export interface Rdv {
 }
 
 export type RdvUpdate = Partial<
-  Pick<Rdv, 'title' | 'rdv_date' | 'lead_id' | 'audio_path' | 'transcript' | 'cr' | 'cr_status'>
+  Pick<Rdv, 'title' | 'rdv_date' | 'lead_id' | 'audio_path' | 'transcript' | 'prep' | 'cr' | 'cr_status'>
 >
 
 export interface RdvInsert {
