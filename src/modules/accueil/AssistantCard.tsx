@@ -65,7 +65,7 @@ export function AssistantCard({ firstName }: { firstName: string }) {
 
   return (
     <section
-      className="flex h-full min-h-[380px] flex-col rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+      className="flex h-full min-h-[320px] flex-col rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)] lg:min-h-0"
       aria-label="Assistant IA"
     >
       {empty ? (

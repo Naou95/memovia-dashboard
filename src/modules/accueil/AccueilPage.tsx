@@ -161,20 +161,28 @@ export default function AccueilPage() {
     () =>
       rdvs
         .filter((r) => new Date(r.rdv_date).getTime() < Date.now())
-        .slice(0, 3),
+        .slice(0, 2),
     [rdvs],
   )
 
   const firstName = user?.profile.full_name?.split(' ')[0] ?? ''
 
   return (
-    <motion.div className="space-y-5" variants={staggerContainer} initial="hidden" animate="show">
+    // ≥ lg : la page tient DANS l'écran (demande 22/08 : tout visible sans
+    // scroller). 104px = header 64 + padding vertical du <main> (2 × 20).
+    // En dessous de lg (mobile), flux normal : le scroll reste naturel.
+    <motion.div
+      className="space-y-4 lg:flex lg:h-[calc(100dvh-104px)] lg:flex-col lg:gap-4 lg:space-y-0 lg:overflow-hidden"
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+    >
       {/* ── Planning 14 jours ────────────────────────────────────────────────── */}
       <motion.section
         variants={staggerItem}
-        className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+        className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)] lg:shrink-0"
       >
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-[var(--text-primary)]">
               Les 2 prochaines semaines
@@ -205,14 +213,14 @@ export default function AccueilPage() {
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+        <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
           {/* Leads à suivre (colonne gauche, façon liste d'équipe de la maquette) */}
           <div className="hidden lg:block">
             <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
               Leads suivis
             </h2>
-            <ul className="space-y-1">
-              {pipelineLeads.slice(0, 6).map((lead, i) => (
+            <ul className="space-y-0.5">
+              {pipelineLeads.slice(0, 5).map((lead, i) => (
                 <li key={lead.id}>
                   <Link
                     to="/leads"
@@ -273,7 +281,7 @@ export default function AccueilPage() {
 
               {/* Grille des événements */}
               <div
-                className="relative grid auto-rows-[36px] gap-y-1.5 rounded-lg py-1"
+                className="relative grid auto-rows-[32px] gap-y-1 rounded-lg py-1"
                 style={{ gridTemplateColumns: `repeat(${DAYS_SHOWN}, minmax(0, 1fr))` }}
               >
                 {/* Fonds week-end + repère aujourd'hui — lignes EXPLICITES pour ne
@@ -336,14 +344,16 @@ export default function AccueilPage() {
 
       {/* ── Rangée basse : échéances · leads à contacter · assistant ─────────── */}
       {/* min-w-0 partout : sans lui, un contenu long élargit la colonne de grille
-          et fait déborder la page sur mobile (constaté en QA 390px). */}
-      <div className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          et fait déborder la page sur mobile (constaté en QA 390px).
+          ≥ lg : la rangée absorbe la hauteur restante, chaque carte gère son
+          propre débordement (filet de sécurité sur petit écran). */}
+      <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3 lg:min-h-0 lg:flex-1">
         {/* Échéances */}
         <motion.section
           variants={staggerItem}
-          className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+          className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)] lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden"
         >
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-2.5 flex items-center justify-between">
             <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">Échéances</h2>
             <Link
               to="/financements"
@@ -352,7 +362,7 @@ export default function AccueilPage() {
               Tout voir <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <ul className="space-y-2">
+          <ul className="space-y-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             {echeances.map((e, i) => {
               const days = Math.round((startOfDay(new Date(e.date)).getTime() - startOfDay(new Date()).getTime()) / DAY_MS)
               const urgent = days <= 7
@@ -361,7 +371,7 @@ export default function AccueilPage() {
                 <li key={e.key}>
                   <Link
                     to={e.link}
-                    className="block rounded-xl border p-3 transition-colors hover:border-[var(--memovia-violet)]"
+                    className="block rounded-xl border p-2.5 transition-colors hover:border-[var(--memovia-violet)]"
                     style={
                       first
                         ? { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }
@@ -398,9 +408,9 @@ export default function AccueilPage() {
         {/* Leads à contacter + derniers CR */}
         <motion.section
           variants={staggerItem}
-          className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+          className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)] lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden"
         >
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-2.5 flex items-center justify-between">
             <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">Leads à contacter</h2>
             <Link
               to="/leads"
@@ -409,11 +419,11 @@ export default function AccueilPage() {
               Tout voir <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <ul className="space-y-2">
-            {pipelineLeads.slice(0, 4).map((lead) => (
+          <ul className="space-y-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+            {pipelineLeads.slice(0, 3).map((lead) => (
               <li
                 key={lead.id}
-                className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-3"
+                className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -435,7 +445,7 @@ export default function AccueilPage() {
                   )}
                 </div>
                 {lead.next_action && (
-                  <p className="mt-1.5 line-clamp-2 text-[12px] text-[var(--text-secondary)]">
+                  <p className="mt-1 line-clamp-1 text-[12px] text-[var(--text-secondary)]" title={lead.next_action}>
                     {lead.next_action}
                   </p>
                 )}
@@ -448,10 +458,10 @@ export default function AccueilPage() {
 
           {lastCr.length > 0 && (
             <>
-              <h3 className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+              <h3 className="mb-1.5 mt-3 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
                 Derniers RDV
               </h3>
-              <ul className="space-y-1">
+              <ul className="shrink-0 space-y-0.5">
                 {lastCr.map((r) => (
                   <li key={r.id}>
                     <Link
@@ -476,7 +486,7 @@ export default function AccueilPage() {
         </motion.section>
 
         {/* Assistant IA */}
-        <motion.div variants={staggerItem} className="min-w-0 md:col-span-2 xl:col-span-1">
+        <motion.div variants={staggerItem} className="min-w-0 md:col-span-2 xl:col-span-1 lg:min-h-0">
           <AssistantCard firstName={firstName} />
         </motion.div>
       </div>
