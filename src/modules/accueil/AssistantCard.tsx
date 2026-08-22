@@ -1,7 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
+import { useReducedMotion } from 'framer-motion'
 import { Send, Check, RotateCcw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { supabase } from '@/lib/supabase'
+import { BorderBeam } from '@/components/ui/border-beam'
+import { AnimatedShinyText } from '@/components/ui/animated-shiny-text'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -27,6 +30,7 @@ export function AssistantCard({ firstName }: { firstName: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const reduceMotion = useReducedMotion()
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -75,8 +79,14 @@ export function AssistantCard({ firstName }: { firstName: string }) {
       className="relative flex h-full min-h-[320px] flex-col rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)] lg:min-h-0"
       aria-label="Assistant IA"
     >
-      {/* Faisceau lumineux sur le bord pendant que l'IA travaille */}
-      {isLoading && <div className="border-beam" aria-hidden />}
+      {/* Faisceau lumineux sur le bord pendant que l'IA travaille (Magic UI).
+          Deux beams décalés de 50 % pour un anneau vivant, jamais vide. */}
+      {isLoading && !reduceMotion && (
+        <>
+          <BorderBeam size={90} duration={5} borderWidth={1.5} colorFrom="#7C3AED" colorTo="#00E5CC" />
+          <BorderBeam size={90} duration={5} borderWidth={1.5} colorFrom="#7C3AED" colorTo="#93B4FF" initialOffset={50} />
+        </>
+      )}
       {empty ? (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           {/* Orbe (clin d'œil à la maquette) — respire en continu */}
@@ -101,7 +111,7 @@ export function AssistantCard({ firstName }: { firstName: string }) {
                 key={s}
                 type="button"
                 onClick={() => send(s)}
-                className="rounded-full border border-[var(--border-color)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--memovia-violet)] hover:text-[var(--memovia-violet)] md:py-1.5"
+                className="rounded-full border border-[var(--border-color)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium text-[var(--text-secondary)] transition-[color,border-color,transform] duration-150 hover:border-[var(--memovia-violet)] hover:text-[var(--memovia-violet)] active:scale-[0.97] md:py-1.5"
               >
                 {s}
               </button>
@@ -155,9 +165,14 @@ export function AssistantCard({ firstName }: { firstName: string }) {
             ),
           )}
           {isLoading && (
-            <div className="flex items-center gap-2 px-1 text-[13px] text-[var(--text-muted)]">
+            <div className="flex items-center gap-2 px-1 text-[13px]">
               <span className="orb-mini shrink-0" aria-hidden />
-              Réflexion…
+              <AnimatedShinyText
+                className="mx-0 max-w-none text-[13px] text-[var(--text-muted)] via-[var(--memovia-violet)] motion-reduce:animate-none"
+                shimmerWidth={72}
+              >
+                Réflexion…
+              </AnimatedShinyText>
             </div>
           )}
         </div>
@@ -194,7 +209,7 @@ export function AssistantCard({ firstName }: { firstName: string }) {
           type="submit"
           disabled={!input.trim() || isLoading}
           aria-label="Envoyer"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--memovia-violet)] text-white transition-opacity disabled:opacity-40 md:h-8 md:w-8"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--memovia-violet)] text-white transition-[opacity,transform] duration-150 active:scale-[0.94] disabled:opacity-40 md:h-8 md:w-8"
         >
           <Send className="h-4 w-4" />
         </button>
