@@ -26,7 +26,7 @@ function CrBadge({ rdv }: { rdv: Rdv }) {
   }
   if (rdv.cr_status === 'fait') {
     return (
-      <span className="flex items-center gap-1 rounded-full bg-[rgba(16,185,129,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[#059669]">
+      <span className="flex items-center gap-1 rounded-full bg-[rgba(16,185,129,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[#047857]">
         <FileCheck2 className="h-3 w-3" /> CR fait
       </span>
     )

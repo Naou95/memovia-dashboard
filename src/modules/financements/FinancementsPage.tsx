@@ -35,7 +35,7 @@ function DeadlineBadge({ deadline }: { deadline: string | null }) {
       : days <= 7
       ? { text: `${label} — J-${days}`, cls: 'bg-[var(--danger-bg)] text-[var(--danger)]' }
       : days <= 14
-      ? { text: `${label} — J-${days}`, cls: 'bg-[rgba(245,158,11,0.12)] text-[#B45309]' }
+      ? { text: `${label} — J-${days}`, cls: 'bg-[rgba(245,158,11,0.12)] text-[#92400E]' }
       : { text: label, cls: 'bg-[var(--bg-primary)] text-[var(--text-secondary)]' }
   return (
     <span className={cn('flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums', urgency.cls)}>

@@ -15,7 +15,7 @@ const MATURITY_STYLES: Record<LeadMaturity, CSSProperties> = {
   },
   tiede: {
     backgroundColor: '#fef3c7',
-    color: '#d97706',
+    color: '#92400E',
     border: '1px solid #fde68a',
   },
   chaud: {

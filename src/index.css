@@ -13,7 +13,7 @@
   --color-border-subtle: #F3F4F6;
   --color-text-primary: #111827;
   --color-text-secondary: #6B7280;
-  --color-text-muted: #9CA3AF;
+  --color-text-muted: #6B7280;
   --color-success-bar: #4ADE80;
   --color-danger-bar: #F87171;
 }
@@ -80,12 +80,12 @@
 
   /* Trend badges */
   --trend-up-bg: #F0FDF4;
-  --trend-up-text: #16A34A;
+  --trend-up-text: #15803D;
   --trend-down-bg: #FEF2F2;
-  --trend-down-text: #DC2626;
+  --trend-down-text: #B91C1C;
 
   /* KPI card accent circles */
-  --accent-blue: #3B82F6;
+  --accent-blue: #1D4ED8;
   --accent-blue-bg: #EFF6FF;
   --accent-mint: #16A34A;
   --accent-mint-bg: #F0FDF4;
@@ -106,12 +106,14 @@
   --cta-dark-hover: #1F2937;
 
   /* Semantic */
-  --success: #16A34A;
+  /* Vert/bleu assombris (22/08) : servaient de couleur de TEXTE (montants,
+     chips) a 3,1-3,4:1 — AA exige 4,5. 700 passe partout, icones incluses. */
+  --success: #15803D;
   --success-bg: #F0FDF4;
   --success-bar: #4ADE80;
   --warning: #D97706;
   --warning-bg: #FFFBEB;
-  --danger: #DC2626;
+  --danger: #B91C1C;
   --danger-bg: #FEF2F2;
   --danger-bar: #F87171;
   --info: #3B82F6;
@@ -126,11 +128,9 @@
   --nav-fg-active: #FFFFFF;
   --nav-hover: rgba(255,255,255,0.08);
 
-  /* Toile de fond douce derrière les panneaux flottants.
-     Halos violet/cyan/bleu très légers (22/08/2026) : c'est ce que le verre
-     dépoli des panneaux floute — sans eux, le glass est invisible. */
-  /* Un seul halo (violet marque) : les halos cyan/bleu étaient indétectables
-     à l'écran et signaient le « dégradé multicolore » des templates IA. */
+  /* Toile de fond douce derrière les panneaux flottants. Un seul halo
+     (violet marque, 22/08) : les halos cyan/bleu étaient indétectables à
+     l'écran et signaient le « dégradé multicolore » des templates IA. */
   --bg-app:
     radial-gradient(1200px 800px at 85% -10%, rgba(124, 58, 237, 0.10), transparent 60%),
     linear-gradient(165deg, #F7F7FB 0%, #EEF0F6 55%, #ECEEF5 100%);
