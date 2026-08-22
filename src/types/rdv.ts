@@ -17,7 +17,7 @@ export interface Rdv {
 }
 
 export type RdvUpdate = Partial<
-  Pick<Rdv, 'title' | 'rdv_date' | 'lead_id' | 'audio_path' | 'transcript' | 'cr' | 'cr_status'>
+  Pick<Rdv, 'title' | 'rdv_date' | 'lead_id' | 'audio_path' | 'transcript' | 'prep' | 'cr' | 'cr_status'>
 >
 
 export interface RdvInsert {

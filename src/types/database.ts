@@ -343,6 +343,7 @@ export interface Database {
           gcal_event_id: string | null
           audio_path: string | null
           transcript: string | null
+          prep: string | null
           cr: string | null
           cr_status: 'manquant' | 'en_cours' | 'fait'
           created_by: string | null
@@ -357,6 +358,7 @@ export interface Database {
           gcal_event_id?: string | null
           audio_path?: string | null
           transcript?: string | null
+          prep?: string | null
           cr?: string | null
           cr_status?: 'manquant' | 'en_cours' | 'fait'
           created_by?: string | null
@@ -367,6 +369,7 @@ export interface Database {
           lead_id?: string | null
           audio_path?: string | null
           transcript?: string | null
+          prep?: string | null
           cr?: string | null
           cr_status?: 'manquant' | 'en_cours' | 'fait'
           updated_at?: string

@@ -92,6 +92,10 @@ export default function RdvPage() {
     await updateRdv(id, { cr, cr_status: 'fait' })
   }
 
+  async function handleSavePrep(id: string, prep: string) {
+    await updateRdv(id, { prep })
+  }
+
   function RdvList({ items, emptyLabel, emptyAction }: { items: Rdv[]; emptyLabel: string; emptyAction?: boolean }) {
     if (items.length === 0) {
       return (
@@ -290,6 +294,7 @@ export default function RdvPage() {
         rdv={selectedFresh}
         onClose={() => setSelected(null)}
         onSaveCr={handleSaveCr}
+        onSavePrep={handleSavePrep}
         onUploadAudio={uploadAndTranscribe}
       />
     </motion.div>
