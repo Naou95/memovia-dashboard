@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap');
 
+@custom-variant dark (&:is(.dark *));
+
 /* Tailwind v4 — expose design tokens as utility classes */
 @theme {
   --color-memovia-violet: #7C3AED;
@@ -745,5 +747,17 @@ body {
   @keyframes cal-modal-fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+}
+
+@theme inline {
+  --animate-shiny-text: shiny-text 8s infinite;
+  @keyframes shiny-text {
+  0%, 90%, 100% {
+    background-position: calc(-100% - var(--shiny-width)) 0;
+    }
+  30%, 60% {
+    background-position: calc(100% + var(--shiny-width)) 0;
+    }
   }
 }
