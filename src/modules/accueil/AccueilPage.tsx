@@ -333,7 +333,7 @@ export default function AccueilPage() {
                         className="flex h-8 w-full items-center gap-1.5 truncate rounded-full px-3 text-[12px] font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
                         style={{
                           backgroundColor: style.bg,
-                          boxShadow: `0 4px 12px color-mix(in oklab, ${style.bg} 40%, transparent)`,
+                          boxShadow: '0 1px 2px rgba(16,24,40,0.12)',
                         }}
                       >
                         <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-white/25">
@@ -468,7 +468,7 @@ export default function AccueilPage() {
                   <button
                     type="button"
                     onClick={() => setPitchLead(lead)}
-                    className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--memovia-violet)] px-3 py-1.5 text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(124,58,237,0.35)] transition-transform duration-150 hover:scale-105 active:scale-[0.97]"
+                    className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--memovia-violet)] px-3 py-1.5 text-[11px] font-bold text-white shadow-[0_1px_2px_rgba(16,24,40,0.12)] transition-transform duration-150 hover:scale-105 active:scale-[0.97]"
                   >
                     <BookOpen className="h-3 w-3" />
                     Pitch
