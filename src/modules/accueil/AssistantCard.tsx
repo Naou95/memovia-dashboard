@@ -83,8 +83,8 @@ export function AssistantCard({ firstName }: { firstName: string }) {
           Deux beams décalés de 50 % pour un anneau vivant, jamais vide. */}
       {isLoading && !reduceMotion && (
         <>
-          <BorderBeam size={90} duration={5} borderWidth={1.5} colorFrom="#7C3AED" colorTo="#00E5CC" />
-          <BorderBeam size={90} duration={5} borderWidth={1.5} colorFrom="#7C3AED" colorTo="#93B4FF" initialOffset={50} />
+          <BorderBeam size={140} duration={5} borderWidth={2} colorFrom="#7C3AED" colorTo="#00E5CC" />
+          <BorderBeam size={140} duration={5} borderWidth={2} colorFrom="#7C3AED" colorTo="#93B4FF" initialOffset={50} />
         </>
       )}
       {empty ? (
