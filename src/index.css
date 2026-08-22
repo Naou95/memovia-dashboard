@@ -121,8 +121,14 @@
   --nav-fg-active: #FFFFFF;
   --nav-hover: rgba(255,255,255,0.08);
 
-  /* Toile de fond douce derrière les panneaux flottants */
-  --bg-app: linear-gradient(165deg, #F7F7FB 0%, #EEF0F6 55%, #ECEEF5 100%);
+  /* Toile de fond douce derrière les panneaux flottants.
+     Halos violet/cyan/bleu très légers (22/08/2026) : c'est ce que le verre
+     dépoli des panneaux floute — sans eux, le glass est invisible. */
+  --bg-app:
+    radial-gradient(1200px 800px at 85% -10%, rgba(124, 58, 237, 0.10), transparent 60%),
+    radial-gradient(1000px 700px at -10% 35%, rgba(0, 229, 204, 0.08), transparent 55%),
+    radial-gradient(900px 700px at 60% 110%, rgba(59, 130, 246, 0.07), transparent 55%),
+    linear-gradient(165deg, #F7F7FB 0%, #EEF0F6 55%, #ECEEF5 100%);
 
   /* Border radius */
   --radius-card: 14px;
@@ -135,6 +141,35 @@
   --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* ── Liquid glass sur les panneaux (22/08/2026, demande Naoufel) ──────────
+   Tous les panneaux de section partagent la classe utilitaire
+   `rounded-[var(--radius-card)]` : ce sélecteur d'attribut les habille TOUS
+   (accueil, leads, RDV, mail, financements, argent, bugs, historique) sans
+   toucher aux 15 fichiers. Règle non-layerée → gagne sur les utilities
+   Tailwind bg-/border-/shadow- qu'elle remplace. Les modales (rounded-xl)
+   restent opaques exprès. */
+[class*="rounded-[var(--radius-card)]"] {
+  background: rgba(255, 255, 255, 0.60);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  /* Relief « lucid » : liseré clair en haut (biseau), ombre portée douce */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.90),
+    inset 0 -1px 0 rgba(16, 24, 40, 0.03),
+    0 1px 2px rgba(16, 24, 40, 0.04),
+    0 12px 32px rgba(16, 24, 40, 0.08);
+  transition: box-shadow 0.25s var(--ease-out);
+}
+
+[class*="rounded-[var(--radius-card)]"]:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(16, 24, 40, 0.03),
+    0 2px 4px rgba(16, 24, 40, 0.05),
+    0 20px 48px rgba(16, 24, 40, 0.12);
 }
 
 /* ── Scrollbars modernes, partout ─────────────────────────────────────────
