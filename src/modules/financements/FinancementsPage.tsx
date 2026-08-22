@@ -146,7 +146,7 @@ export default function FinancementsPage() {
 
   function Card({ f }: { f: Financement }) {
     return (
-      <li className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-4">
+      <li className="rounded-xl border border-transparent bg-[var(--bg-primary)] p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">

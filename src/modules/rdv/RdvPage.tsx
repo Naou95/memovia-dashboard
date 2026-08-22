@@ -112,7 +112,7 @@ export default function RdvPage() {
             <button
               type="button"
               onClick={() => setSelected(rdv)}
-              className="flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-left transition-colors hover:border-[var(--memovia-violet)]"
+              className="flex w-full items-center justify-between gap-3 rounded-xl border border-transparent bg-[var(--bg-primary)] px-4 py-3 text-left transition-colors hover:border-[var(--memovia-violet)]"
             >
               <div className="min-w-0">
                 <div className="truncate text-[14px] font-medium text-[var(--text-primary)]">
