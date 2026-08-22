@@ -50,7 +50,10 @@ const EVENT_STYLE: Record<PlanningEvent['kind'], { bg: string; icon: typeof Cale
   relance: { bg: '#2563EB', icon: PhoneCall },
 }
 
-const AVATAR_COLORS = ['#7C3AED', '#3B82F6', '#16A34A', '#D97706', '#DC2626']
+// Avatars monochromes violets (FINDING-002) : les 5 teintes cycliques ne
+// portaient aucun sens — une seule livrée douce, cohérente avec la marque.
+const AVATAR_CLASS =
+  'flex shrink-0 items-center justify-center rounded-full bg-[rgba(124,58,237,0.12)] font-bold text-[#6D28D9]'
 
 function initials(name: string): string {
   return name
@@ -231,11 +234,7 @@ export default function AccueilPage() {
                     to="/leads"
                     className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-[var(--bg-hover)]"
                   >
-                    <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                      style={{ backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
-                      aria-hidden
-                    >
+                    <span className={`${AVATAR_CLASS} h-8 w-8 text-[11px]`} aria-hidden>
                       {initials(lead.name)}
                     </span>
                     <span className="min-w-0">
@@ -455,11 +454,7 @@ export default function AccueilPage() {
                 delay={i * 0.05}
                 className="flex items-center gap-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-2.5"
               >
-                <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
-                  style={{ backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
-                  aria-hidden
-                >
+                <span className={`${AVATAR_CLASS} h-9 w-9 text-[12px]`} aria-hidden>
                   {initials(lead.name)}
                 </span>
                 <span className="min-w-0 flex-1">
