@@ -191,7 +191,7 @@ export default function AccueilPage() {
       >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="font-display text-[22px] font-bold text-[var(--text-primary)]">
+            <h1 className="font-display text-[24px] font-bold tracking-tight text-[var(--text-primary)]">
               Les 2 prochaines semaines
             </h1>
             {/* La plage explicite lève l'ambiguïté des numéros de jours qui
@@ -374,7 +374,7 @@ export default function AccueilPage() {
             <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">Échéances</h2>
             <Link
               to="/financements"
-              className="flex items-center gap-0.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--memovia-violet)]"
+              className="-my-1.5 flex items-center gap-0.5 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--memovia-violet)]"
             >
               Tout voir <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
@@ -447,7 +447,7 @@ export default function AccueilPage() {
             <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">Leads à contacter</h2>
             <Link
               to="/leads"
-              className="flex items-center gap-0.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--memovia-violet)]"
+              className="-my-1.5 flex items-center gap-0.5 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--memovia-violet)]"
             >
               Tout voir <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
