@@ -112,7 +112,7 @@ export default function RdvPage() {
             <button
               type="button"
               onClick={() => setSelected(rdv)}
-              className="flex w-full items-center justify-between gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-3 text-left shadow-[var(--shadow-xs)] transition-colors hover:border-[var(--memovia-violet)]"
+              className="flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-3 text-left transition-colors hover:border-[var(--memovia-violet)]"
             >
               <div className="min-w-0">
                 <div className="truncate text-[14px] font-medium text-[var(--text-primary)]">
@@ -168,16 +168,24 @@ export default function RdvPage() {
         </div>
       ) : (
         <>
-          <motion.section variants={staggerItem}>
-            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
-              À venir
+          {/* Panneaux blancs standard (langue de l'accueil/historique) : les
+              fiches vivent DANS une carte, pas nues sur le fond de page. */}
+          <motion.section
+            variants={staggerItem}
+            className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+          >
+            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+              À venir ({upcoming.length})
             </h2>
             <RdvList items={upcoming} emptyLabel="Aucun RDV planifié." emptyAction />
           </motion.section>
 
-          <motion.section variants={staggerItem}>
-            <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
-              Passés
+          <motion.section
+            variants={staggerItem}
+            className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+          >
+            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+              Passés ({past.length})
             </h2>
             <RdvList items={past} emptyLabel="Aucun RDV passé." />
           </motion.section>
