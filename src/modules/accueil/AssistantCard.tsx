@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { Send, Loader2, Check, RotateCcw } from 'lucide-react'
+import { useCallback, useRef, useState } from 'react'
+import { Send, Check, RotateCcw } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { supabase } from '@/lib/supabase'
 
@@ -28,6 +28,12 @@ export function AssistantCard({ firstName }: { firstName: string }) {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  const autoResize = useCallback((el: HTMLTextAreaElement) => {
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 96)}px` // ~4 lignes max
+  }, [])
 
   async function send(text: string) {
     const message = text.trim()
@@ -35,6 +41,7 @@ export function AssistantCard({ firstName }: { firstName: string }) {
     const nextMessages: ChatMessage[] = [...messages, { role: 'user', content: message }]
     setMessages(nextMessages)
     setInput('')
+    if (inputRef.current) inputRef.current.style.height = 'auto'
     setIsLoading(true)
     setTimeout(() => scrollRef.current?.scrollTo({ top: 99999, behavior: 'smooth' }), 50)
 
@@ -65,14 +72,16 @@ export function AssistantCard({ firstName }: { firstName: string }) {
 
   return (
     <section
-      className="flex h-full min-h-[320px] flex-col rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)] lg:min-h-0"
+      className="relative flex h-full min-h-[320px] flex-col rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)] lg:min-h-0"
       aria-label="Assistant IA"
     >
+      {/* Faisceau lumineux sur le bord pendant que l'IA travaille */}
+      {isLoading && <div className="border-beam" aria-hidden />}
       {empty ? (
         <div className="flex flex-1 flex-col items-center justify-center text-center">
-          {/* Orbe (clin d'œil à la maquette) */}
+          {/* Orbe (clin d'œil à la maquette) — respire en continu */}
           <div
-            className="mb-4 h-16 w-16 rounded-full"
+            className="orb-breathe mb-4 h-16 w-16 rounded-full"
             style={{
               background:
                 'radial-gradient(circle at 32% 28%, #E0EAFF 0%, #93B4FF 38%, #7C3AED 78%, #4C1D95 100%)',
@@ -147,7 +156,7 @@ export function AssistantCard({ firstName }: { firstName: string }) {
           )}
           {isLoading && (
             <div className="flex items-center gap-2 px-1 text-[13px] text-[var(--text-muted)]">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span className="orb-mini shrink-0" aria-hidden />
               Réflexion…
             </div>
           )}
@@ -159,14 +168,27 @@ export function AssistantCard({ firstName }: { firstName: string }) {
           e.preventDefault()
           send(input)
         }}
-        className="flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 focus-within:border-[var(--memovia-violet)]"
+        className="flex items-end gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-2 focus-within:border-[var(--memovia-violet)]"
       >
-        <input
+        {/* Textarea auto-extensible (1 → 4 lignes), Entrée envoie,
+            Maj+Entrée passe à la ligne — pattern prompt-input 21st.dev */}
+        <textarea
+          ref={inputRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          rows={1}
+          onChange={(e) => {
+            setInput(e.target.value)
+            autoResize(e.currentTarget)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              send(input)
+            }
+          }}
           placeholder="Pose une question, demande une action…"
           aria-label="Message à l'assistant"
-          className="min-w-0 flex-1 bg-transparent text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
+          className="min-w-0 flex-1 resize-none bg-transparent py-1 text-[13px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
         />
         <button
           type="submit"
