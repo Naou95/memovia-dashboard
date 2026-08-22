@@ -73,8 +73,8 @@ export function RdvDetailDialog({ rdv, onClose, onSaveCr, onUploadAudio }: RdvDe
     <Dialog.Root open onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-xl">
-          <div className="mb-1 flex items-start justify-between gap-2">
+        <Dialog.Content className="fixed left-0 top-0 z-50 h-[100dvh] w-full overflow-y-auto bg-[var(--bg-secondary)] p-4 shadow-xl sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[90vh] sm:w-[calc(100vw-2rem)] sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border sm:border-[var(--border-color)] sm:p-6">
+          <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-1 flex items-start justify-between gap-2 bg-[var(--bg-secondary)] px-4 pt-4 sm:static sm:m-0 sm:mb-1 sm:p-0">
             <Dialog.Title className="text-[16px] font-semibold text-[var(--text-primary)]">
               {rdv.title}
             </Dialog.Title>
