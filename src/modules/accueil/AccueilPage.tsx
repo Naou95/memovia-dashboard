@@ -175,9 +175,17 @@ export default function AccueilPage() {
         className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-xl font-semibold tracking-tight text-[var(--text-primary)]">
-            Les 2 prochaines semaines
-          </h1>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-[var(--text-primary)]">
+              Les 2 prochaines semaines
+            </h1>
+            {/* La plage explicite lève l'ambiguïté des numéros de jours qui
+                changent de mois en cours de bande (« 1, 2 » sans mois). */}
+            <p className="mt-0.5 text-[12px] tabular-nums text-[var(--text-secondary)]">
+              {days[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} –{' '}
+              {days[DAYS_SHOWN - 1].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+            </p>
+          </div>
           <div className="flex items-center gap-3 text-[12px]">
             {(
               [
@@ -244,7 +252,7 @@ export default function AccueilPage() {
                   const isWeekend = d.getDay() === 0 || d.getDay() === 6
                   return (
                     <div key={i} className="px-0.5 pb-2 text-center">
-                      <div className="text-[10px] font-medium uppercase text-[var(--text-muted)]">
+                      <div className="text-[11px] font-medium uppercase text-[var(--text-secondary)]">
                         {d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}
                       </div>
                       <div
@@ -296,6 +304,7 @@ export default function AccueilPage() {
                     <Link
                       key={ev.key}
                       to={ev.link}
+                      title={ev.label}
                       className="z-10 flex items-center gap-1.5 truncate rounded-lg px-2.5 text-[12px] font-medium shadow-[var(--shadow-xs)] transition-transform hover:scale-[1.01]"
                       style={{
                         gridColumn: `${ev.day + 1} / span ${span}`,
