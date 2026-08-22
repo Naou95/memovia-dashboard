@@ -14,7 +14,7 @@ interface RdvDetailDialogProps {
 }
 
 const mdClass =
-  'text-sm text-[var(--text-primary)] [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-[12px] [&_h2]:font-semibold [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:text-[var(--text-secondary)] [&_p]:mt-1 [&_p]:leading-relaxed [&_ul]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mt-0.5'
+  'text-sm text-[var(--text-primary)] [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-[12px] [&_h2]:font-semibold [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:text-[var(--text-secondary)] [&_p]:mt-1 [&_p]:leading-relaxed [&_ul]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-0.5'
 
 /**
  * Fiche RDV (refonte v2 Phase 2) : compte rendu généré depuis l'audio ou saisi
@@ -88,6 +88,22 @@ export function RdvDetailDialog({ rdv, onClose, onSaveCr, onUploadAudio }: RdvDe
             </Dialog.Close>
           </div>
           <p className="mb-4 text-[13px] text-[var(--text-secondary)]">{dateLabel}</p>
+
+          {/* Trame de préparation — ouverte tant qu'il n'y a pas de CR,
+              repliée ensuite (le CR devient le contenu roi) */}
+          {rdv.prep && (
+            <details
+              open={!rdv.cr}
+              className="mb-3 rounded-lg border border-[var(--memovia-violet)]/25 bg-[rgba(124,58,237,0.05)] p-4"
+            >
+              <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wider text-[#6D28D9]">
+                Trame de préparation
+              </summary>
+              <div className={`mt-2 ${mdClass}`}>
+                <ReactMarkdown>{rdv.prep}</ReactMarkdown>
+              </div>
+            </details>
+          )}
 
           {/* Compte rendu */}
           <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4">

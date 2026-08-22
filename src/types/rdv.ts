@@ -8,6 +8,7 @@ export interface Rdv {
   gcal_event_id: string | null
   audio_path: string | null
   transcript: string | null
+  prep: string | null
   cr: string | null
   cr_status: CrStatus
   created_by: string | null
