@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Mic, Wand2, Radio, Repeat2, BadgeCheck, ShieldAlert } from 'lucide-react'
+import { Mic, Wand2, Radio, Repeat2, BadgeCheck, ShieldAlert, CalendarClock, Hammer, Map, PhoneCall } from 'lucide-react'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 
 /**
@@ -62,6 +62,62 @@ const CONCURRENTS: Concurrent[] = [
   { nom: 'MOBiDYS / Sondo', segment: 'Accessibilité FR', fait: 'Bibliothèque de titres pré-adaptés (FROG) via ENT.', fort: 'Contenu édité (littérature/manuels), pas les supports du formateur — autre métier.', verdict: 'vert' },
 ]
 
+// ── Trame RDV Petrache 24/08 — source : compagnons-rdv-2026-08-24-prep.md
+//    (vault, 20/08) + note manuscrite de Naoufel (photo 22/08) ────────────────
+const TRAME_RDV = [
+  { t: 'Montrer la plateforme et les nouveautés', d: 'Démo voix de lecture (Vivienne + suivi mot à mot sur le PDF d’origine — sa demande n°1 du 13/07, elle ne l’a jamais vue) + la vue admin de suivi. Sur un vrai document Compagnons. Annoncer sans s’excuser : invitations Microsoft réglées.' },
+  { t: 'Comment on procède avec la démo réelle', d: 'Avec les formateurs : phase de test 4-5 formateurs moteurs multi-métiers, retours centralisés via elle. Question douce : « Avez-vous pu le tester en cours avec un formateur ? » + la date de l’atelier de rentrée (poser les 3 essais audio en conditions d’atelier comme première brique).' },
+  { t: 'OPCO / RQTH — une question, pas un argument', d: 'De quel OPCO dépendent-ils ? La majoration RQTH (~4 000 €/an par apprenti versée au CFA) peut-elle financer une licence établissement ? Le dossier de cumul n’est pas instruit : on pose la question, on ne martèle pas.' },
+  { t: 'Le modèle pédagogique', d: 'La boucle en 5 temps (Capter → Adapter → Animer → Ancrer → Attester). Attester = ce que le national veut voir.' },
+  { t: 'Les carrossiers itinérants', d: 'Le point d’entrée le plus concret : formation neuve, zéro ressource pédagogique, formateurs qui « ont tout dans leur tête ». Question : on avance comment, concrètement, avec eux ?' },
+  { t: 'Captation d’atelier — question ouverte', d: 'Micro ou boîtier connecté : à explorer AVEC les formateurs, jamais à vendre (elle avait écarté le boîtier). Proposer d’abord les 3 essais audio en conditions réelles (bruit, jargon) — fragilité connue : iOS coupe l’enregistrement web à l’écran verrouillé.' },
+  { t: 'Handitech — la présenter comme une preuve', d: 'Objectif n°1 du RDV : repartir avec l’accord écrit sur la phrase « en pilote dans un CFA du réseau des Compagnons » + le feu vert pour 3 phrases de Florence Lhote. Formule : « Je vous envoie la phrase exacte par mail ce soir, un simple OK me suffit. »' },
+]
+
+const RDV_INTERDITS = [
+  'Ne rien promettre (« une lecture comme le podcast ») : on montre',
+  'Jamais de comparatif à charge sur Glaaster',
+  'Pas de chiffre improvisé — grille par mail avec la phrase pilote',
+  'Jamais « conforme RGAA » (déclaration en cours)',
+  'Leurs documents ne vont jamais chez un concurrent',
+]
+
+// ── Roadmap — ce qu'on veut intégrer et POURQUOI ─────────────────────────────
+type RoadStatus = 'en cours' | 'à trancher lundi' | '2 temps' | 'exploration' | 'parqué'
+const ROAD_STATUS_STYLE: Record<RoadStatus, { bg: string; fg: string }> = {
+  'en cours': { bg: 'rgba(124,58,237,0.12)', fg: '#6D28D9' },
+  'à trancher lundi': { bg: 'var(--danger-bg)', fg: 'var(--danger)' },
+  '2 temps': { bg: 'var(--accent-blue-bg)', fg: 'var(--accent-blue)' },
+  exploration: { bg: 'rgba(180,83,9,0.12)', fg: '#92400E' },
+  parqué: { bg: 'var(--bg-primary)', fg: 'var(--text-secondary)' },
+}
+const ROADMAP: { t: string; status: RoadStatus; pourquoi: string }[] = [
+  { t: 'Rapport de progression exportable', status: 'en cours', pourquoi: 'Le chantier produit n°1. « Attester » est le temps de la boucle que le national Compagnons veut voir — sans lui on vend l’usage, pas la preuve. C’est lui qui débloque « la preuve, pas la promesse ».' },
+  { t: 'Accès de supervision (la référente voit les cours générés)', status: 'à trancher lundi', pourquoi: 'Promis à Petrache, jamais livré. Lundi on lui présente les deux briques suivantes et C’EST ELLE qui priorise : supervision OU confort de lecture persistant.' },
+  { t: 'Confort de lecture persistant (réglages mémorisés)', status: 'à trancher lundi', pourquoi: 'L’autre option du choix de lundi : l’apprenti retrouve SES réglages d’accessibilité à chaque cours, sans reconfigurer.' },
+  { t: 'WhatsApp — temps 1 : notifications', status: '2 temps', pourquoi: 'Verbatim terrain (réunion 13/07) : « les jeunes ne lisent jamais leurs mails, tout passe par WhatsApp » — y compris les cours entre formateurs et apprentis. Temps 1 : rappels de révision (répétition espacée) et « ton cours adapté est prêt » directement sur WhatsApp.' },
+  { t: 'WhatsApp — temps 2 : le cours dans la poche', status: '2 temps', pourquoi: 'Une fois le canal ouvert : accéder au cours adapté et réviser (flashcards, quiz) depuis WhatsApp, sans installer d’app. Faisabilité étudiée le 22/08 ; le temps 2 ne part que si le temps 1 prouve l’usage.' },
+  { t: 'Éditer le texte du PDF (images préservées)', status: 'en cours', pourquoi: 'LE besoin central de Petrache : leurs PDF officiels sont figés — rendre le texte éditable (simplifier, alléger pour une classe faible) en laissant les images/plans intacts.' },
+  { t: 'Boîtier / micro de captation d’atelier (produit physique)', status: 'exploration', pourquoi: 'En atelier, le formateur a les mains prises et iOS coupe l’enregistrement web à l’écran verrouillé : 2 h de cours en poche, ça casse. Un matériel dédié règle ça — mais Petrache avait écarté le boîtier : on explore avec les formateurs (3 essais audio d’abord), on ne vend rien. Matériel parqué tant que les essais n’ont pas parlé.' },
+  { t: 'Import Netypareo / export SCORM', status: 'parqué', pourquoi: 'Demandé en réunion 13/07 (SCORM déjà en test). Pas ce trimestre : une demande de référencement par email, c’est tout — le temps fondateur va au rapport de progression.' },
+]
+
+// ── Canal prescripteurs — appel Christelle 19-20/08 ──────────────────────────
+const CHRISTELLE_POINTS = [
+  { t: '« 100 % financé OPCO » : interdit', d: 'Verbatim : « tu ne peux pas dire que c’est une solution 100 % financée par l’OPCO, ça dépend des OPCO, du profil de l’école ». Le discours commercial ne l’utilise jamais.' },
+  { t: 'Les rails de financement, vus du terrain', d: 'Salarié RQTH → AGEFIPH / Cap Emploi (dossier monté AVANT, « ils payent, franchement »). Scolaire/alternance → MDPH (« gros budgets »). ⚠️ Son monde = formation continue, pas CFA : notre rail apprentissage (majoration RQTH versée au CFA) reste à trancher sur source primaire.' },
+  { t: 'Le circuit d’achat', d: 'Le CFA connaît son public et monte les dossiers par personne ; NOUS on fournit le devis, la démarche est chez eux.' },
+  { t: 'Les non-diagnostiqués : confirmé massivement', d: 'Handicaps invisibles, filles sous le radar, parents qui ne suivent pas. Le discours « toute la classe sur la même base, sans repérage » lui parle fortement.' },
+  { t: 'Sa stratégie : le réseau de prescripteurs', d: 'Verbatim : « construire un réseau d’acteurs du handicap qui peuvent devenir prescripteurs de ta solution ». Le milieu est très fermé ; ceux qui font bouger les choses = les assos PARENTALES (légitimité + tous les filons de financement).' },
+]
+const CHRISTELLE_CONTACTS = [
+  { nom: 'Benoit Charbonnier', role: 'Trésorier FUSO France (vérifié 20/08) — père de jumelles DYS', action: 'PREMIÈRE ACTION : Naoufel l’appelle en se recommandant de Christelle (script d’intro dans le CR vault). 06 58 61 90 46 · benoit.charbonnier@fusofrance.org (coordonnées de 2023, déjà revérifiées côté CA).' },
+  { nom: 'FUSO France', role: 'Asso parentale (Perpignan) — cartable numérique MyFUSO ~1 000 € pour enfants DYS/TDAH', action: 'Modèle retenu : ils testent et parlent de nous. (Préinstall sur leurs PC = décliné, c’est du per-seat.)' },
+  { nom: 'Dys-Positif · Le Cartable Fantastique', role: 'Assos DYS « qui ont du pouvoir et du réseau »', action: 'À approcher — Christelle envoie d’autres noms.' },
+  { nom: 'Son contact MDPH / écoles', role: 'Financement côté écoles', action: 'Elle revient vers nous — relance douce si silence sous ~1 semaine.' },
+  { nom: 'AMI Agefiph Handinnov', role: 'Appel à manifestation orienté innovation (envoyé par elle le 20/08)', action: 'Option : vague du 1er décembre en « expérimentation » avec les données Compagnons. On ne fonce pas.' },
+]
+
 const SACRIFICES = [
   'Pas de B2C marketing (SEO dys FR, Insta/TikTok, Meta Ads = terrain Glaaster)',
   'Pas de K-12 généraliste',
@@ -82,6 +138,57 @@ export default function PositionnementPage() {
           Qui on est, ce qu'on vend, contre qui. Source de vérité : POSITIONNEMENT.md (18/07/2026) — si un support contredit ce doc, c'est le support qui a tort.
         </p>
       </motion.header>
+
+      {/* ── RDV lundi — préparation (contenu daté, à retirer après le RDV) ── */}
+      <motion.section
+        variants={staggerItem}
+        className="rounded-[var(--radius-card)] border border-[var(--memovia-violet)]/30 bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <CalendarClock className="h-4 w-4 text-[var(--memovia-violet)]" aria-hidden />
+          <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">
+            RDV lundi 24/08, 14h30 — Antoaneta Petrache
+          </h2>
+          <span className="rounded-full bg-[rgba(124,58,237,0.12)] px-2.5 py-0.5 text-[11px] font-semibold text-[#6D28D9]">
+            sur site · 28 rue des Pyrénées · Emir en Teams sur l'ordi de Naoufel
+          </span>
+        </div>
+        <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+          Objectif n°1 : repartir avec l'accord écrit sur la phrase pilote + le feu vert Florence Lhote — c'est ce qui débloque la vidéo Handitech (dépôt 1/09 23h59). ⚠️ Même jour 12h : point UES en visio.
+        </p>
+        <ol className="mt-3 grid gap-2 lg:grid-cols-2">
+          {TRAME_RDV.map((s, i) => (
+            <li key={s.t} className="rounded-xl bg-[var(--bg-primary)] p-3">
+              <p className="text-[13px] font-bold text-[var(--text-primary)]">
+                <span className="tabular-nums text-[var(--text-muted)]">{i + 1} · </span>{s.t}
+              </p>
+              <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-secondary)]">{s.d}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-3 rounded-xl bg-[rgba(124,58,237,0.06)] p-3.5">
+          <p className="text-[12px] font-bold uppercase tracking-wider text-[#6D28D9]">C'est quoi, Handitech ?</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            Le <span className="font-semibold text-[var(--text-primary)]">Handitech Trophy</span> est le concours national
+            handicap + technologie porté par Bpifrance et l'Agefiph : il récompense les innovations pour l'inclusion des
+            personnes en situation de handicap (visibilité nationale, réseau de financeurs, crédibilité institutionnelle).
+            Notre dossier est déjà complet en ligne — il ne manque que la vidéo (&lt; 1 min 30), tournée juste après ce RDV.
+            Dépôt le 1/09, jury 14-15/09, finale à Paris si retenu (cérémonie 16/11).{' '}
+            <span className="font-semibold text-[var(--text-primary)]">Face à Petrache</span> : Handitech se présente comme
+            une preuve de recul externe qui LA sert face au national (« logique de test en région »), jamais comme une
+            accélération commerciale — et c'est l'occasion de demander comment les Compagnons peuvent nous accompagner.
+          </p>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <ShieldAlert className="h-3.5 w-3.5 text-[var(--danger)]" aria-hidden />
+          <span className="mr-1 text-[12px] font-semibold text-[var(--danger)]">Interdits du RDV :</span>
+          {RDV_INTERDITS.map((i) => (
+            <span key={i} className="rounded-full bg-[var(--danger-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--danger)]">
+              {i}
+            </span>
+          ))}
+        </div>
+      </motion.section>
 
       {/* ── La thèse ── */}
       <motion.section
@@ -118,6 +225,41 @@ export default function PositionnementPage() {
               {i}
             </span>
           ))}
+        </div>
+      </motion.section>
+
+      {/* ── La force terrain (ce que Petrache dit de nous) ── */}
+      <motion.section
+        variants={staggerItem}
+        className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+      >
+        <div className="flex items-center gap-2">
+          <Hammer className="h-4 w-4 text-[var(--memovia-violet)]" aria-hidden />
+          <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">
+            Notre force : les centres de formation artisanaux — dit par le terrain
+          </h2>
+        </div>
+        <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+          Pas notre auto-évaluation : les mots d'Antoaneta Petrache (référente Compagnons), CR des RDV de mai et du 13/07.
+        </p>
+        <div className="mt-3 grid gap-3 lg:grid-cols-3">
+          <blockquote className="rounded-xl bg-[var(--bg-primary)] p-3.5 text-[13px] leading-relaxed text-[var(--text-primary)]">
+            « Le grand public de cette plateforme, ça va être <span className="font-semibold">les formateurs</span> » —
+            « un vrai potentiel comme <span className="font-semibold">outil d'animation de cours</span> ».
+            <span className="mt-1 block text-[11px] text-[var(--text-muted)]">Le pivot espace formateur vient d'elle.</span>
+          </blockquote>
+          <blockquote className="rounded-xl bg-[var(--bg-primary)] p-3.5 text-[13px] leading-relaxed text-[var(--text-primary)]">
+            Le podcast : « <span className="font-semibold">les gens adorent ça</span> », « incroyable » — c'est ce qui aide
+            les formateurs à se projeter. Et les carrossiers itinérants : formation neuve, zéro ressource pédagogique,
+            des formateurs qui « <span className="font-semibold">ont tout dans leur tête</span> » — MEMOVIA « leur plaît beaucoup ».
+            <span className="mt-1 block text-[11px] text-[var(--text-muted)]">Exactement la thèse : les métiers qui se transmettent par l'oral et le geste.</span>
+          </blockquote>
+          <blockquote className="rounded-xl bg-[var(--bg-primary)] p-3.5 text-[13px] leading-relaxed text-[var(--text-primary)]">
+            Sur la police dys : « je n'y crois pas beaucoup, <span className="font-semibold">c'est partout maintenant</span> ».
+            Ce qui vend chez les artisans : l'adaptation du contenu PAR le formateur — et la captation du geste et de la
+            parole en atelier, jusqu'au possible <span className="font-semibold">produit physique</span> (micro/boîtier, en exploration avec les formateurs).
+            <span className="mt-1 block text-[11px] text-[var(--text-muted)]">C'est pour ça qu'on rétrograde les polices dys dans l'argumentaire.</span>
+          </blockquote>
         </div>
       </motion.section>
 
@@ -196,6 +338,81 @@ export default function PositionnementPage() {
           </p>
         </motion.section>
       </div>
+
+      {/* ── Roadmap ── */}
+      <motion.section
+        variants={staggerItem}
+        className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+      >
+        <div className="flex items-center gap-2">
+          <Map className="h-4 w-4 text-[var(--memovia-violet)]" aria-hidden />
+          <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">Roadmap — ce qu'on veut intégrer, et pourquoi</h2>
+        </div>
+        <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+          Chaque ligne vient d'une demande terrain datée, jamais d'une envie de feature. Rien de daté n'est promis à un client.
+        </p>
+        <ul className="mt-3 space-y-2">
+          {ROADMAP.map((r) => (
+            <li key={r.t} className="rounded-xl bg-[var(--bg-primary)] p-3.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[13px] font-bold text-[var(--text-primary)]">{r.t}</span>
+                <span
+                  className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                  style={{ backgroundColor: ROAD_STATUS_STYLE[r.status].bg, color: ROAD_STATUS_STYLE[r.status].fg }}
+                >
+                  {r.status}
+                </span>
+              </div>
+              <p className="mt-1 max-w-[95ch] text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                <span className="font-semibold text-[var(--text-primary)]">Pourquoi : </span>{r.pourquoi}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </motion.section>
+
+      {/* ── Canal prescripteurs — appel Christelle ── */}
+      <motion.section
+        variants={staggerItem}
+        className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+      >
+        <div className="flex items-center gap-2">
+          <PhoneCall className="h-4 w-4 text-[var(--memovia-violet)]" aria-hidden />
+          <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">
+            Canal prescripteurs — l'appel Christelle (19-20/08)
+          </h2>
+        </div>
+        <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+          Christelle Navereau : ex-collègue 2i, ex-référente handicap (dossiers AGEFIPH/Cap Emploi montés elle-même),
+          aujourd'hui FIDAL Occitanie. Personnellement engagée sur l'inclusion. Alliée active — elle a tenu chaque promesse en moins de 24 h.
+        </p>
+        <div className="mt-3 grid gap-4 xl:grid-cols-2">
+          <div>
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">Ce qu'elle corrige ou confirme</h3>
+            <ul className="space-y-2">
+              {CHRISTELLE_POINTS.map((p) => (
+                <li key={p.t} className="rounded-xl bg-[var(--bg-primary)] p-3">
+                  <p className="text-[13px] font-bold text-[var(--text-primary)]">{p.t}</p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">{p.d}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">Qui contacter, et comment</h3>
+            <ul className="space-y-2">
+              {CHRISTELLE_CONTACTS.map((c) => (
+                <li key={c.nom} className="rounded-xl bg-[var(--bg-primary)] p-3">
+                  <p className="text-[13px] font-bold text-[var(--text-primary)]">
+                    {c.nom} <span className="font-normal text-[var(--text-secondary)]">— {c.role}</span>
+                  </p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">{c.action}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </motion.section>
 
       {/* ── Concurrents ── */}
       <motion.section
