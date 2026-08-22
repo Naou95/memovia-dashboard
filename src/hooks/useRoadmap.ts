@@ -45,8 +45,15 @@ export function useRoadmap(): UseRoadmapResult {
     }
   }, [fetchAll])
 
+  /** Ordre d'une carte posée en tête de colonne (les ex æquo se rangent au hasard). */
+  const topOrdre = (horizon: Horizon): number =>
+    items.filter((i) => i.horizon === horizon).reduce((acc, i) => Math.min(acc, i.ordre), 0) - 1
+
   const createItem = async (data: RoadmapItemInsert): Promise<void> => {
-    const { error: sbError } = await supabase.from('roadmap_items').insert(data)
+    const horizon = data.horizon ?? 'maintenant'
+    const { error: sbError } = await supabase
+      .from('roadmap_items')
+      .insert({ ...data, ordre: data.ordre ?? topOrdre(horizon) })
     if (sbError) throw sbError
     await fetchAll()
   }
@@ -67,12 +74,10 @@ export function useRoadmap(): UseRoadmapResult {
   }
 
   const moveItem = async (id: string, horizon: Horizon): Promise<void> => {
-    const min = items
-      .filter((i) => i.horizon === horizon)
-      .reduce((acc, i) => Math.min(acc, i.ordre), 0)
+    const ordre = topOrdre(horizon)
     // Optimiste : le drag doit être instantané, le realtime confirme ensuite.
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, horizon, ordre: min - 1 } : i)))
-    await updateItem(id, { horizon, ordre: min - 1 })
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, horizon, ordre } : i)))
+    await updateItem(id, { horizon, ordre })
   }
 
   return { items, isLoading, error, createItem, updateItem, deleteItem, moveItem }
