@@ -137,6 +137,43 @@
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
+/* ── Scrollbars modernes, partout ─────────────────────────────────────────
+   Sans ça, les panneaux internes (liste mail, détail mail, <main>, chat de
+   l'assistant) affichent la barre Chrome par défaut — large et grise — dès
+   que macOS est en « toujours afficher » ou qu'une souris est branchée.
+   Barre fine, piste invisible, pouce discret qui fonce au survol. */
+* {
+  scrollbar-width: thin;                          /* Firefox */
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+  /* Faux padding : la bordure transparente rétrécit visuellement le pouce */
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Shimmer skeleton — replaces plain animate-pulse */
 @keyframes shimmer {
   to { background-position: 200% center; }
