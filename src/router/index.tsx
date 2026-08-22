@@ -27,6 +27,7 @@ const ArgentPage = lazy(() => import('@/modules/argent/ArgentPage'))
 const RdvPage = lazy(() => import('@/modules/rdv/RdvPage'))
 const FinancementsPage = lazy(() => import('@/modules/financements/FinancementsPage'))
 const HistoriquePage = lazy(() => import('@/modules/historique/HistoriquePage'))
+const PositionnementPage = lazy(() => import('@/modules/positionnement/PositionnementPage'))
 const AccueilPage = lazy(() => import('@/modules/accueil/AccueilPage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
@@ -117,6 +118,17 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'positionnement',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <PositionnementPage />
+          </Suspense>
+        ),
+      },
+
+      // ── Anciennes routes : archivées, plus dans la nav, mais URLs intactes ──
+      // Historique retiré de la nav le 22/08 (décision Naoufel : « sert à rien »)
+      {
         path: 'historique',
         element: (
           <Suspense fallback={<PageLoader />}>
@@ -124,8 +136,6 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
-
-      // ── Anciennes routes : archivées, plus dans la nav, mais URLs intactes ──
       // (liens du briefing Telegram et habitudes ; suppression réelle en Phase 6)
       {
         path: 'overview',
