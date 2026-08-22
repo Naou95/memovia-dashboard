@@ -200,6 +200,12 @@ export default function PositionnementPage() {
               <span className="font-semibold text-[var(--text-primary)]">La règle qui fixe le prix</span> (conseil du 22/08, unanimité) : la majoration RQTH finance TOUTE l'adaptation d'un apprenti, pas seulement un logiciel. Une ligne SaaS en capte 20 à 35 %, soit <span className="font-semibold text-[var(--text-primary)]">~1 200 € par apprenti RQTH</span> — il en faut donc une dizaine pour porter un Site M.
               Première question de qualification : « combien d'apprentis RQTH avez-vous déclarés cette année ? ». ⚠️ Plafond réseau à 36 000 € délibéré : au-delà de 40 000 € HT, un CFA porté par une CCI ou une CMA sort de la dispense de procédure et déclenche une mise en concurrence.
             </li>
+            <li className="rounded-xl bg-[var(--bg-primary)] p-3">
+              <span className="font-semibold text-[var(--text-primary)]">Le taux RQTH n'est pas une inconnue, il est sourcé</span> : DARES (publié 27/02/2026) — 18 800 contrats d'apprentissage signés par des travailleurs handicapés en 2025, <span className="font-semibold text-[var(--text-primary)]">soit 2 % des nouveaux contrats</span>.
+              À 2 %, un site de 500 apprenants porte ~10 dossiers, ce qui valide le Site M à 12 000 €. Un site de 150, borne basse de la même tranche, n'en porte que 3, soit ~3 600 € défendables.
+              🔑 <span className="font-semibold text-[var(--text-primary)]">La grille tient par le HAUT de chaque tranche</span> : un CFA de 200 apprenants avec 4 RQTH n'est pas un deal à 12 000 €, c'est un pilote. C'est la question de qualification qui tranche, pas la tranche d'effectif.
+              ⚠️ Deux réserves : 2 % est un flux d'entrées 2025, pas un stock, et c'est une moyenne nationale — les CFA dont le référent handicap est assez engagé pour acheter sont mécaniquement au-dessus.
+            </li>
             <li className="rounded-xl bg-[rgba(124,58,237,0.06)] p-3">
               <span className="font-semibold text-[var(--text-primary)]">Compagnons, renégociation de la rentrée</span> : 🔴 ne PAS renégocier en licences — ça ratifierait le per-seat comme terme de référence de notre unique contrat signé, et chaque CFA suivant l'exigerait.
               On vend le site de Toulouse (~600 apprentis = palier L, 20 000 €) avec une remise nommée « programme de référence » qui atterrit à 12 000 €. Ce nombre ne se négocie pas : 200 licences × 60 € = 12 000 €, exactement ce qu'ils avaient déjà budgété.
