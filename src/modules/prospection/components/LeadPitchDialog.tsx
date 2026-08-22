@@ -1,6 +1,12 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Phone, Mail } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import type { Lead } from '@/types/leads'
+
+// Même rendu que la trame de la fiche RDV : ces deux champs sont des notes
+// longues, illisibles en un bloc de texte brut.
+const mdClass =
+  'text-[13px] leading-relaxed text-[var(--text-primary)] [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:text-[var(--text-secondary)] [&_p]:mt-1 [&_ul]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-0.5'
 
 interface LeadPitchDialogProps {
   lead: Lead | null
@@ -18,7 +24,7 @@ export function LeadPitchDialog({ lead, onClose }: LeadPitchDialogProps) {
     <Dialog.Root open onOpenChange={(v) => !v && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-xl">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100vw-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-xl">
         <div className="mb-3 flex items-start justify-between gap-2">
           <Dialog.Title className="text-[16px] font-semibold text-[var(--text-primary)]">
             {lead.name}
@@ -75,9 +81,9 @@ export function LeadPitchDialog({ lead, onClose }: LeadPitchDialogProps) {
           <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
             {lead.type === 'partenaire' ? 'Pourquoi ce partenaire' : 'Pourquoi cette école'}
           </h3>
-          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">
-            {lead.why ?? 'Pas encore renseigné — à compléter sur la fiche.'}
-          </p>
+          <div className={mdClass}>
+            <ReactMarkdown>{lead.why ?? 'Pas encore renseigné — à compléter sur la fiche.'}</ReactMarkdown>
+          </div>
         </div>
 
         {/* Pitch */}
@@ -85,9 +91,9 @@ export function LeadPitchDialog({ lead, onClose }: LeadPitchDialogProps) {
           <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--memovia-violet)]">
             Pitch
           </h3>
-          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">
-            {lead.pitch ?? 'Pas encore renseigné — à compléter sur la fiche.'}
-          </p>
+          <div className={mdClass}>
+            <ReactMarkdown>{lead.pitch ?? 'Pas encore renseigné — à compléter sur la fiche.'}</ReactMarkdown>
+          </div>
         </div>
         </Dialog.Content>
       </Dialog.Portal>
