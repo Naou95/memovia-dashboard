@@ -92,7 +92,7 @@ export function AssistantCard({ firstName }: { firstName: string }) {
                 key={s}
                 type="button"
                 onClick={() => send(s)}
-                className="rounded-full border border-[var(--border-color)] bg-[var(--bg-primary)] px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--memovia-violet)] hover:text-[var(--memovia-violet)]"
+                className="rounded-full border border-[var(--border-color)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--memovia-violet)] hover:text-[var(--memovia-violet)] md:py-1.5"
               >
                 {s}
               </button>
@@ -172,7 +172,7 @@ export function AssistantCard({ firstName }: { firstName: string }) {
           type="submit"
           disabled={!input.trim() || isLoading}
           aria-label="Envoyer"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--memovia-violet)] text-white transition-opacity disabled:opacity-40"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--memovia-violet)] text-white transition-opacity disabled:opacity-40 md:h-8 md:w-8"
         >
           <Send className="h-4 w-4" />
         </button>
