@@ -129,10 +129,10 @@
   /* Toile de fond douce derrière les panneaux flottants.
      Halos violet/cyan/bleu très légers (22/08/2026) : c'est ce que le verre
      dépoli des panneaux floute — sans eux, le glass est invisible. */
+  /* Un seul halo (violet marque) : les halos cyan/bleu étaient indétectables
+     à l'écran et signaient le « dégradé multicolore » des templates IA. */
   --bg-app:
     radial-gradient(1200px 800px at 85% -10%, rgba(124, 58, 237, 0.10), transparent 60%),
-    radial-gradient(1000px 700px at -10% 35%, rgba(0, 229, 204, 0.08), transparent 55%),
-    radial-gradient(900px 700px at 60% 110%, rgba(59, 130, 246, 0.07), transparent 55%),
     linear-gradient(165deg, #F7F7FB 0%, #EEF0F6 55%, #ECEEF5 100%);
 
   /* Border radius — passé de 14 à 20px le 22/08 (fidélité maquette accueil :
