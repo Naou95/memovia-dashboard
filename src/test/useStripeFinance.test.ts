@@ -80,7 +80,8 @@ describe('useStripeFinance', () => {
     // isLoading immédiatement false (cache hit)
     expect(result2.current.isLoading).toBe(false)
     expect(result2.current.data).toEqual(mockData)
-    // invoke ne doit avoir été appelé qu'une fois
-    expect(mockInvoke).toHaveBeenCalledTimes(1)
+    // SWR (commit 5448ecd) : le hook revalide TOUJOURS en arrière-plan,
+    // cache ou pas — on asserte le service immédiat, pas l'absence d'appel
+    expect(mockInvoke).toHaveBeenCalledTimes(2)
   })
 })
