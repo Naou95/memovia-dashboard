@@ -1,4 +1,4 @@
-import { Phone, PhoneCall, Pencil, ArchiveRestore, Plus } from 'lucide-react'
+import { Phone, PhoneCall, Pencil, ArchiveRestore, Plus, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LeadStatusBadge } from './LeadStatusBadge'
 import type { Lead } from '@/types/leads'
@@ -10,6 +10,7 @@ interface LeadListMobileProps {
   onLogCall: (lead: Lead) => void
   onUnarchive: (lead: Lead) => void
   onCreate: () => void
+  onShowPitch: (lead: Lead) => void
 }
 
 function formatDate(dateStr: string | null): string {
@@ -22,7 +23,7 @@ function formatDate(dateStr: string | null): string {
  * date de relance (le tri vient du hook), pensées pour l'usage d'Emir entre
  * deux rendez-vous — appeler, puis logger en < 30 s.
  */
-export function LeadListMobile({ leads, isLoading, onEdit, onLogCall, onUnarchive, onCreate }: LeadListMobileProps) {
+export function LeadListMobile({ leads, isLoading, onEdit, onLogCall, onUnarchive, onCreate, onShowPitch }: LeadListMobileProps) {
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -80,6 +81,17 @@ export function LeadListMobile({ leads, isLoading, onEdit, onLogCall, onUnarchiv
                 </span>
               )}
             </p>
+          )}
+
+          {(lead.why || lead.pitch) && (
+            <button
+              type="button"
+              onClick={() => onShowPitch(lead)}
+              className="mt-2 flex items-center gap-1.5 text-[13px] font-medium text-[var(--memovia-violet)] hover:underline"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Pourquoi + pitch
+            </button>
           )}
 
           <div className="mt-3 flex items-center gap-2">

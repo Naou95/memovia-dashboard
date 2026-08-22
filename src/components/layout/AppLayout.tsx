@@ -17,12 +17,12 @@ import { ease } from '@/lib/motion'
  */
 export default function AppLayout() {
   const location = useLocation()
-  const section = location.pathname.split('/')[1] || 'root'
+  // '/' est une vraie page depuis le 22/08/2026 (accueil) : elle se compte.
+  const section = location.pathname.split('/')[1] || 'accueil'
 
   // Compteur de visites par section — critère de kill de la refonte v2.
   // Fire-and-forget : un échec de log ne doit jamais gêner la navigation.
   useEffect(() => {
-    if (section === 'root') return // '/' redirige vers /leads, ne pas compter deux fois
     supabase
       .from('section_visits')
       .insert({ section })

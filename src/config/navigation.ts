@@ -1,4 +1,5 @@
 import {
+  House,
   Users2,
   Calendar,
   Mail,
@@ -29,6 +30,15 @@ export interface NavItem {
  * Admin reste accessible via le menu utilisateur.
  */
 export const NAV_ITEMS: NavItem[] = [
+  {
+    // Accueil (22/08/2026) : planning, échéances, leads à contacter, assistant IA.
+    id: 'accueil',
+    label: 'Accueil',
+    path: '/',
+    icon: House,
+    status: 'active',
+    allowedRoles: [],
+  },
   {
     id: 'leads',
     label: 'Leads',

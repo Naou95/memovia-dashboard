@@ -11,6 +11,7 @@ import { LeadTable } from './components/LeadTable'
 import { LeadKanban } from './components/LeadKanban'
 import { LeadForm } from './components/LeadForm'
 import { LeadListMobile } from './components/LeadListMobile'
+import { LeadPitchDialog } from './components/LeadPitchDialog'
 import { LogCallDialog } from './components/LogCallDialog'
 import { ScriptPanel } from './components/ScriptPanel'
 import type { Lead, LeadStatus, LeadAssignee, LeadInsert, LeadUpdate, LeadTab } from '@/types/leads'
@@ -41,6 +42,7 @@ export default function ProspectionPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
   const [logCallLead, setLogCallLead] = useState<Lead | null>(null)
+  const [pitchLead, setPitchLead] = useState<Lead | null>(null)
 
   // Onglets : la prospection CFA garde strictement son comportement d'avant,
   // les partenaires (Compagnons, Paidea, TBS…) vivent à côté, hors pipeline.
@@ -355,6 +357,7 @@ export default function ProspectionPage() {
             onLogCall={setLogCallLead}
             onUnarchive={handleUnarchive}
             onCreate={handleNewLead}
+            onShowPitch={setPitchLead}
           />
         </div>
 
@@ -370,6 +373,7 @@ export default function ProspectionPage() {
               onLogCall={setLogCallLead}
               onUnarchive={handleUnarchive}
               onCreate={handleNewLead}
+              onShowPitch={setPitchLead}
             />
           ) : (
             <LeadKanban
@@ -397,6 +401,9 @@ export default function ProspectionPage() {
         onClose={() => setLogCallLead(null)}
         onSubmit={handleLogCall}
       />
+
+      {/* ── Fiche argumentaire (contact · pourquoi · pitch) ─────────────────── */}
+      <LeadPitchDialog lead={pitchLead} onClose={() => setPitchLead(null)} />
     </motion.div>
   )
 }

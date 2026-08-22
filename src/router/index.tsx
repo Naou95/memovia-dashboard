@@ -27,6 +27,7 @@ const ArgentPage = lazy(() => import('@/modules/argent/ArgentPage'))
 const RdvPage = lazy(() => import('@/modules/rdv/RdvPage'))
 const FinancementsPage = lazy(() => import('@/modules/financements/FinancementsPage'))
 const HistoriquePage = lazy(() => import('@/modules/historique/HistoriquePage'))
+const AccueilPage = lazy(() => import('@/modules/accueil/AccueilPage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -58,11 +59,14 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      // ── Refonte v2 (REFONT_PLAN.md) : 5 sections ────────────────────────────
-      // Root redirects to /leads
+      // ── Refonte v2 (REFONT_PLAN.md) : 5 sections + accueil (22/08/2026) ─────
       {
         index: true,
-        element: <Navigate to="/leads" replace />,
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AccueilPage />
+          </Suspense>
+        ),
       },
       {
         path: 'leads',
@@ -270,9 +274,9 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Catch-all — redirect unknown routes to /leads (auth will gate)
+  // Catch-all — redirect unknown routes to l'accueil (auth will gate)
   {
     path: '*',
-    element: <Navigate to="/leads" replace />,
+    element: <Navigate to="/" replace />,
   },
 ])

@@ -47,6 +47,9 @@ export interface Lead {
   // Refonte v2 Phase 1
   contact_phone: string | null
   archived: boolean
+  // Accueil v2 (22/08/2026) : l'argumentaire vit sur la fiche
+  why: string | null
+  pitch: string | null
 }
 
 export type LeadInsert = Omit<Lead, 'id' | 'created_at' | 'updated_at'>

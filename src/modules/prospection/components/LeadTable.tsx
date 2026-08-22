@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Pencil, Trash2, ArrowUp, ArrowDown, Phone, ArchiveRestore, Plus } from 'lucide-react'
+import { Pencil, Trash2, ArrowUp, ArrowDown, Phone, ArchiveRestore, Plus, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LeadStatusBadge } from './LeadStatusBadge'
 import { LeadMaturityBadge } from './LeadMaturityBadge'
@@ -21,6 +21,7 @@ interface LeadTableProps {
   onLogCall: (lead: Lead) => void
   onUnarchive: (lead: Lead) => void
   onCreate: () => void
+  onShowPitch: (lead: Lead) => void
 }
 
 type SortDir = 'asc' | 'desc'
@@ -46,7 +47,7 @@ function SkeletonRow() {
   )
 }
 
-export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete, onLogCall, onUnarchive, onCreate }: LeadTableProps) {
+export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete, onLogCall, onUnarchive, onCreate, onShowPitch }: LeadTableProps) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -237,6 +238,17 @@ export function LeadTable({ leads, isLoading, onEdit, onDelete, canDelete, onLog
                 {/* Actions */}
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
+                    {(lead.why || lead.pitch) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onShowPitch(lead)}
+                        className="h-7 w-7 p-0 text-[var(--memovia-violet)] hover:text-[var(--memovia-violet-hover)]"
+                      >
+                        <BookOpen className="h-3.5 w-3.5" />
+                        <span className="sr-only">Voir le pitch</span>
+                      </Button>
+                    )}
                     {lead.archived ? (
                       <Button
                         variant="ghost"
