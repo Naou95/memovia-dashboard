@@ -192,8 +192,9 @@ export default function PositionnementPage() {
           <ul className="mt-3 space-y-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
             <li>
               <span className="font-semibold text-[var(--text-primary)]">France — per-établissement, JAMAIS per-seat.</span>{' '}
-              Site S (&lt;150 apprenants) ~1 500 €/an · <span className="font-semibold text-[var(--text-primary)]">Site M (150-500) ~3 500 €/an = cible par défaut</span> · Site L / multi-sites 6 000-8 000 €/an · réseau national = deal-cadre.
-              Formateurs et élèves illimités (l'argument tueur face au per-élève). Ne jamais citer le prix en premier : demander « quel budget accessibilité/handicap avez-vous provisionné ? ». Les 3 premières signatures = découverte de prix.
+              Site S (&lt;150 apprenants) ~3 000 €/an · <span className="font-semibold text-[var(--text-primary)]">Site M (150-500) ~5 000 €/an = cible par défaut</span> · Site L / multi-sites 10 000-15 000 €/an · réseau national = deal-cadre.
+              Grille calée sur le rail de financement, pas sur la concurrence : la majoration RQTH (~4 000 €/an) couvre l'essentiel d'un Site M avec un seul apprenti. Formateurs et élèves illimités (l'argument tueur face au per-élève). Ne jamais citer le prix en premier : demander « quel budget accessibilité/handicap avez-vous provisionné ? ». Ancrer le 1er CFA à 4 000-5 000 € contre droit au logo ; les 3 premières signatures = découverte de prix.
+              ⚠️ Le seul contrat signé reste à 1 800 €/an pour 30 licences (Compagnons, tarif pilote) : l'extension à 200 licences se renégocie contre cette grille, pas contre lui.
             </li>
             <li>
               <span className="font-semibold text-[var(--text-primary)]">Italie — Paidea revend</span> (marge par-dessus le prix) : listino S/M/L 490 / 990 / 1 690 €/an par école, 990 = tarif recommandé, Docente 129 €. Prezzo riservato −30 %, plancher −35 % early-bird. ⚠️ Plafond TTS sur le 490.
@@ -203,7 +204,7 @@ export default function PositionnementPage() {
             </li>
             <li className="rounded-xl bg-[rgba(124,58,237,0.06)] p-3">
               <span className="font-semibold text-[var(--text-primary)]">Financements à mettre en face du prix</span> : FR = majoration OPCO
-              jusqu'à ~4 000 €/an par apprenti RQTH (3-4 apprentis RQTH financent la classe entière — décideur : le référent handicap) + plan de développement des compétences.
+              jusqu'à ~4 000 €/an par apprenti RQTH (un seul couvre ~80 % d'un Site M, deux le couvrent entièrement — décideur : le référent handicap) + plan de développement des compétences.
               IT = legge 170 + fonds écoles via MEPA. ⚠️ Jamais promettre « 100 % pris en charge ».
             </li>
           </ul>
