@@ -41,11 +41,13 @@ interface PlanningEvent {
   link: string
 }
 
-// Barres PLEINES, texte blanc — comme les bandeaux de la maquette de référence
+// Barres PLEINES, texte blanc — comme les bandeaux de la maquette de référence.
+// Teintes calées AA sur texte blanc 12px (mesuré au DOM le 22/08) :
+// ambre 500 = 2,15:1 et bleu 500 = 3,68:1 échouaient → ambre 700 (5,0) et bleu 600 (5,1).
 const EVENT_STYLE: Record<PlanningEvent['kind'], { bg: string; icon: typeof Calendar }> = {
   rdv: { bg: '#7C3AED', icon: Calendar },
-  financement: { bg: '#F59E0B', icon: Trophy },
-  relance: { bg: '#3B82F6', icon: PhoneCall },
+  financement: { bg: '#B45309', icon: Trophy },
+  relance: { bg: '#2563EB', icon: PhoneCall },
 }
 
 const AVATAR_COLORS = ['#7C3AED', '#3B82F6', '#16A34A', '#D97706', '#DC2626']
