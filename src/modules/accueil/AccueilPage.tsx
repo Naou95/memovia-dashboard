@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowUpRight, Calendar, Trophy, PhoneCall, BookOpen, FileCheck2, FileWarning } from 'lucide-react'
 import { staggerContainer, staggerItem } from '@/lib/motion'
+import { BlurFade } from '@/components/ui/blur-fade'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLeads } from '@/hooks/useLeads'
 import { useRdv } from '@/hooks/useRdv'
@@ -223,6 +224,7 @@ export default function AccueilPage() {
             <ul className="space-y-0.5">
               {pipelineLeads.slice(0, 5).map((lead, i) => (
                 <li key={lead.id}>
+                  <BlurFade delay={i * 0.04}>
                   <Link
                     to="/leads"
                     className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-[var(--bg-hover)]"
@@ -243,6 +245,7 @@ export default function AccueilPage() {
                       </span>
                     </span>
                   </Link>
+                  </BlurFade>
                 </li>
               ))}
               {!leadsLoading && pipelineLeads.length === 0 && (
@@ -310,23 +313,34 @@ export default function AccueilPage() {
                   // Une puce s'étend sur 3 colonnes max pour rester lisible
                   const span = Math.min(3, DAYS_SHOWN - ev.day)
                   return (
-                    <Link
+                    // BlurFade porte le placement grid ; la puce glisse depuis la
+                    // gauche (sens de lecture de la timeline) à l'arrivée des données
+                    <BlurFade
                       key={ev.key}
-                      to={ev.link}
-                      title={ev.label}
-                      className="z-10 flex items-center gap-1.5 truncate rounded-full px-3 text-[12px] font-semibold text-white transition-transform hover:scale-[1.02]"
+                      delay={i * 0.06}
+                      direction="right"
+                      offset={8}
+                      className="z-10 min-w-0"
                       style={{
                         gridColumn: `${ev.day + 1} / span ${span}`,
                         gridRow: `${i + 1}`,
-                        backgroundColor: style.bg,
-                        boxShadow: `0 4px 12px color-mix(in oklab, ${style.bg} 40%, transparent)`,
                       }}
                     >
-                      <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-white/25">
-                        <Icon className="h-3 w-3" />
-                      </span>
-                      <span className="truncate">{ev.label}</span>
-                    </Link>
+                      <Link
+                        to={ev.link}
+                        title={ev.label}
+                        className="flex h-8 w-full items-center gap-1.5 truncate rounded-full px-3 text-[12px] font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                        style={{
+                          backgroundColor: style.bg,
+                          boxShadow: `0 4px 12px color-mix(in oklab, ${style.bg} 40%, transparent)`,
+                        }}
+                      >
+                        <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-white/25">
+                          <Icon className="h-3 w-3" />
+                        </span>
+                        <span className="truncate">{ev.label}</span>
+                      </Link>
+                    </BlurFade>
                   )
                 })}
 
@@ -371,6 +385,7 @@ export default function AccueilPage() {
               const first = i === 0
               return (
                 <li key={e.key}>
+                  <BlurFade delay={i * 0.05}>
                   <Link
                     to={e.link}
                     className="flex items-center gap-2.5 rounded-2xl border p-2.5 transition-colors hover:border-[var(--memovia-violet)]"
@@ -407,6 +422,7 @@ export default function AccueilPage() {
                       </span>
                     </span>
                   </Link>
+                  </BlurFade>
                 </li>
               )
             })}
@@ -432,10 +448,10 @@ export default function AccueilPage() {
           </div>
           <ul className="space-y-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             {pipelineLeads.slice(0, 3).map((lead, i) => (
-              <li
-                key={lead.id}
+              <li key={lead.id} title={lead.next_action ?? undefined}>
+              <BlurFade
+                delay={i * 0.05}
                 className="flex items-center gap-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-2.5"
-                title={lead.next_action ?? undefined}
               >
                 <span
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
@@ -455,12 +471,13 @@ export default function AccueilPage() {
                   <button
                     type="button"
                     onClick={() => setPitchLead(lead)}
-                    className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--memovia-violet)] px-3 py-1.5 text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(124,58,237,0.35)] transition-transform hover:scale-105"
+                    className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--memovia-violet)] px-3 py-1.5 text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(124,58,237,0.35)] transition-transform duration-150 hover:scale-105 active:scale-[0.97]"
                   >
                     <BookOpen className="h-3 w-3" />
                     Pitch
                   </button>
                 )}
+              </BlurFade>
               </li>
             ))}
             {!leadsLoading && pipelineLeads.length === 0 && (
