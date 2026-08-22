@@ -396,10 +396,15 @@ export default function AccueilPage() {
                         : { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }
                     }
                   >
-                    {/* Tuile d'icône colorée (langue de la maquette) */}
+                    {/* Tuile d'icône en teinte douce + icône colorée — même langue
+                        que les tuiles de notifications du TopBar (FINDING-004) */}
                     <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
-                      style={{ backgroundColor: e.kind === 'rdv' ? '#7C3AED' : '#F59E0B' }}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                      style={
+                        e.kind === 'rdv'
+                          ? { backgroundColor: 'rgba(124,58,237,0.12)', color: '#6D28D9' }
+                          : { backgroundColor: 'rgba(180,83,9,0.12)', color: '#B45309' }
+                      }
                       aria-hidden
                     >
                       {e.kind === 'rdv' ? <Calendar className="h-4 w-4" /> : <Trophy className="h-4 w-4" />}
