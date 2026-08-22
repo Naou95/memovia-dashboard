@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, LayoutList, Kanban } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
@@ -8,7 +8,6 @@ import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { LeadStats } from './components/LeadStats'
 import { LeadTable } from './components/LeadTable'
-import { LeadKanban } from './components/LeadKanban'
 import { LeadForm } from './components/LeadForm'
 import { LeadListMobile } from './components/LeadListMobile'
 import { LeadPitchDialog } from './components/LeadPitchDialog'
@@ -17,7 +16,6 @@ import { ScriptPanel } from './components/ScriptPanel'
 import type { Lead, LeadStatus, LeadAssignee, LeadInsert, LeadUpdate, LeadTab } from '@/types/leads'
 import { LEAD_STATUS_LABELS, LEAD_STATUS_ORDER, filterLeadsByTab } from '@/types/leads'
 
-type ViewMode = 'table' | 'kanban'
 
 const STATUS_FILTERS: { label: string; value: LeadStatus | null }[] = [
   { label: 'Tous', value: null },
@@ -34,7 +32,6 @@ export default function ProspectionPage() {
   const { leads, isLoading, error, createLead, updateLead, deleteLead, logCall } = useLeads()
   const { user } = useAuth()
 
-  const [view, setView] = useState<ViewMode>('table')
   const [tab, setTab] = useState<LeadTab>('cfa')
   const [filterStatus, setFilterStatus] = useState<LeadStatus | null>(null)
   const [filterAssignee, setFilterAssignee] = useState<LeadAssignee | null>(null)
@@ -101,15 +98,6 @@ export default function ProspectionPage() {
       toast.success('Lead supprimé.')
     } catch {
       toast.error('Impossible de supprimer le lead.')
-    }
-  }
-
-  async function handleStatusChange(leadId: string, newStatus: LeadStatus) {
-    try {
-      await updateLead(leadId, { status: newStatus })
-      toast.success(`Lead déplacé vers « ${LEAD_STATUS_LABELS[newStatus]} ».`)
-    } catch {
-      toast.error('Impossible de déplacer le lead.')
     }
   }
 
@@ -187,36 +175,6 @@ export default function ProspectionPage() {
           {!isPartnersTab && <ScriptPanel />}
           {/* View toggle — desktop seulement : la vue mobile est la liste de cartes,
               ce toggle n'y a aucun effet. Pas de kanban côté partenaires (hors pipeline). */}
-          {!isPartnersTab && (
-            <div
-              className="hidden items-center rounded-lg p-1 md:flex"
-              style={{
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-secondary)',
-              }}
-            >
-              {([['table', 'Tableau', LayoutList], ['kanban', 'Kanban', Kanban]] as const).map(
-                ([mode, label, Icon]) => (
-                  <button
-                    key={mode}
-                    onClick={() => setView(mode)}
-                    aria-pressed={view === mode}
-                    aria-label={`Vue ${label}`}
-                    className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
-                    style={
-                      view === mode
-                        ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' }
-                        : { color: 'var(--text-secondary)' }
-                    }
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    {label}
-                  </button>
-                )
-              )}
-            </div>
-          )}
-
           <Button onClick={handleNewLead} className="gap-1.5">
             <Plus className="h-4 w-4" />
             {isPartnersTab ? 'Nouveau partenaire' : 'Nouveau lead'}
@@ -255,6 +213,10 @@ export default function ProspectionPage() {
           </span>
           {STATUS_FILTERS.map((pill) => {
             const isActive = filterStatus === pill.value
+            const count =
+              pill.value == null
+                ? visibleLeads.length
+                : visibleLeads.filter((l) => l.status === pill.value).length
             return (
               <button
                 key={pill.label}
@@ -272,6 +234,7 @@ export default function ProspectionPage() {
                 }
               >
                 {pill.label}
+                <span className="ml-1 tabular-nums opacity-70">{count}</span>
               </button>
             )
           })}
@@ -361,28 +324,22 @@ export default function ProspectionPage() {
           />
         </div>
 
-        {/* Desktop : table dense ou kanban (pas de kanban côté partenaires) */}
+        {/* Desktop : table dense seule — le kanban est mort (conseil design
+            22/08) : à ce volume, 7 colonnes quasi vides et deux vues à
+            maintenir ; les chips de statut avec compteurs donnent la lecture
+            pipeline sans le drag-drop. */}
         <div className="hidden md:block">
-          {view === 'table' || isPartnersTab ? (
-            <LeadTable
-              leads={filteredLeads}
-              isLoading={isLoading}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              canDelete={canDelete}
-              onLogCall={setLogCallLead}
-              onUnarchive={handleUnarchive}
-              onCreate={handleNewLead}
-              onShowPitch={setPitchLead}
-            />
-          ) : (
-            <LeadKanban
-              leads={filteredLeads}
-              isLoading={isLoading}
-              onEdit={handleEdit}
-              onStatusChange={handleStatusChange}
-            />
-          )}
+          <LeadTable
+            leads={filteredLeads}
+            isLoading={isLoading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            canDelete={canDelete}
+            onLogCall={setLogCallLead}
+            onUnarchive={handleUnarchive}
+            onCreate={handleNewLead}
+            onShowPitch={setPitchLead}
+          />
         </div>
       </motion.div>
 
