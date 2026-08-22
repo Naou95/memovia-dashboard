@@ -146,7 +146,7 @@ export default function FinancementsPage() {
 
   function Card({ f }: { f: Financement }) {
     return (
-      <li className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)]">
+      <li className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -180,12 +180,14 @@ export default function FinancementsPage() {
             </button>
           </div>
         </div>
+        {/* max-w : sur grand écran, une note pleine largeur (~1400px) est
+            illisible — on borne à une mesure de lecture (~75ch). */}
         {f.next_action && (
-          <p className="mt-2 text-[13px] text-[var(--text-secondary)]">
+          <p className="mt-2 max-w-[75ch] text-[13px] text-[var(--text-secondary)]">
             <span className="font-medium text-[var(--text-primary)]">À faire :</span> {f.next_action}
           </p>
         )}
-        {f.notes && <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-muted)]">{f.notes}</p>}
+        {f.notes && <p className="mt-1 max-w-[75ch] text-[12px] leading-relaxed text-[var(--text-muted)]">{f.notes}</p>}
       </li>
     )
   }
@@ -221,32 +223,42 @@ export default function FinancementsPage() {
         </div>
       ) : (
         <>
-          <motion.ul variants={staggerItem} className="space-y-3">
-            {open.length === 0 ? (
-              <p className="px-1 py-3 text-[13px] text-[var(--text-muted)]">Rien en cours.</p>
-            ) : (
-              open.map((f) => <Card key={f.id} f={f} />)
-            )}
-          </motion.ul>
-
-          {closed.length > 0 && (
-            <motion.div variants={staggerItem}>
-              <button
-                type="button"
-                onClick={() => setShowClosed((v) => !v)}
-                className="text-[12px] text-[var(--text-muted)] underline-offset-2 hover:underline"
-              >
-                {showClosed ? 'Masquer' : 'Afficher'} les clos ({closed.length})
-              </button>
-              {showClosed && (
-                <ul className="mt-3 space-y-3 opacity-70">
-                  {closed.map((f) => (
-                    <Card key={f.id} f={f} />
-                  ))}
-                </ul>
+          {/* Panneau blanc standard (langue de l'accueil/historique) : les items
+              vivent DANS une carte, pas nus sur le fond de page. */}
+          <motion.section
+            variants={staggerItem}
+            className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
+          >
+            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+              En cours ({open.length})
+            </h2>
+            <ul className="space-y-2.5">
+              {open.length === 0 ? (
+                <p className="px-1 py-3 text-[13px] text-[var(--text-muted)]">Rien en cours.</p>
+              ) : (
+                open.map((f) => <Card key={f.id} f={f} />)
               )}
-            </motion.div>
-          )}
+            </ul>
+
+            {closed.length > 0 && (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowClosed((v) => !v)}
+                  className="text-[12px] text-[var(--text-muted)] underline-offset-2 hover:underline"
+                >
+                  {showClosed ? 'Masquer' : 'Afficher'} les clos ({closed.length})
+                </button>
+                {showClosed && (
+                  <ul className="mt-3 space-y-2.5 opacity-70">
+                    {closed.map((f) => (
+                      <Card key={f.id} f={f} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </motion.section>
         </>
       )}
 
