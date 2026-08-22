@@ -192,9 +192,18 @@ export default function PositionnementPage() {
           <ul className="mt-3 space-y-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
             <li>
               <span className="font-semibold text-[var(--text-primary)]">France — per-établissement, JAMAIS per-seat.</span>{' '}
-              Site S (&lt;150 apprenants) ~3 000 €/an · <span className="font-semibold text-[var(--text-primary)]">Site M (150-500) ~5 000 €/an = cible par défaut</span> · Site L / multi-sites 10 000-15 000 €/an · réseau national = deal-cadre.
-              Grille calée sur le rail de financement, pas sur la concurrence : la majoration RQTH (~4 000 €/an) couvre l'essentiel d'un Site M avec un seul apprenti. Formateurs et élèves illimités (l'argument tueur face au per-élève). Ne jamais citer le prix en premier : demander « quel budget accessibilité/handicap avez-vous provisionné ? ». Ancrer le 1er CFA à 4 000-5 000 € contre droit au logo ; les 3 premières signatures = découverte de prix.
-              ⚠️ Le seul contrat signé reste à 1 800 €/an pour 30 licences (Compagnons, tarif pilote) : l'extension à 200 licences se renégocie contre cette grille, pas contre lui.
+              Pilote (1 site, 1 an, non renouvelable) 3 000 € · Site S (&lt;150 apprenants) 6 000 €/an · <span className="font-semibold text-[var(--text-primary)]">Site M (150-500) 12 000 €/an = cible par défaut</span> · Site L (&gt;500) 20 000 €/an · réseau 12 000 € + 6 000 €/site, plafond 36 000 €.
+              Formateurs et élèves illimités (l'argument tueur face au per-élève). Ne jamais citer le prix en premier. Toute remise est nommée, datée et à bascule écrite au contrat ; les 3 premières signatures = découverte de prix.
+              🔴 Ne pas publier cette grille tant qu'il n'y a qu'un client : devis uniquement.
+            </li>
+            <li className="rounded-xl bg-[rgba(124,58,237,0.06)] p-3">
+              <span className="font-semibold text-[var(--text-primary)]">La règle qui fixe le prix</span> (conseil du 22/08, unanimité) : la majoration RQTH finance TOUTE l'adaptation d'un apprenti, pas seulement un logiciel. Une ligne SaaS en capte 20 à 35 %, soit <span className="font-semibold text-[var(--text-primary)]">~1 200 € par apprenti RQTH</span> — il en faut donc une dizaine pour porter un Site M.
+              Première question de qualification : « combien d'apprentis RQTH avez-vous déclarés cette année ? ». ⚠️ Plafond réseau à 36 000 € délibéré : au-delà de 40 000 € HT, un CFA porté par une CCI ou une CMA sort de la dispense de procédure et déclenche une mise en concurrence.
+            </li>
+            <li className="rounded-xl bg-[rgba(124,58,237,0.06)] p-3">
+              <span className="font-semibold text-[var(--text-primary)]">Compagnons, renégociation de la rentrée</span> : 🔴 ne PAS renégocier en licences — ça ratifierait le per-seat comme terme de référence de notre unique contrat signé, et chaque CFA suivant l'exigerait.
+              On vend le site de Toulouse (~600 apprentis = palier L, 20 000 €) avec une remise nommée « programme de référence » qui atterrit à 12 000 €. Ce nombre ne se négocie pas : 200 licences × 60 € = 12 000 €, exactement ce qu'ils avaient déjà budgété.
+              🔑 Le vrai blocage n'est pas le prix : le référent handicap ne fait pas de ROI, il lui faut la pièce à classer (apprenti nommé, période, séances). L'export d'attestation d'usage débloque chaque euro au-dessus de 12 000 €.
             </li>
             <li>
               <span className="font-semibold text-[var(--text-primary)]">Italie — Paidea revend</span> (marge par-dessus le prix) : listino S/M/L 490 / 990 / 1 690 €/an par école, 990 = tarif recommandé, Docente 129 €. Prezzo riservato −30 %, plancher −35 % early-bird. ⚠️ Plafond TTS sur le 490.
@@ -204,7 +213,7 @@ export default function PositionnementPage() {
             </li>
             <li className="rounded-xl bg-[rgba(124,58,237,0.06)] p-3">
               <span className="font-semibold text-[var(--text-primary)]">Financements à mettre en face du prix</span> : FR = majoration OPCO
-              jusqu'à ~4 000 €/an par apprenti RQTH (un seul couvre ~80 % d'un Site M, deux le couvrent entièrement — décideur : le référent handicap) + plan de développement des compétences.
+              jusqu'à ~4 000 €/an par apprenti RQTH versés au CFA, dont le logiciel ne capte que 20-35 % (décideur : le référent handicap) + plan de développement des compétences.
               IT = legge 170 + fonds écoles via MEPA. ⚠️ Jamais promettre « 100 % pris en charge ».
             </li>
           </ul>
