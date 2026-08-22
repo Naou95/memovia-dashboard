@@ -40,10 +40,11 @@ interface PlanningEvent {
   link: string
 }
 
-const EVENT_STYLE: Record<PlanningEvent['kind'], { bg: string; fg: string; icon: typeof Calendar }> = {
-  rdv: { bg: 'var(--accent-purple-bg)', fg: 'var(--memovia-violet)', icon: Calendar },
-  financement: { bg: 'var(--warning-bg)', fg: 'var(--warning)', icon: Trophy },
-  relance: { bg: 'var(--accent-blue-bg)', fg: 'var(--accent-blue)', icon: PhoneCall },
+// Barres PLEINES, texte blanc — comme les bandeaux de la maquette de référence
+const EVENT_STYLE: Record<PlanningEvent['kind'], { bg: string; icon: typeof Calendar }> = {
+  rdv: { bg: '#7C3AED', icon: Calendar },
+  financement: { bg: '#F59E0B', icon: Trophy },
+  relance: { bg: '#3B82F6', icon: PhoneCall },
 }
 
 const AVATAR_COLORS = ['#7C3AED', '#3B82F6', '#16A34A', '#D97706', '#DC2626']
@@ -184,7 +185,7 @@ export default function AccueilPage() {
       >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-[var(--text-primary)]">
+            <h1 className="font-display text-[22px] font-bold text-[var(--text-primary)]">
               Les 2 prochaines semaines
             </h1>
             {/* La plage explicite lève l'ambiguïté des numéros de jours qui
@@ -205,7 +206,7 @@ export default function AccueilPage() {
               <span key={kind} className="flex items-center gap-1.5 text-[var(--text-secondary)]">
                 <span
                   className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: EVENT_STYLE[kind].fg }}
+                  style={{ backgroundColor: EVENT_STYLE[kind].bg }}
                 />
                 {label}
               </span>
@@ -264,12 +265,12 @@ export default function AccueilPage() {
                         {d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}
                       </div>
                       <div
-                        className={`mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-[13px] tabular-nums ${
+                        className={`mx-auto mt-0.5 flex h-8 w-8 items-center justify-center rounded-full text-[14px] tabular-nums ${
                           isToday
-                            ? 'bg-[var(--memovia-violet)] font-semibold text-white'
+                            ? 'bg-[var(--memovia-violet)] font-bold text-white shadow-[0_4px_12px_rgba(124,58,237,0.4)]'
                             : isWeekend
                               ? 'text-[var(--text-muted)]'
-                              : 'font-medium text-[var(--text-primary)]'
+                              : 'font-semibold text-[var(--text-primary)]'
                         }`}
                       >
                         {d.getDate()}
@@ -313,16 +314,17 @@ export default function AccueilPage() {
                       key={ev.key}
                       to={ev.link}
                       title={ev.label}
-                      className="z-10 flex items-center gap-1.5 truncate rounded-lg px-2.5 text-[12px] font-medium shadow-[var(--shadow-xs)] transition-transform hover:scale-[1.01]"
+                      className="z-10 flex items-center gap-1.5 truncate rounded-full px-3 text-[12px] font-semibold text-white transition-transform hover:scale-[1.02]"
                       style={{
                         gridColumn: `${ev.day + 1} / span ${span}`,
                         gridRow: `${i + 1}`,
                         backgroundColor: style.bg,
-                        color: style.fg,
-                        border: `1px solid color-mix(in oklab, ${style.fg} 25%, transparent)`,
+                        boxShadow: `0 4px 12px color-mix(in oklab, ${style.bg} 40%, transparent)`,
                       }}
                     >
-                      <Icon className="h-3.5 w-3.5 shrink-0" />
+                      <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-white/25">
+                        <Icon className="h-3 w-3" />
+                      </span>
                       <span className="truncate">{ev.label}</span>
                     </Link>
                   )
@@ -354,7 +356,7 @@ export default function AccueilPage() {
           className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)] lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden"
         >
           <div className="mb-2.5 flex items-center justify-between">
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">Échéances</h2>
+            <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">Échéances</h2>
             <Link
               to="/financements"
               className="flex items-center gap-0.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--memovia-violet)]"
@@ -371,30 +373,39 @@ export default function AccueilPage() {
                 <li key={e.key}>
                   <Link
                     to={e.link}
-                    className="block rounded-xl border p-2.5 transition-colors hover:border-[var(--memovia-violet)]"
+                    className="flex items-center gap-2.5 rounded-2xl border p-2.5 transition-colors hover:border-[var(--memovia-violet)]"
                     style={
                       first
                         ? { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }
                         : { backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }
                     }
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="min-w-0 truncate text-[13px] font-semibold text-[var(--text-primary)]">
-                        {e.title}
+                    {/* Tuile d'icône colorée (langue de la maquette) */}
+                    <span
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
+                      style={{ backgroundColor: e.kind === 'rdv' ? '#7C3AED' : '#F59E0B' }}
+                      aria-hidden
+                    >
+                      {e.kind === 'rdv' ? <Calendar className="h-4 w-4" /> : <Trophy className="h-4 w-4" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-[13px] font-semibold text-[var(--text-primary)]">
+                          {e.title}
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+                            urgent ? 'bg-[var(--danger-bg)] text-[var(--danger)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                          }`}
+                        >
+                          {days === 0 ? "Aujourd'hui" : `J-${days}`}
+                        </span>
                       </span>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
-                          urgent ? 'bg-[var(--danger-bg)] text-[var(--danger)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                        }`}
-                      >
-                        {days === 0 ? "Aujourd'hui" : `J-${days}`}
+                      <span className="mt-0.5 block truncate text-[12px] tabular-nums text-[var(--text-secondary)]">
+                        {formatShort(e.date)}
+                        {e.sub && ` · ${e.sub}`}
                       </span>
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)]">
-                      {e.kind === 'rdv' ? <Calendar className="h-3 w-3" /> : <Trophy className="h-3 w-3" />}
-                      <span className="tabular-nums">{formatShort(e.date)}</span>
-                      {e.sub && <span className="truncate">· {e.sub}</span>}
-                    </div>
+                    </span>
                   </Link>
                 </li>
               )
@@ -411,7 +422,7 @@ export default function AccueilPage() {
           className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-4 shadow-[var(--shadow-xs)] lg:flex lg:min-h-0 lg:flex-col lg:overflow-hidden"
         >
           <div className="mb-2.5 flex items-center justify-between">
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">Leads à contacter</h2>
+            <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">Leads à contacter</h2>
             <Link
               to="/leads"
               className="flex items-center gap-0.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--memovia-violet)]"
@@ -420,34 +431,35 @@ export default function AccueilPage() {
             </Link>
           </div>
           <ul className="space-y-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-            {pipelineLeads.slice(0, 3).map((lead) => (
+            {pipelineLeads.slice(0, 3).map((lead, i) => (
               <li
                 key={lead.id}
-                className="rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-2.5"
+                className="flex items-center gap-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-primary)] p-2.5"
+                title={lead.next_action ?? undefined}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{lead.name}</p>
-                    <p className="truncate text-[12px] text-[var(--text-secondary)]">
-                      {lead.contact_name ?? 'Contact à identifier'}
-                      {lead.contact_role ? ` · ${lead.contact_role}` : ''}
-                    </p>
-                  </div>
-                  {(lead.why || lead.pitch) && (
-                    <button
-                      type="button"
-                      onClick={() => setPitchLead(lead)}
-                      className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent-purple-bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--memovia-violet)] transition-colors hover:bg-[var(--memovia-violet)] hover:text-white"
-                    >
-                      <BookOpen className="h-3 w-3" />
-                      Pitch
-                    </button>
-                  )}
-                </div>
-                {lead.next_action && (
-                  <p className="mt-1 line-clamp-1 text-[12px] text-[var(--text-secondary)]" title={lead.next_action}>
-                    {lead.next_action}
-                  </p>
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
+                  style={{ backgroundColor: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
+                  aria-hidden
+                >
+                  {initials(lead.name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-semibold text-[var(--text-primary)]">{lead.name}</span>
+                  <span className="block truncate text-[12px] text-[var(--text-secondary)]">
+                    {lead.contact_name ?? 'Contact à identifier'}
+                    {lead.contact_role ? ` · ${lead.contact_role}` : ''}
+                  </span>
+                </span>
+                {(lead.why || lead.pitch) && (
+                  <button
+                    type="button"
+                    onClick={() => setPitchLead(lead)}
+                    className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--memovia-violet)] px-3 py-1.5 text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(124,58,237,0.35)] transition-transform hover:scale-105"
+                  >
+                    <BookOpen className="h-3 w-3" />
+                    Pitch
+                  </button>
                 )}
               </li>
             ))}

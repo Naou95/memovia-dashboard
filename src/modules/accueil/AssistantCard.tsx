@@ -89,7 +89,7 @@ export function AssistantCard({ firstName }: { firstName: string }) {
             }}
             aria-hidden
           />
-          <h2 className="text-[19px] font-semibold tracking-tight text-[var(--text-primary)]">
+          <h2 className="font-display text-[24px] font-bold text-[var(--text-primary)]">
             {firstName ? `Bonjour, ${firstName}` : 'Bonjour'}
           </h2>
           <p className="mt-0.5 text-[13px] text-[var(--text-secondary)]">

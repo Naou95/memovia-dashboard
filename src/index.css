@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap');
 
 /* Tailwind v4 — expose design tokens as utility classes */
 @theme {
@@ -130,8 +130,16 @@
     radial-gradient(900px 700px at 60% 110%, rgba(59, 130, 246, 0.07), transparent 55%),
     linear-gradient(165deg, #F7F7FB 0%, #EEF0F6 55%, #ECEEF5 100%);
 
-  /* Border radius */
-  --radius-card: 14px;
+  /* Border radius — passé de 14 à 20px le 22/08 (fidélité maquette accueil :
+     grandes cartes très arrondies) */
+  --radius-card: 20px;
+}
+
+/* Typo display (22/08/2026) : Bricolage Grotesque sur les titres — la touche
+   de caractère qui casse le rendu « IA générique », Geist reste en texte. */
+.font-display {
+  font-family: 'Bricolage Grotesque', 'Geist', ui-sans-serif, sans-serif;
+  letter-spacing: -0.02em;
 }
 
 /* ── Animation foundation ─────────────────────────────────────────────────── */
@@ -151,9 +159,9 @@
    Tailwind bg-/border-/shadow- qu'elle remplace. Les modales (rounded-xl)
    restent opaques exprès. */
 [class*="rounded-[var(--radius-card)]"] {
-  background: rgba(255, 255, 255, 0.60);
-  -webkit-backdrop-filter: blur(16px) saturate(1.6);
-  backdrop-filter: blur(16px) saturate(1.6);
+  background: rgba(255, 255, 255, 0.75);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
   border: 1px solid rgba(255, 255, 255, 0.75);
   /* Relief « lucid » : liseré clair en haut (biseau), ombre portée douce */
   box-shadow:
