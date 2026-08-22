@@ -125,13 +125,10 @@ export function TransactionTable({ transactions }: TransactionTableProps) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((tx, i) => (
+              {filtered.map((tx) => (
                 <tr
                   key={tx.id}
-                  className={
-                    'border-b border-[var(--border-color)] transition-colors hover:bg-[var(--memovia-violet-light)]/60' +
-                    (i % 2 === 0 ? '' : ' bg-[var(--bg-primary)]')
-                  }
+                  className="border-b border-[var(--border-subtle)] transition-colors last:border-0 hover:bg-[var(--bg-hover)]"
                 >
                   <td className="whitespace-nowrap py-3 pr-4 text-[13px] tabular-nums text-[var(--text-secondary)]">
                     {formatDate(tx.settledAt)}

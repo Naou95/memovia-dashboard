@@ -36,8 +36,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
     <div className="overflow-hidden">
       <table className="w-full table-fixed text-sm" aria-label="Liste des transactions Stripe récentes">
         <colgroup>
-          <col className="w-[14%]" />
-          <col className="w-[32%]" />
+          <col className="w-[18%]" />
+          <col className="w-[28%]" />
           <col className="w-[24%]" />
           <col className="w-[14%]" />
           <col className="w-[16%]" />
@@ -62,13 +62,10 @@ export function TransactionList({ transactions }: TransactionListProps) {
           </tr>
         </thead>
         <tbody>
-          {transactions.map((tx, i) => (
+          {transactions.map((tx) => (
             <tr
               key={tx.id}
-              className={
-                'border-b border-[var(--border-color)] transition-colors hover:bg-[var(--memovia-violet-light)]/60' +
-                (i % 2 === 0 ? '' : ' bg-[var(--bg-primary)]')
-              }
+              className="border-b border-[var(--border-subtle)] transition-colors last:border-0 hover:bg-[var(--bg-hover)]"
             >
               <td className="truncate py-3 pr-4 text-[13px] tabular-nums text-[var(--text-secondary)]">
                 {formatDate(tx.date)}
@@ -76,7 +73,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
               <td className="truncate py-3 pr-4 text-[13px] text-[var(--text-primary)]">
                 {tx.description}
               </td>
-              <td className="truncate py-3 pr-4 font-mono text-[12px] text-[var(--text-secondary)]">
+              <td className="truncate py-3 pr-4 text-[12px] text-[var(--text-secondary)]">
                 {tx.customerEmail || <span className="text-[var(--text-muted)] italic">—</span>}
               </td>
               <td className="truncate py-3 text-right tabular-nums text-[13px] font-medium text-[var(--text-primary)]">

@@ -103,7 +103,7 @@ export default function ArgentPage() {
         <KpiCard
           label="Abos du mois"
           value={
-            stripe.data ? `+${stripe.data.newThisMonth} −${stripe.data.churnsThisMonth}` : null
+            stripe.data ? `+${stripe.data.newThisMonth} · −${stripe.data.churnsThisMonth}` : null
           }
           accent={stripe.data && stripe.data.churnsThisMonth > stripe.data.newThisMonth ? 'red' : 'blue'}
           icon={stripe.data && stripe.data.churnsThisMonth > stripe.data.newThisMonth ? UserMinus : UserPlus}
@@ -112,22 +112,20 @@ export default function ArgentPage() {
         />
       </motion.div>
 
-      {/* Horodatage : l'honnêteté de la fraîcheur prime sur la fraîcheur */}
-      <motion.p variants={staggerItem} className="text-[11px] tabular-nums text-[var(--text-muted)]">
-        {[
-          qonto.lastFetchedAt ? `Qonto ${freshness(qonto.lastFetchedAt)}` : null,
-          stripe.lastFetchedAt ? `Stripe ${freshness(stripe.lastFetchedAt)}` : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-      </motion.p>
-
-      {/* Mouvements */}
-      <motion.div variants={staggerItem} className="grid gap-6 xl:grid-cols-2">
-        <section>
-          <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
-            Mouvements Qonto
-          </h2>
+      {/* Mouvements — panneaux standard (langue accueil/RDV/financements) :
+          les tables vivent DANS une carte, la fraîcheur vit dans son en-tête */}
+      <motion.div variants={staggerItem} className="grid gap-4 xl:grid-cols-2">
+        <section className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">
+              Mouvements Qonto
+            </h2>
+            {qonto.lastFetchedAt && (
+              <span className="text-[11px] tabular-nums text-[var(--text-muted)]">
+                {freshness(qonto.lastFetchedAt)}
+              </span>
+            )}
+          </div>
           {qonto.data ? (
             <TransactionTable transactions={qonto.data.transactions} />
           ) : qonto.error ? (
@@ -136,10 +134,17 @@ export default function ArgentPage() {
             <div className="h-40 animate-pulse rounded-lg bg-[var(--border-color)]" />
           )}
         </section>
-        <section>
-          <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
-            Paiements Stripe
-          </h2>
+        <section className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">
+              Paiements Stripe
+            </h2>
+            {stripe.lastFetchedAt && (
+              <span className="text-[11px] tabular-nums text-[var(--text-muted)]">
+                {freshness(stripe.lastFetchedAt)}
+              </span>
+            )}
+          </div>
           {stripe.data ? (
             <TransactionList transactions={stripe.data.recentTransactions} />
           ) : stripe.error ? (
