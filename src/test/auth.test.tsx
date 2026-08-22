@@ -61,9 +61,9 @@ describe('getNavForRole', () => {
     }
   })
 
-  it('les 8 sections sont actives', () => {
+  it('les 9 sections sont actives', () => {
     const actives = getNavForRole('admin_full').filter((i) => i.status === 'active')
-    expect(actives.map((i) => i.id)).toEqual(['accueil', 'leads', 'rdv', 'mail', 'financements', 'argent', 'bugs', 'historique'])
+    expect(actives.map((i) => i.id)).toEqual(['accueil', 'leads', 'rdv', 'mail', 'financements', 'argent', 'bugs', 'positionnement', 'roadmap-produit'])
   })
 })
 

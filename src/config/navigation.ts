@@ -7,6 +7,7 @@ import {
   Wallet,
   Bug,
   Compass,
+  Map,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { UserRole } from '@/types/auth'
@@ -98,6 +99,16 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Positionnement',
     path: '/positionnement',
     icon: Compass,
+    status: 'active',
+    allowedRoles: [],
+  },
+  {
+    // Roadmap produit (22/08/2026) : sortie de Positionnement où elle était en dur,
+    // donc morte entre deux sessions. Kanban par horizon, adossé à roadmap_items.
+    id: 'roadmap-produit',
+    label: 'Roadmap',
+    path: '/roadmap-produit',
+    icon: Map,
     status: 'active',
     allowedRoles: [],
   },

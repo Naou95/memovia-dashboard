@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Mic, Wand2, Radio, Repeat2, BadgeCheck, ShieldAlert, Hammer, Map } from 'lucide-react'
+import { Mic, Wand2, Radio, Repeat2, BadgeCheck, ShieldAlert, Hammer } from 'lucide-react'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 
 /**
@@ -60,26 +60,6 @@ const CONCURRENTS: Concurrent[] = [
   { nom: 'Knowunity', segment: 'B2C', fait: 'Coach scolaire IA, 30 M d’étudiants revendiqués.', fort: 'Rafle le B2C collège/lycée — confirme qu’on ne vend pas aux élèves.', verdict: 'orange' },
   { nom: 'Anastasis', segment: 'Italie', fait: 'Incumbent historique des strumenti compensativi (ePico!, SuperMappe).', fort: 'La référence culturelle « compensation » en Italie. Pas d’IA générative de contenu.', verdict: 'orange' },
   { nom: 'MOBiDYS / Sondo', segment: 'Accessibilité FR', fait: 'Bibliothèque de titres pré-adaptés (FROG) via ENT.', fort: 'Contenu édité (littérature/manuels), pas les supports du formateur — autre métier.', verdict: 'vert' },
-]
-
-// ── Roadmap — ce qu'on veut intégrer et POURQUOI ─────────────────────────────
-type RoadStatus = 'en cours' | 'à trancher lundi' | '2 temps' | 'exploration' | 'parqué'
-const ROAD_STATUS_STYLE: Record<RoadStatus, { bg: string; fg: string }> = {
-  'en cours': { bg: 'rgba(124,58,237,0.12)', fg: '#6D28D9' },
-  'à trancher lundi': { bg: 'var(--danger-bg)', fg: 'var(--danger)' },
-  '2 temps': { bg: 'var(--accent-blue-bg)', fg: 'var(--accent-blue)' },
-  exploration: { bg: 'rgba(180,83,9,0.12)', fg: '#92400E' },
-  parqué: { bg: 'var(--bg-primary)', fg: 'var(--text-secondary)' },
-}
-const ROADMAP: { t: string; status: RoadStatus; pourquoi: string }[] = [
-  { t: 'Rapport de progression exportable', status: 'en cours', pourquoi: 'Le chantier produit n°1. « Attester » est le temps de la boucle que le national Compagnons veut voir — sans lui on vend l’usage, pas la preuve. C’est lui qui débloque « la preuve, pas la promesse ».' },
-  { t: 'Accès de supervision (la référente voit les cours générés)', status: 'à trancher lundi', pourquoi: 'Promis à Petrache, jamais livré. Lundi on lui présente les deux briques suivantes et C’EST ELLE qui priorise : supervision OU confort de lecture persistant.' },
-  { t: 'Confort de lecture persistant (réglages mémorisés)', status: 'à trancher lundi', pourquoi: 'L’autre option du choix de lundi : l’apprenti retrouve SES réglages d’accessibilité à chaque cours, sans reconfigurer.' },
-  { t: 'WhatsApp — temps 1 : notifications', status: '2 temps', pourquoi: 'Verbatim terrain (réunion 13/07) : « les jeunes ne lisent jamais leurs mails, tout passe par WhatsApp » — y compris les cours entre formateurs et apprentis. Temps 1 : rappels de révision (répétition espacée) et « ton cours adapté est prêt » directement sur WhatsApp.' },
-  { t: 'WhatsApp — temps 2 : le cours dans la poche', status: '2 temps', pourquoi: 'Une fois le canal ouvert : accéder au cours adapté et réviser (flashcards, quiz) depuis WhatsApp, sans installer d’app. Faisabilité étudiée le 22/08 ; le temps 2 ne part que si le temps 1 prouve l’usage.' },
-  { t: 'Éditer le texte du PDF (images préservées)', status: 'en cours', pourquoi: 'LE besoin central de Petrache : leurs PDF officiels sont figés — rendre le texte éditable (simplifier, alléger pour une classe faible) en laissant les images/plans intacts.' },
-  { t: 'Boîtier / micro de captation d’atelier (produit physique)', status: 'exploration', pourquoi: 'En atelier, le formateur a les mains prises et iOS coupe l’enregistrement web à l’écran verrouillé : 2 h de cours en poche, ça casse. Un matériel dédié règle ça — mais Petrache avait écarté le boîtier : on explore avec les formateurs (3 essais audio d’abord), on ne vend rien. Matériel parqué tant que les essais n’ont pas parlé.' },
-  { t: 'Import Netypareo / export SCORM', status: 'parqué', pourquoi: 'Demandé en réunion 13/07 (SCORM déjà en test). Pas ce trimestre : une demande de référencement par email, c’est tout — le temps fondateur va au rapport de progression.' },
 ]
 
 const SACRIFICES = [
@@ -251,38 +231,6 @@ export default function PositionnementPage() {
           </p>
         </motion.section>
       </div>
-
-      {/* ── Roadmap ── */}
-      <motion.section
-        variants={staggerItem}
-        className="rounded-[var(--radius-card)] border border-[var(--border-color)] bg-[var(--bg-secondary)] p-5 shadow-[var(--shadow-xs)]"
-      >
-        <div className="flex items-center gap-2">
-          <Map className="h-4 w-4 text-[var(--memovia-violet)]" aria-hidden />
-          <h2 className="font-display text-[17px] font-bold text-[var(--text-primary)]">Roadmap — ce qu'on veut intégrer, et pourquoi</h2>
-        </div>
-        <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
-          Chaque ligne vient d'une demande terrain datée, jamais d'une envie de feature. Rien de daté n'est promis à un client.
-        </p>
-        <ul className="mt-3 space-y-2">
-          {ROADMAP.map((r) => (
-            <li key={r.t} className="rounded-xl bg-[var(--bg-primary)] p-3.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[13px] font-bold text-[var(--text-primary)]">{r.t}</span>
-                <span
-                  className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                  style={{ backgroundColor: ROAD_STATUS_STYLE[r.status].bg, color: ROAD_STATUS_STYLE[r.status].fg }}
-                >
-                  {r.status}
-                </span>
-              </div>
-              <p className="mt-1 max-w-[95ch] text-[12px] leading-relaxed text-[var(--text-secondary)]">
-                <span className="font-semibold text-[var(--text-primary)]">Pourquoi : </span>{r.pourquoi}
-              </p>
-            </li>
-          ))}
-        </ul>
-      </motion.section>
 
       {/* ── Concurrents ── */}
       <motion.section

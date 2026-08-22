@@ -29,6 +29,7 @@ const FinancementsPage = lazy(() => import('@/modules/financements/FinancementsP
 const HistoriquePage = lazy(() => import('@/modules/historique/HistoriquePage'))
 const PositionnementPage = lazy(() => import('@/modules/positionnement/PositionnementPage'))
 const AccueilPage = lazy(() => import('@/modules/accueil/AccueilPage'))
+const RoadmapProduitPage = lazy(() => import('@/modules/roadmap-produit/RoadmapProduitPage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -122,6 +123,16 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <PositionnementPage />
+          </Suspense>
+        ),
+      },
+      {
+        // Roadmap produit (22/08/2026) : kanban par horizon. /roadmap reste le
+        // board de feedback utilisateurs, autre chose — d'où le chemin distinct.
+        path: 'roadmap-produit',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <RoadmapProduitPage />
           </Suspense>
         ),
       },

@@ -376,6 +376,35 @@ export interface Database {
         }
         Relationships: []
       }
+      roadmap_items: {
+        Row: {
+          id: string
+          title: string
+          why: string | null
+          horizon: 'maintenant' | 'ensuite' | 'plus_tard' | 'parque'
+          tag: string | null
+          ordre: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          why?: string | null
+          horizon?: 'maintenant' | 'ensuite' | 'plus_tard' | 'parque'
+          tag?: string | null
+          ordre?: number
+        }
+        Update: {
+          title?: string
+          why?: string | null
+          horizon?: 'maintenant' | 'ensuite' | 'plus_tard' | 'parque'
+          tag?: string | null
+          ordre?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_calls: {
         Row: {
           id: string
