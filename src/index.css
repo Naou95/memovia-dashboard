@@ -66,8 +66,11 @@
   /* Text */
   --text-primary: #111827;
   --text-secondary: #6B7280;
-  --text-muted: #9CA3AF;
-  --text-label: #9CA3AF;
+  /* #9CA3AF échouait AA sur ~119 éléments mesurés (2,4-2,5:1) en portant du
+     vrai contenu — aligné sur secondary (4,6:1 sur --bg-app), la hiérarchie
+     passe par la taille et la graisse. */
+  --text-muted: #6B7280;
+  --text-label: #6B7280;
 
   /* Brand */
   --memovia-violet: #7C3AED;
@@ -270,9 +273,11 @@
 
 /* ── Typographic tokens ───────────────────────────────────────────────────── */
 
-/* Monospace companion for numbers in tables and KPI values */
-.font-mono,
-.tabular-nums {
+/* Monospace companion — SEULEMENT via .font-mono explicite. L'utilitaire
+   Tailwind .tabular-nums ne doit régler QUE l'espacement des chiffres :
+   le rattacher ici basculait dates, emails et montants en look terminal
+   sur la moitié des tables (constaté 22/08). */
+.font-mono {
   font-family: 'Geist Mono', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
