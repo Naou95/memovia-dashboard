@@ -1,12 +1,13 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { X, Phone, Mail } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import type { Lead } from '@/types/leads'
 
 // Même rendu que la trame de la fiche RDV : ces deux champs sont des notes
 // longues, illisibles en un bloc de texte brut.
 const mdClass =
-  'text-[13px] leading-relaxed text-[var(--text-primary)] [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:text-[var(--text-secondary)] [&_p]:mt-1 [&_ul]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-0.5'
+  'text-[13px] leading-relaxed text-[var(--text-primary)] [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-[11px] [&_h2]:font-semibold [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:text-[var(--text-secondary)] [&_p]:mt-1 [&_ul]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-0.5 [&_table]:mt-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border-b [&_th]:border-[var(--border-color)] [&_th]:py-1 [&_th]:pr-3 [&_th]:text-left [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-[var(--text-label)] [&_td]:border-b [&_td]:border-[var(--border-color)]/50 [&_td]:py-1 [&_td]:pr-3 [&_td]:align-top'
 
 interface LeadPitchDialogProps {
   lead: Lead | null
@@ -82,7 +83,7 @@ export function LeadPitchDialog({ lead, onClose }: LeadPitchDialogProps) {
             {lead.type === 'partenaire' ? 'Pourquoi ce partenaire' : 'Pourquoi cette école'}
           </h3>
           <div className={mdClass}>
-            <ReactMarkdown>{lead.why ?? 'Pas encore renseigné — à compléter sur la fiche.'}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{lead.why ?? 'Pas encore renseigné — à compléter sur la fiche.'}</ReactMarkdown>
           </div>
         </div>
 
@@ -92,7 +93,7 @@ export function LeadPitchDialog({ lead, onClose }: LeadPitchDialogProps) {
             Pitch
           </h3>
           <div className={mdClass}>
-            <ReactMarkdown>{lead.pitch ?? 'Pas encore renseigné — à compléter sur la fiche.'}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{lead.pitch ?? 'Pas encore renseigné — à compléter sur la fiche.'}</ReactMarkdown>
           </div>
         </div>
         </Dialog.Content>

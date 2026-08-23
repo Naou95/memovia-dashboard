@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, Mic, Loader2, Pencil, Check, ChevronRight } from 'lucide-react'
+import { X, Mic, Loader2, Pencil, Check, ChevronRight, FileText } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import type { Rdv } from '@/types/rdv'
@@ -15,7 +16,7 @@ interface RdvDetailDialogProps {
 }
 
 const mdClass =
-  'text-sm text-[var(--text-primary)] [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-[12px] [&_h2]:font-semibold [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:text-[var(--text-secondary)] [&_p]:mt-1 [&_p]:leading-relaxed [&_ul]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-0.5'
+  'text-sm text-[var(--text-primary)] [&_h2]:mt-3 [&_h2]:mb-1 [&_h2]:text-[12px] [&_h2]:font-semibold [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:text-[var(--text-secondary)] [&_p]:mt-1 [&_p]:leading-relaxed [&_ul]:mt-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mt-0.5 [&_table]:mt-2 [&_table]:w-full [&_table]:border-collapse [&_th]:border-b [&_th]:border-[var(--border-color)] [&_th]:py-1 [&_th]:pr-3 [&_th]:text-left [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-[var(--text-label)] [&_td]:border-b [&_td]:border-[var(--border-color)]/50 [&_td]:py-1 [&_td]:pr-3 [&_td]:align-top'
 
 /**
  * Fiche RDV (refonte v2 Phase 2) : trame de préparation avant, compte rendu
@@ -179,11 +180,24 @@ export function RdvDetailDialog({ rdv, onClose, onSaveCr, onSavePrep, onUploadAu
               rdv.prep &&
               prepShown && (
                 <div className={`mt-2 ${mdClass}`}>
-                  <ReactMarkdown>{rdv.prep}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{rdv.prep}</ReactMarkdown>
                 </div>
               )
             )}
           </div>
+
+          {/* Document du RDV : lecture seule, la source de vérité vit dans le vault */}
+          {rdv.doc && (
+            <details className="mb-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4">
+              <summary className="flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-label)]">
+                <FileText className="h-3.5 w-3.5" />
+                {rdv.doc_title ?? 'Document du rendez-vous'}
+              </summary>
+              <div className={`mt-3 ${mdClass}`}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{rdv.doc}</ReactMarkdown>
+              </div>
+            </details>
+          )}
 
           {/* Compte rendu */}
           <div className="rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)] p-4">
@@ -232,7 +246,7 @@ export function RdvDetailDialog({ rdv, onClose, onSaveCr, onSavePrep, onUploadAu
               </div>
             ) : rdv.cr ? (
               <div className={mdClass}>
-                <ReactMarkdown>{rdv.cr}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{rdv.cr}</ReactMarkdown>
               </div>
             ) : (
               <p className="py-2 text-[13px] text-[var(--text-muted)]">
