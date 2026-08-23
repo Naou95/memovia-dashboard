@@ -411,6 +411,47 @@ export interface Database {
         }
         Relationships: []
       }
+      positionnement_items: {
+        Row: {
+          id: string
+          section: 'intro' | 'these' | 'phrase' | 'interdit' | 'citation' | 'boucle' | 'offre' | 'argument' | 'concurrent' | 'sacrifice'
+          ordre: number
+          title: string | null
+          body: string | null
+          note: string | null
+          icon: string | null
+          segment: string | null
+          verdict: 'rouge' | 'orange' | 'vert' | null
+          style: 'plain' | 'card' | 'accent'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          section: 'intro' | 'these' | 'phrase' | 'interdit' | 'citation' | 'boucle' | 'offre' | 'argument' | 'concurrent' | 'sacrifice'
+          ordre?: number
+          title?: string | null
+          body?: string | null
+          note?: string | null
+          icon?: string | null
+          segment?: string | null
+          verdict?: 'rouge' | 'orange' | 'vert' | null
+          style?: 'plain' | 'card' | 'accent'
+        }
+        Update: {
+          section?: 'intro' | 'these' | 'phrase' | 'interdit' | 'citation' | 'boucle' | 'offre' | 'argument' | 'concurrent' | 'sacrifice'
+          ordre?: number
+          title?: string | null
+          body?: string | null
+          note?: string | null
+          icon?: string | null
+          segment?: string | null
+          verdict?: 'rouge' | 'orange' | 'vert' | null
+          style?: 'plain' | 'card' | 'accent'
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_calls: {
         Row: {
           id: string
