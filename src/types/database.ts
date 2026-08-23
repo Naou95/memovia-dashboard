@@ -344,6 +344,8 @@ export interface Database {
           audio_path: string | null
           transcript: string | null
           prep: string | null
+          doc: string | null
+          doc_title: string | null
           cr: string | null
           cr_status: 'manquant' | 'en_cours' | 'fait'
           created_by: string | null
@@ -359,6 +361,8 @@ export interface Database {
           audio_path?: string | null
           transcript?: string | null
           prep?: string | null
+          doc?: string | null
+          doc_title?: string | null
           cr?: string | null
           cr_status?: 'manquant' | 'en_cours' | 'fait'
           created_by?: string | null
@@ -370,6 +374,8 @@ export interface Database {
           audio_path?: string | null
           transcript?: string | null
           prep?: string | null
+          doc?: string | null
+          doc_title?: string | null
           cr?: string | null
           cr_status?: 'manquant' | 'en_cours' | 'fait'
           updated_at?: string
