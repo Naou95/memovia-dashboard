@@ -22,9 +22,11 @@ const mdClass =
   'text-[13px] leading-relaxed text-[var(--text-primary)] [&_p]:mt-1 [&_p:first-child]:mt-0 [&_ul]:mt-1 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mt-0.5 [&_strong]:font-semibold'
 
 /**
- * Assistant IA de l'accueil (22/08/2026) : branché sur l'edge function
- * `accueil-assistant` — répond sur les données réelles (leads, RDV + CR,
- * financements) et peut agir (màj lead/financement, créer un RDV).
+ * Assistant IA de l'accueil : branché sur l'edge function `accueil-assistant`
+ * — répond sur les données réelles (leads, RDV + CR, financements, tâches) et
+ * peut écrire dans toutes les tables du dashboard (créer un RDV, une tâche, un
+ * lead, un item de roadmap, changer un statut…). Positionnement excepté : son
+ * contenu vit en dur dans PositionnementPage.tsx, pas en base.
  */
 export function AssistantCard({ firstName }: { firstName: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
