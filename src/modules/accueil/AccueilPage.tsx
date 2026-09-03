@@ -41,6 +41,32 @@ interface PlanningEvent {
   link: string
 }
 
+/** Puce posée sur la grille : colonne de départ, largeur (3 jours max), ligne attribuée. */
+type PlacedEvent = PlanningEvent & { span: number; row: number }
+
+/**
+ * Range les puces sur le moins de lignes possible : une puce prend la première
+ * ligne où elle ne chevauche aucune autre. Avant (03/09/2026), une ligne par
+ * puce : treize relances datées = treize lignes, et tout le reste de la page
+ * passait sous le pli.
+ */
+function placeEvents(list: PlanningEvent[]): { events: PlacedEvent[]; rowCount: number } {
+  const rows: Array<Array<[number, number]>> = []
+  const events = [...list]
+    .sort((a, b) => a.day - b.day)
+    .map((ev) => {
+      const span = Math.min(3, DAYS_SHOWN - ev.day)
+      let row = rows.findIndex((r) => r.every(([s, e]) => ev.day >= e || ev.day + span <= s))
+      if (row === -1) {
+        row = rows.length
+        rows.push([])
+      }
+      rows[row].push([ev.day, ev.day + span])
+      return { ...ev, span, row: row + 1 }
+    })
+  return { events, rowCount: rows.length }
+}
+
 // Barres PLEINES, texte blanc — comme les bandeaux de la maquette de référence.
 // Teintes calées AA sur texte blanc 12px (mesuré au DOM le 22/08) :
 // ambre 500 = 2,15:1 et bleu 500 = 3,68:1 échouaient → ambre 700 (5,0) et bleu 600 (5,1).
@@ -109,7 +135,7 @@ export default function AccueilPage() {
     [financements],
   )
 
-  const events = useMemo<PlanningEvent[]>(() => {
+  const { events, rowCount } = useMemo(() => {
     const list: PlanningEvent[] = []
     for (const r of rdvs) {
       const day = dayIndex(r.rdv_date, firstDay)
@@ -125,14 +151,20 @@ export default function AccueilPage() {
         list.push({ key: `fin-${f.id}`, label: `Deadline ${f.name}`, day, kind: 'financement', link: '/financements' })
       }
     }
+    // Une puce par JOUR de relance, pas par lead : le jour où neuf séquences
+    // tombent ensemble (J+4 des mails CFA du 03/09), une seule puce les porte,
+    // les noms complets restent lisibles au survol.
+    const relancesByDay = new Map<number, Lead[]>()
     for (const l of activeLeads) {
       if (!l.follow_up_date) continue
       const day = dayIndex(l.follow_up_date, firstDay)
-      if (day >= 0 && day < DAYS_SHOWN) {
-        list.push({ key: `lead-${l.id}`, label: `Relance ${l.name}`, day, kind: 'relance', link: '/leads' })
-      }
+      if (day >= 0 && day < DAYS_SHOWN) relancesByDay.set(day, [...(relancesByDay.get(day) ?? []), l])
     }
-    return list.sort((a, b) => a.day - b.day)
+    for (const [day, ls] of relancesByDay) {
+      const label = ls.length === 1 ? `Relance ${ls[0].name}` : `${ls.length} relances : ${ls.map((l) => l.name).join(', ')}`
+      list.push({ key: `relances-${day}`, label, day, kind: 'relance', link: '/leads' })
+    }
+    return placeEvents(list)
   }, [rdvs, openFinancements, activeLeads, firstDay])
 
   // Échéances (financements datés + prochains RDV), les 5 plus proches
@@ -299,7 +331,7 @@ export default function AccueilPage() {
                       className="pointer-events-none rounded-md"
                       style={{
                         gridColumn: `${i + 1} / span 1`,
-                        gridRow: `1 / span ${Math.max(events.length, 3)}`,
+                        gridRow: `1 / span ${Math.max(rowCount, 3)}`,
                         backgroundColor: isWeekend ? 'rgba(16,24,40,0.025)' : undefined,
                         borderLeft: i === todayIdx ? '2px dashed var(--memovia-violet)' : undefined,
                       }}
@@ -311,8 +343,6 @@ export default function AccueilPage() {
                 {events.map((ev, i) => {
                   const style = EVENT_STYLE[ev.kind]
                   const Icon = style.icon
-                  // Une puce s'étend sur 3 colonnes max pour rester lisible
-                  const span = Math.min(3, DAYS_SHOWN - ev.day)
                   return (
                     // BlurFade porte le placement grid ; la puce glisse depuis la
                     // gauche (sens de lecture de la timeline) à l'arrivée des données
@@ -323,8 +353,8 @@ export default function AccueilPage() {
                       offset={8}
                       className="z-10 min-w-0"
                       style={{
-                        gridColumn: `${ev.day + 1} / span ${span}`,
-                        gridRow: `${i + 1}`,
+                        gridColumn: `${ev.day + 1} / span ${ev.span}`,
+                        gridRow: `${ev.row}`,
                       }}
                     >
                       <Link
