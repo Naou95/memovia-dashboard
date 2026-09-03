@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, LayoutList, Kanban as KanbanIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
@@ -8,6 +8,7 @@ import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { LeadStats } from './components/LeadStats'
 import { LeadTable } from './components/LeadTable'
+import { LeadKanban } from './components/LeadKanban'
 import { LeadForm } from './components/LeadForm'
 import { LeadListMobile } from './components/LeadListMobile'
 import { LeadPitchDialog } from './components/LeadPitchDialog'
@@ -28,11 +29,24 @@ const ASSIGNEE_FILTERS: { label: string; value: LeadAssignee | null }[] = [
   { label: 'Emir', value: 'emir' },
 ]
 
+// Vue desktop : kanban par défaut (demande Naoufel 02/09/2026, qui revient sur
+// le verdict du 22/08), tableau en repli. Le choix survit au rechargement.
+type ViewMode = 'kanban' | 'table'
+const VIEW_KEY = 'leads-view'
+function readViewMode(): ViewMode {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'table' ? 'table' : 'kanban'
+  } catch {
+    return 'kanban'
+  }
+}
+
 export default function ProspectionPage() {
   const { leads, isLoading, error, createLead, updateLead, deleteLead, logCall } = useLeads()
   const { user } = useAuth()
 
   const [tab, setTab] = useState<LeadTab>('cfa')
+  const [view, setView] = useState<ViewMode>(readViewMode)
   const [filterStatus, setFilterStatus] = useState<LeadStatus | null>(null)
   const [filterAssignee, setFilterAssignee] = useState<LeadAssignee | null>(null)
   const [showArchived, setShowArchived] = useState(false)
@@ -111,6 +125,25 @@ export default function ProspectionPage() {
     }
   }
 
+  function changeView(next: ViewMode) {
+    setView(next)
+    try {
+      localStorage.setItem(VIEW_KEY, next)
+    } catch {
+      // navigation privée : le choix ne survit pas, tant pis
+    }
+  }
+
+  async function handleStatusChange(leadId: string, status: LeadStatus) {
+    try {
+      await updateLead(leadId, { status })
+      toast.success(`Déplacé vers « ${LEAD_STATUS_LABELS[status]} ».`)
+    } catch {
+      toast.error('Impossible de changer le statut.')
+      throw new Error('status change failed')
+    }
+  }
+
   async function handleUnarchive(lead: Lead) {
     try {
       await updateLead(lead.id, { archived: false })
@@ -173,8 +206,29 @@ export default function ProspectionPage() {
           </div>
 
           {!isPartnersTab && <ScriptPanel />}
-          {/* View toggle — desktop seulement : la vue mobile est la liste de cartes,
-              ce toggle n'y a aucun effet. Pas de kanban côté partenaires (hors pipeline). */}
+          {/* Kanban / Liste — desktop seulement : la vue mobile est la liste de cartes.
+              Pas de kanban côté partenaires (hors pipeline). */}
+          {!isPartnersTab && (
+            <div
+              role="group"
+              aria-label="Vue"
+              className="hidden items-center rounded-lg p-1 md:flex"
+              style={{ border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}
+            >
+              {([['kanban', 'Kanban', KanbanIcon], ['table', 'Liste', LayoutList]] as const).map(([value, label, Icon]) => (
+                <button
+                  key={value}
+                  onClick={() => changeView(value)}
+                  aria-pressed={view === value}
+                  className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--memovia-violet)] focus-visible:ring-offset-2"
+                  style={view === value ? { backgroundColor: 'var(--memovia-violet)', color: '#fff' } : { color: 'var(--text-secondary)' }}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           <Button onClick={handleNewLead} className="gap-1.5">
             <Plus className="h-4 w-4" />
             {isPartnersTab ? 'Nouveau partenaire' : 'Nouveau lead'}
@@ -324,22 +378,32 @@ export default function ProspectionPage() {
           />
         </div>
 
-        {/* Desktop : table dense seule — le kanban est mort (conseil design
-            22/08) : à ce volume, 7 colonnes quasi vides et deux vues à
-            maintenir ; les chips de statut avec compteurs donnent la lecture
-            pipeline sans le drag-drop. */}
+        {/* Desktop : kanban (défaut) ou table dense. Les archivés et les
+            partenaires restent en table : pas de pipeline à faire glisser. */}
         <div className="hidden md:block">
-          <LeadTable
-            leads={filteredLeads}
-            isLoading={isLoading}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            canDelete={canDelete}
-            onLogCall={setLogCallLead}
-            onUnarchive={handleUnarchive}
-            onCreate={handleNewLead}
-            onShowPitch={setPitchLead}
-          />
+          {view === 'kanban' && !isPartnersTab && !showArchived ? (
+            <LeadKanban
+              leads={filteredLeads}
+              isLoading={isLoading}
+              onEdit={handleEdit}
+              onLogCall={setLogCallLead}
+              onShowPitch={setPitchLead}
+              onCreate={handleNewLead}
+              onStatusChange={handleStatusChange}
+            />
+          ) : (
+            <LeadTable
+              leads={filteredLeads}
+              isLoading={isLoading}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              canDelete={canDelete}
+              onLogCall={setLogCallLead}
+              onUnarchive={handleUnarchive}
+              onCreate={handleNewLead}
+              onShowPitch={setPitchLead}
+            />
+          )}
         </div>
       </motion.div>
 
