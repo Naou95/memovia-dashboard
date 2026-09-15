@@ -479,6 +479,172 @@ export interface Database {
         }
         Relationships: []
       }
+      campaigns: {
+        Row: {
+          id: string
+          name: string
+          emoji: string
+          status: 'draft' | 'live' | 'paused' | 'archived'
+          sender_email: string
+          owner: 'naoufel' | 'emir' | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          emoji?: string
+          status?: 'draft' | 'live' | 'paused' | 'archived'
+          sender_email?: string
+          owner?: 'naoufel' | 'emir' | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          emoji?: string
+          status?: 'draft' | 'live' | 'paused' | 'archived'
+          sender_email?: string
+          owner?: 'naoufel' | 'emir' | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      campaign_steps: {
+        Row: {
+          id: string
+          campaign_id: string
+          position: number
+          kind: 'email' | 'call' | 'stop'
+          wait_days: number
+          name: string
+          subject_template: string | null
+          body_template: string | null
+          ai_brief: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          position: number
+          kind: 'email' | 'call' | 'stop'
+          wait_days?: number
+          name: string
+          subject_template?: string | null
+          body_template?: string | null
+          ai_brief?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          position?: number
+          kind?: 'email' | 'call' | 'stop'
+          wait_days?: number
+          name?: string
+          subject_template?: string | null
+          body_template?: string | null
+          ai_brief?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      campaign_enrollments: {
+        Row: {
+          id: string
+          campaign_id: string
+          lead_id: string
+          status: 'active' | 'stopped' | 'done'
+          current_position: number
+          next_due_at: string
+          stop_reason: string | null
+          thread_message_id: string | null
+          thread_subject: string | null
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          lead_id: string
+          status?: 'active' | 'stopped' | 'done'
+          current_position?: number
+          next_due_at?: string
+          stop_reason?: string | null
+          thread_message_id?: string | null
+          thread_subject?: string | null
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: 'active' | 'stopped' | 'done'
+          current_position?: number
+          next_due_at?: string
+          stop_reason?: string | null
+          thread_message_id?: string | null
+          thread_subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      campaign_messages: {
+        Row: {
+          id: string
+          enrollment_id: string
+          step_id: string
+          kind: 'email' | 'call'
+          status: 'draft' | 'sent' | 'done' | 'skipped'
+          subject: string | null
+          body: string | null
+          checks: Json | null
+          context: Json | null
+          due_at: string
+          sent_at: string | null
+          message_id: string | null
+          outcome: 'joint' | 'pas_repondu' | 'rappel' | 'refus' | 'interesse' | null
+          note: string | null
+          error: string | null
+          validated_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          enrollment_id: string
+          step_id: string
+          kind: 'email' | 'call'
+          status?: 'draft' | 'sent' | 'done' | 'skipped'
+          subject?: string | null
+          body?: string | null
+          checks?: Json | null
+          context?: Json | null
+          due_at?: string
+          sent_at?: string | null
+          message_id?: string | null
+          outcome?: 'joint' | 'pas_repondu' | 'rappel' | 'refus' | 'interesse' | null
+          note?: string | null
+          error?: string | null
+          validated_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: 'draft' | 'sent' | 'done' | 'skipped'
+          subject?: string | null
+          body?: string | null
+          checks?: Json | null
+          context?: Json | null
+          due_at?: string
+          sent_at?: string | null
+          message_id?: string | null
+          outcome?: 'joint' | 'pas_repondu' | 'rappel' | 'refus' | 'interesse' | null
+          note?: string | null
+          error?: string | null
+          validated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dashboard_notifications: {
         Row: {
           id: string
