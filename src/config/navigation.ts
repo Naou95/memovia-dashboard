@@ -8,6 +8,7 @@ import {
   Bug,
   Compass,
   Map,
+  Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { UserRole } from '@/types/auth'
@@ -45,6 +46,16 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Leads',
     path: '/leads',
     icon: Users2,
+    status: 'active',
+    allowedRoles: [],
+  },
+  {
+    // Campagnes de prospection (15/09/2026) : séquences mail + appels sur les leads,
+    // validées mail par mail avant envoi (spec 2026-09-15-campagnes-design.md).
+    id: 'campagnes',
+    label: 'Campagnes',
+    path: '/campagnes',
+    icon: Zap,
     status: 'active',
     allowedRoles: [],
   },

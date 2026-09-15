@@ -30,6 +30,8 @@ const HistoriquePage = lazy(() => import('@/modules/historique/HistoriquePage'))
 const PositionnementPage = lazy(() => import('@/modules/positionnement/PositionnementPage'))
 const AccueilPage = lazy(() => import('@/modules/accueil/AccueilPage'))
 const RoadmapProduitPage = lazy(() => import('@/modules/roadmap-produit/RoadmapProduitPage'))
+const CampagnesPage = lazy(() => import('@/modules/campagnes/CampagnesPage'))
+const CampagnePage = lazy(() => import('@/modules/campagnes/CampagnePage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -75,6 +77,22 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <ProspectionPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'campagnes',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CampagnesPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'campagnes/:id',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <CampagnePage />
           </Suspense>
         ),
       },

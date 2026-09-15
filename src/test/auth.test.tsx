@@ -46,8 +46,8 @@ describe('getRoleFromSession', () => {
 
 // ─── getNavForRole (nav v2 + Historique 21/08 + Accueil 22/08/2026) ───────────
 describe('getNavForRole', () => {
-  it('les 8 sections v2 sont visibles pour les deux rôles', () => {
-    const expected = ['accueil', 'leads', 'rdv', 'mail', 'financements', 'argent', 'bugs', 'historique']
+  it('les 10 sections v2 sont visibles pour les deux rôles', () => {
+    const expected = ['accueil', 'leads', 'campagnes', 'rdv', 'mail', 'financements', 'argent', 'bugs', 'positionnement', 'roadmap-produit']
     for (const role of ['admin_full', 'admin_bizdev'] as const) {
       const ids = getNavForRole(role).map((i) => i.id)
       expect(ids).toEqual(expected)
@@ -61,9 +61,9 @@ describe('getNavForRole', () => {
     }
   })
 
-  it('les 9 sections sont actives', () => {
+  it('les 10 sections sont actives', () => {
     const actives = getNavForRole('admin_full').filter((i) => i.status === 'active')
-    expect(actives.map((i) => i.id)).toEqual(['accueil', 'leads', 'rdv', 'mail', 'financements', 'argent', 'bugs', 'positionnement', 'roadmap-produit'])
+    expect(actives.map((i) => i.id)).toEqual(['accueil', 'leads', 'campagnes', 'rdv', 'mail', 'financements', 'argent', 'bugs', 'positionnement', 'roadmap-produit'])
   })
 })
 
