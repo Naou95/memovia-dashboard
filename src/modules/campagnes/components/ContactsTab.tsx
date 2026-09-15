@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useLeads } from '@/hooks/useLeads'
-import { currentStep } from '@/hooks/useCampaigns'
+import { currentStep, isProspect } from '@/hooks/useCampaigns'
 import type { UseCampaignResult, TickResult } from '@/hooks/useCampaigns'
 import type { CampaignMessage, CampaignStep, EnrollmentWithLead } from '@/types/campagnes'
 import { CALL_RESULT_LABELS, STOP_REASON_LABELS } from '@/types/campagnes'
@@ -54,7 +54,7 @@ function deriveRow(e: EnrollmentWithLead, steps: CampaignStep[], messages: Campa
   const step = currentStep(e, steps)
   let status: DerivedStatus
   if (e.status === 'done') status = 'Terminée'
-  else if (e.status === 'stopped') status = e.stop_reason === 'replied' ? 'A répondu' : e.stop_reason === 'refused' || e.stop_reason === 'lost' ? 'Refus' : 'En pause'
+  else if (e.status === 'stopped') status = e.stop_reason === 'replied' || e.stop_reason === 'interested' ? 'A répondu' : e.stop_reason === 'refused' || e.stop_reason === 'lost' ? 'Refus' : 'En pause'
   else if (own.length === 0) status = 'Pas lancée'
   else if (draft && new Date(draft.due_at).getTime() <= now) status = 'À revoir'
   else status = 'En attente'
@@ -84,7 +84,7 @@ function StepDots({ enrollment, steps }: { enrollment: EnrollmentWithLead; steps
         const cur = enrollment.current_position
         let cls = 'border-[var(--border-color)] bg-[var(--bg-secondary)]'
         if (enrollment.status === 'done' || p < cur) cls = 'border-[var(--memovia-violet)] bg-[var(--memovia-violet)]'
-        else if (enrollment.status === 'stopped') cls = p === cur && enrollment.stop_reason === 'replied' ? 'border-[var(--success)] bg-[var(--success)]' : 'border-[var(--border-color)] bg-[var(--border-color)]'
+        else if (enrollment.status === 'stopped') cls = p === cur && (enrollment.stop_reason === 'replied' || enrollment.stop_reason === 'interested') ? 'border-[var(--success)] bg-[var(--success)]' : 'border-[var(--border-color)] bg-[var(--border-color)]'
         else if (p === cur) cls = 'border-[var(--memovia-violet)] ring-[3px] ring-[var(--memovia-violet-light)] bg-[var(--bg-secondary)]'
         return <i key={s.id} className={cn('block h-2.5 w-2.5 rounded-full border-[1.5px]', cls)} />
       })}
@@ -101,7 +101,7 @@ function AddContactsDialog({ enrolledLeadIds, onClose, onConfirm }: { enrolledLe
 
   const q = query.trim().toLowerCase()
   const candidates = leads
-    .filter((l) => !l.archived && l.contact_email && !enrolledLeadIds.has(l.id))
+    .filter((l) => isProspect(l) && l.contact_email && !enrolledLeadIds.has(l.id))
     .filter((l) => !q || [l.name, l.contact_name, l.contact_email].some((v) => (v || '').toLowerCase().includes(q)))
 
   function toggle(id: string) {
@@ -131,7 +131,7 @@ function AddContactsDialog({ enrolledLeadIds, onClose, onConfirm }: { enrolledLe
               <button className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]" aria-label="Fermer"><X className="h-4 w-4" /></button>
             </Dialog.Close>
           </div>
-          <Dialog.Description className="mb-3 text-[13px] text-[var(--text-secondary)]">Leads avec un email, pas encore dans cette campagne.</Dialog.Description>
+          <Dialog.Description className="mb-3 text-[13px] text-[var(--text-secondary)]">Prospects (nouveau ou contacté) avec un email, pas encore dans cette campagne.</Dialog.Description>
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher un établissement, un contact, un email" className="mb-3" />
           <ul className="min-h-0 flex-1 divide-y divide-[var(--border-color)] overflow-y-auto rounded-lg border border-[var(--border-color)]">
             {isLoading && <li className="p-3 text-[13px] text-[var(--text-muted)]">Chargement…</li>}
@@ -191,7 +191,7 @@ export function ContactsTab({ data, onOpenReview }: ContactsTabProps) {
     setImporting(true)
     try {
       const r = await importCsv(await file.text())
-      toast.success(`${r.created} lead${r.created > 1 ? 's' : ''} créé${r.created > 1 ? 's' : ''}, ${r.reused} réutilisé${r.reused > 1 ? 's' : ''}, ${r.enrolled} inscrit${r.enrolled > 1 ? 's' : ''}${r.skipped ? `, ${r.skipped} ligne${r.skipped > 1 ? 's' : ''} sans email` : ''}.`)
+      toast.success(`${r.created} lead${r.created > 1 ? 's' : ''} créé${r.created > 1 ? 's' : ''}, ${r.reused} réutilisé${r.reused > 1 ? 's' : ''}, ${r.enrolled} inscrit${r.enrolled > 1 ? 's' : ''}${r.skipped ? `, ${r.skipped} ligne${r.skipped > 1 ? 's' : ''} sans email` : ''}${r.notProspect ? `, ${r.notProspect} déjà client ou en discussion, non inscrit${r.notProspect > 1 ? 's' : ''}` : ''}.`)
     } catch {
       toast.error("L'import a échoué.")
     } finally {

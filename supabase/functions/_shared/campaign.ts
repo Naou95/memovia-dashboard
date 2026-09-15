@@ -5,6 +5,7 @@
  */
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
+import { ImapFlow } from 'npm:imapflow'
 import {
   assembleBody,
   assembleSubject,
@@ -53,6 +54,7 @@ export interface EnrollmentRow {
 export interface LeadRow extends LeadLike {
   id: string
   status: string
+  archived: boolean | null
   maturity: string | null
   relance_count: number
   timeline: TimelineEntry[] | null
@@ -93,6 +95,15 @@ export interface EmailDraft {
 
 export function adminClient(): SupabaseClient {
   return createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+}
+
+/** Colonnes de leads lues par tick et send : une seule liste, pas deux qui divergent. */
+export const LEAD_COLUMNS =
+  'id, name, status, archived, maturity, relance_count, timeline, contact_name, contact_role, contact_email, notes, why, pitch, source'
+
+/** Seuls les leads « nouveau » ou « contacté », non archivés, reçoivent un mail de campagne. */
+export function isProspect(lead: { status: string; archived?: boolean | null }): boolean {
+  return (lead.status === 'nouveau' || lead.status === 'contacte') && !lead.archived
 }
 
 /** Date locale Paris au format YYYY-MM-DD (les leads stockent un DATE). */
@@ -325,4 +336,91 @@ export async function stopEnrollment(admin: SupabaseClient, enrollmentId: string
     .eq('enrollment_id', enrollmentId)
     .eq('status', 'draft')
   if (msgErr) throw new Error(`messages_skip_failed: ${msgErr.message}`)
+}
+
+// ── Réponses : IMAP Hostinger ──────────────────────────────────────────────────
+
+// Noms réels relevés par LIST le 15/09/2026 : séparateur « . », sous-dossiers de INBOX.
+export const REPLY_FOLDERS = ['INBOX', 'INBOX.Prospects-BizDev']
+
+export type ImapClient = InstanceType<typeof ImapFlow>
+
+export interface Reply {
+  subject: string
+}
+
+export function imapClient(): ImapClient | null {
+  const user = Deno.env.get('HOSTINGER_EMAIL')
+  const pass = Deno.env.get('HOSTINGER_IMAP_PASSWORD')
+  if (!user || !pass) return null
+  return new ImapFlow({ host: 'imap.hostinger.com', port: 993, secure: true, auth: { user, pass }, logger: false })
+}
+
+// Réponses automatiques (absence, congés, listes) : elles n'arrêtent pas la séquence.
+const AUTO_HEADERS = /auto-submitted:\s*auto-(replied|generated)|x-autore(ply|spond):|precedence:\s*(auto_reply|bulk|junk|list)/i
+const AUTO_SUBJECT = /(absence|absent|automatique|out of office|auto-?reply|cong[ée]s|vacances)/i
+
+/** Cherche, dossier par dossier, un vrai mail du contact reçu depuis le début de l'inscription. */
+export async function detectReplies(
+  client: ImapClient,
+  targets: { enrollment: EnrollmentRow; email: string }[],
+  errors: string[],
+): Promise<Map<string, Reply>> {
+  const found = new Map<string, Reply>()
+  for (const folder of REPLY_FOLDERS) {
+    let lock: { release(): void } | null = null
+    try {
+      lock = await client.getMailboxLock(folder)
+      for (const { enrollment, email } of targets) {
+        if (found.has(enrollment.id)) continue
+        const started = new Date(enrollment.started_at)
+        const uids = await client.search({ from: email, since: started }, { uid: true })
+        if (!Array.isArray(uids) || uids.length === 0) continue
+        // SINCE IMAP ne compare que la date : un mail du contact reçu le matin même, avant
+        // l'inscription, arrêterait la séquence. On revérifie l'heure, du plus récent au plus ancien.
+        for (const uid of [...uids].reverse().slice(0, 5)) {
+          const msg = await client.fetchOne(
+            String(uid),
+            { envelope: true, internalDate: true, headers: ['auto-submitted', 'x-autoreply', 'x-autorespond', 'precedence'] },
+            { uid: true },
+          )
+          const at = msg ? new Date(msg.internalDate ?? msg.envelope?.date ?? 0) : null
+          if (!msg || !at || at < started) continue
+          const subject = msg.envelope?.subject || ''
+          if (AUTO_HEADERS.test(msg.headers?.toString() || '') || AUTO_SUBJECT.test(subject)) continue
+          found.set(enrollment.id, { subject: subject || '(Sans objet)' })
+          break
+        }
+      }
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e)
+      console.error(`[campaign] IMAP ${folder}:`, m)
+      errors.push(`imap:${folder}:${m}`)
+    } finally {
+      lock?.release()
+    }
+  }
+  return found
+}
+
+/** Réponse reçue : séquence arrêtée, entrée « reçu » dans la timeline, lead réchauffé. */
+export async function recordReply(
+  admin: SupabaseClient,
+  enrollmentId: string,
+  lead: LeadRow,
+  campaignName: string,
+  reply: Reply,
+  now: Date,
+): Promise<void> {
+  await stopEnrollment(admin, enrollmentId, 'replied')
+  await appendTimeline(admin, lead.id, {
+    date: todayISO(now),
+    direction: 'reçu',
+    sujet: reply.subject,
+    résumé: `Réponse reçue, campagne « ${campaignName} » arrêtée`,
+  })
+  const patch: Record<string, string> = { maturity: 'chaud' }
+  if (lead.status === 'nouveau' || lead.status === 'contacte') patch.status = 'en_discussion'
+  const { error } = await admin.from('leads').update(patch).eq('id', lead.id)
+  if (error) throw new Error(`lead_update_failed: ${error.message}`)
 }

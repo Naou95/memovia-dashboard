@@ -125,6 +125,13 @@ export interface ImportResult {
   reused: number
   enrolled: number
   skipped: number
+  /** Lignes dont l'email est celui d'un lead qui n'est plus un prospect (client, perdu, en discussion, archivé). */
+  notProspect: number
+}
+
+/** Seuls les leads « nouveau » ou « contacté », non archivés, entrent dans une campagne. */
+export function isProspect(lead: { status: string; archived?: boolean | null }): boolean {
+  return (lead.status === 'nouveau' || lead.status === 'contacte') && !lead.archived
 }
 
 /** Envoi refusé par campaign-send : les contrôles bloquants à montrer. */
@@ -317,7 +324,14 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
       .from('campaign_enrollments')
       .insert(leadIds.map((lead_id) => ({ campaign_id: id, lead_id, status: 'active' as const, next_due_at: now })))
     if (sbError) throw sbError
-    return runTick()
+    // Les inscriptions existent : un tick en échec (Gemini lent, passerelle) n'est pas un échec
+    // d'ajout, le prochain Actualiser rattrapera les brouillons.
+    try {
+      return await runTick()
+    } catch {
+      await refresh()
+      return null
+    }
   }
 
   const importCsv = async (text: string): Promise<ImportResult> => {
@@ -325,18 +339,22 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
     const emails = contacts.map((c) => c.contact_email)
     // contact_email n'est pas dans le type généré de leads (comme useLeads) : on caste.
     const { data: existing, error: findError } = emails.length
-      ? await supabase.from('leads').select('id, contact_email').in('contact_email', emails)
+      ? await supabase.from('leads').select('id, contact_email, status, archived').in('contact_email', emails)
       : { data: [], error: null }
     if (findError) throw findError
-    const found = (existing || []) as unknown as { id: string; contact_email: string | null }[]
-    const byEmail = new Map(found.map((l) => [(l.contact_email || '').toLowerCase(), l.id]))
+    const found = (existing || []) as unknown as { id: string; contact_email: string | null; status: string; archived: boolean | null }[]
+    const byEmail = new Map(found.map((l) => [(l.contact_email || '').toLowerCase(), l]))
     const today = new Date().toLocaleDateString('fr-FR')
     const ids: string[] = []
     let created = 0
     let reused = 0
+    let notProspect = 0
     for (const c of contacts) {
       const found = byEmail.get(c.contact_email)
-      if (found) { ids.push(found); reused++; continue }
+      if (found) {
+        if (isProspect(found)) { ids.push(found.id); reused++ } else notProspect++
+        continue
+      }
       const insert = {
         name: c.name,
         type: 'cfa',
@@ -354,14 +372,14 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error: insertError } = await supabase.from('leads').insert(insert as any).select('id').single()
       if (insertError || !data) throw insertError || new Error('Insertion du lead impossible')
-      byEmail.set(c.contact_email, data.id)
+      byEmail.set(c.contact_email, { id: data.id, contact_email: c.contact_email, status: 'nouveau', archived: false })
       ids.push(data.id)
       created++
     }
     const already = new Set(enrollments.map((e) => e.lead_id))
     const toEnroll = [...new Set(ids)].filter((x) => !already.has(x))
     await enrollLeads(toEnroll)
-    return { created, reused, enrolled: toEnroll.length, skipped }
+    return { created, reused, enrolled: toEnroll.length, skipped, notProspect }
   }
 
   const sendMessage = async (messageId: string, subject: string, body: string): Promise<void> => {
@@ -371,8 +389,9 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
       try { payload = await fnError.context.json() } catch { /* corps illisible : on garde l'erreur brute */ }
     }
     if (payload?.error === 'blocked' && payload.checks) throw new SendBlockedError(payload.checks)
+    // Refus métier de l'edge (409 : a répondu, déjà en cours d'envoi…) : le code sert au message.
+    if (payload?.error) { await refresh(); throw new Error(payload.error) }
     if (fnError) throw fnError
-    if (payload?.error) throw new Error(payload.error)
     await refresh()
   }
 
@@ -382,7 +401,9 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
     const patch = next
       ? { current_position: next.position, next_due_at: inDays(new Date(), next.wait_days) }
       : { status: 'done' as const, stop_reason: 'finished' }
-    const { error: sbError } = await supabase.from('campaign_enrollments').update(patch).eq('id', enrollment.id)
+    // Garde : un onglet pas à jour n'avance pas deux fois la même inscription.
+    const { error: sbError } = await supabase
+      .from('campaign_enrollments').update(patch).eq('id', enrollment.id).eq('current_position', enrollment.current_position)
     if (sbError) throw sbError
   }
 
@@ -401,8 +422,10 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
 
   const skipMessage = async (messageId: string): Promise<void> => {
     const { enrollment } = requireMessage(messageId)
-    const { error: sbError } = await supabase.from('campaign_messages').update({ status: 'skipped' }).eq('id', messageId)
+    const { data: skipped, error: sbError } = await supabase
+      .from('campaign_messages').update({ status: 'skipped' }).eq('id', messageId).eq('status', 'draft').select('id')
     if (sbError) throw sbError
+    if (!skipped?.length) { await refresh(); throw new Error('message_not_sendable') }
     await advance(enrollment)
     await refresh()
   }
@@ -428,7 +451,8 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
   const resumeEnrollment = async (enrollmentId: string): Promise<void> => {
     const { error: sbError } = await supabase
       .from('campaign_enrollments')
-      .update({ status: 'active', stop_reason: null, next_due_at: new Date().toISOString() })
+      // started_at repart de maintenant : sinon le tick retrouve l'ancienne réponse et réarrête aussitôt.
+      .update({ status: 'active', stop_reason: null, next_due_at: new Date().toISOString(), started_at: new Date().toISOString() })
       .eq('id', enrollmentId)
     if (sbError) throw sbError
     await refresh()
@@ -436,14 +460,17 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
 
   const completeCall = async (messageId: string, outcome: CallResult, note: string): Promise<void> => {
     const { enrollment } = requireMessage(messageId)
-    const callOutcome: CallOutcome = outcome === 'pas_repondu' ? 'pas_repondu' : outcome === 'rappel' ? 'rappel' : 'repondu'
     const trimmed = note.trim()
+    // Garde d'abord : un onglet pas à jour ne rejoue pas un appel déjà enregistré ailleurs.
+    const msg = await supabase
+      .from('campaign_messages').update({ status: 'done', outcome, note: trimmed || null }).eq('id', messageId).eq('status', 'draft').select('id')
+    if (msg.error) throw msg.error
+    if (!msg.data?.length) { await refresh(); throw new Error('message_not_sendable') }
+
+    const callOutcome: CallOutcome = outcome === 'pas_repondu' ? 'pas_repondu' : outcome === 'rappel' ? 'rappel' : 'repondu'
     const callNote = outcome === 'refus' ? `Refus. ${trimmed}`.trim() : trimmed || null
     const call = await supabase.from('lead_calls').insert({ lead_id: enrollment.lead_id, outcome: callOutcome, note: callNote })
     if (call.error) throw call.error
-
-    const msg = await supabase.from('campaign_messages').update({ status: 'done', outcome, note: trimmed || null }).eq('id', messageId)
-    if (msg.error) throw msg.error
 
     const leadPatch: LeadUpdate = { last_contact_date: new Date().toISOString().slice(0, 10), canal: 'appel' }
     if (outcome === 'refus') leadPatch.status = 'perdu'
@@ -452,8 +479,10 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
     const lead = await supabase.from('leads').update(leadPatch as any).eq('id', enrollment.lead_id)
     if (lead.error) throw lead.error
 
-    if (outcome === 'refus') {
-      const e = await supabase.from('campaign_enrollments').update({ status: 'stopped', stop_reason: 'refused' }).eq('id', enrollment.id)
+    if (outcome === 'refus' || outcome === 'interesse') {
+      // Un intéressé sort de la séquence comme un refus : ni relance ni mail de clôture.
+      const e = await supabase
+        .from('campaign_enrollments').update({ status: 'stopped', stop_reason: outcome === 'refus' ? 'refused' : 'interested' }).eq('id', enrollment.id)
       if (e.error) throw e.error
       await skipDrafts(enrollment.id)
     } else if (outcome === 'rappel') {

@@ -1,19 +1,25 @@
 /**
  * campaign-send : envoie un brouillon validé à la revue.
  * POST { message_id, subject, body } ; objet et corps reçus remplacent ceux du brouillon.
+ * Refuse (409) ce qui ne doit pas partir : inscription arrêtée, étape dépassée, campagne en pause,
+ * lead qui n'est plus un prospect, envoi déjà en cours, contact qui a répondu entre-temps.
  * Revérifie les interdits (422 si bloquant), envoie par SMTP Hostinger dans le fil de
- * l'inscription, puis avance l'inscription et met à jour le lead.
+ * l'inscription, dépose la copie dans INBOX.Sent, puis avance l'inscription et met à jour le lead.
  */
 
 import nodemailer from 'npm:nodemailer'
-import { ImapFlow } from 'npm:imapflow'
 import { Buffer } from 'node:buffer'
 import { corsHeaders, errorResponse, validateAuth } from '../_shared/auth.ts'
 import { hasBlockingCheck, runChecks, stripAiMarks } from '../_shared/campaignText.ts'
 import {
+  LEAD_COLUMNS,
   adminClient,
   advanceEnrollment,
   appendTimeline,
+  detectReplies,
+  imapClient,
+  isProspect,
+  recordReply,
   todayISO,
   type CampaignRow,
   type EnrollmentRow,
@@ -21,6 +27,9 @@ import {
   type MessageRow,
   type StepRow,
 } from '../_shared/campaign.ts'
+
+// Une réservation plus vieille vient d'un appel mort en route : elle peut être reprise.
+const STALE_RESERVATION_MS = 5 * 60_000
 
 interface SendBody {
   message_id?: string
@@ -73,11 +82,7 @@ Deno.serve(async (req) => {
   if (!enrollment) return errorResponse('enrollment_not_found', 404)
 
   const [leadRes, campRes, stepsRes] = await Promise.all([
-    admin
-      .from('leads')
-      .select('id, name, status, maturity, relance_count, timeline, contact_name, contact_role, contact_email, notes, why, pitch, source')
-      .eq('id', enrollment.lead_id)
-      .maybeSingle(),
+    admin.from('leads').select(LEAD_COLUMNS).eq('id', enrollment.lead_id).maybeSingle(),
     admin.from('campaigns').select('id, name, status, sender_email').eq('id', enrollment.campaign_id).maybeSingle(),
     admin
       .from('campaign_steps')
@@ -89,7 +94,7 @@ Deno.serve(async (req) => {
     const m = (leadRes.error || campRes.error || stepsRes.error)?.message
     return errorResponse(`context_read_failed: ${m}`, 500)
   }
-  const lead = leadRes.data as LeadRow | null
+  const lead = leadRes.data as unknown as LeadRow | null
   const campaign = campRes.data as CampaignRow | null
   const steps = stepsRes.data as StepRow[]
   const step = steps.find((s) => s.id === message.step_id)
@@ -97,6 +102,15 @@ Deno.serve(async (req) => {
 
   const to = lead.contact_email?.trim()
   if (!to) return errorResponse('lead_without_email', 400)
+
+  // ── Gardes métier : on n'écrit qu'à une inscription active, à son étape, sur un prospect ──
+  const refusal =
+    enrollment.status !== 'active' ? 'enrollment_not_active'
+    : step.position !== enrollment.current_position ? 'step_not_current'
+    : campaign.status === 'paused' || campaign.status === 'archived' ? 'campaign_not_active'
+    : !isProspect(lead) ? 'lead_not_prospect'
+    : null
+  if (refusal) return errorResponse(refusal, 409)
 
   // ── Contrôles : un « ko » bloque ──
   const checks = runChecks({
@@ -111,6 +125,57 @@ Deno.serve(async (req) => {
       status: 422,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+  }
+
+  // ── Réservation atomique : un seul appel à la fois peut envoyer ce message ──
+  // Deux onglets, deux personnes ou un double envoi réseau : le second UPDATE ne trouve plus de
+  // ligne (Postgres réévalue le WHERE après le verrou) et repart en 409.
+  const staleBefore = new Date(Date.now() - STALE_RESERVATION_MS).toISOString()
+  const { data: reserved, error: resErr } = await admin
+    .from('campaign_messages')
+    .update({ validated_by: auth.user.id, error: null, updated_at: new Date().toISOString() })
+    .eq('id', message.id)
+    .eq('status', 'draft')
+    .or(`validated_by.is.null,updated_at.lt.${staleBefore}`)
+    .select('id')
+  if (resErr) return errorResponse(`reserve_failed: ${resErr.message}`, 500)
+  if (!reserved?.length) return errorResponse('already_sending', 409)
+  const release = async (reason: string) => {
+    await admin.from('campaign_messages').update({ validated_by: null, error: reason, updated_at: new Date().toISOString() }).eq('id', message.id)
+  }
+
+  // ── Dernière vérification de réponse, juste avant d'écrire ──
+  // Le tick ne passe qu'une fois par jour : une réponse de 8h ne doit pas laisser partir la relance de 10h.
+  // ponytail: IMAP en panne = envoi autorisé (le tick du lendemain rattrape), bloquer tout envoi si ça arrive souvent.
+  const imap = imapClient()
+  let imapReady = false
+  if (imap) {
+    try {
+      await imap.connect()
+      imapReady = true
+    } catch (e) {
+      console.error('[campaign-send] IMAP indisponible:', e instanceof Error ? e.message : e)
+    }
+  }
+  const closeImap = async () => {
+    if (!imapReady) return
+    try { await imap!.logout() } catch { /* ignore */ }
+    imapReady = false
+  }
+  if (imapReady) {
+    const detectErrors: string[] = []
+    const reply = (await detectReplies(imap!, [{ enrollment, email: to }], detectErrors)).get(enrollment.id)
+    if (detectErrors.length) console.error('[campaign-send] détection:', detectErrors.join(' | '))
+    if (reply) {
+      await closeImap()
+      await release('contact_replied')
+      try {
+        await recordReply(admin, enrollment.id, lead, campaign.name, reply, new Date())
+      } catch (e) {
+        console.error('[campaign-send] réponse non consignée:', e instanceof Error ? e.message : e)
+      }
+      return errorResponse('contact_replied', 409)
+    }
   }
 
   // ── Envoi ──
@@ -142,11 +207,12 @@ Deno.serve(async (req) => {
   } catch (err) {
     const m = err instanceof Error ? err.message : String(err)
     console.error('[campaign-send] SMTP:', m)
-    await admin.from('campaign_messages').update({ error: m, updated_at: new Date().toISOString() }).eq('id', message.id)
+    await closeImap()
+    await release(m)
     return errorResponse('smtp_send_failed', 503)
   }
 
-  // ── Après envoi : message, inscription, lead ──
+  // ── Après envoi : message, copie Sent, inscription, lead ──
   // Le mail est parti : chaque écriture qui suit est loguée mais ne fait plus échouer l'appel.
   const now = new Date()
   const errors: string[] = []
@@ -166,20 +232,15 @@ Deno.serve(async (req) => {
     .eq('id', message.id)
   if (updMsgErr) errors.push(`message_update_failed: ${updMsgErr.message}`)
 
-  const imap = new ImapFlow({
-    host: 'imap.hostinger.com',
-    port: 993,
-    secure: true,
-    auth: { user: smtpUser, pass: Deno.env.get('HOSTINGER_IMAP_PASSWORD') || smtpPassword },
-    logger: false,
-  })
-  try {
-    await imap.connect()
-    await imap.append('INBOX.Sent', raw, ['\\Seen'], now)
-    await imap.logout()
-  } catch (e) {
-    try { await imap.logout() } catch { /* ignore */ }
-    errors.push(`sent_append_failed: ${e instanceof Error ? e.message : String(e)}`)
+  if (imapReady) {
+    try {
+      await imap!.append('INBOX.Sent', raw, ['\\Seen'], now)
+    } catch (e) {
+      errors.push(`sent_append_failed: ${e instanceof Error ? e.message : String(e)}`)
+    }
+    await closeImap()
+  } else {
+    errors.push('sent_append_skipped: imap indisponible')
   }
 
   let current = enrollment

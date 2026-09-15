@@ -103,6 +103,8 @@ export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
 
 export const STOP_REASON_LABELS: Record<string, string> = {
   replied: 'A répondu',
+  interested: 'Intéressé à l\'appel',
+  lead_moved: 'Lead sorti de la prospection',
   refused: 'Refus à l\'appel',
   lost: 'Lead perdu',
   manual: 'Arrêtée à la main',

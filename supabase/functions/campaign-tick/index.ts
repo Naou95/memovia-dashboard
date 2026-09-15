@@ -1,41 +1,40 @@
 /**
  * campaign-tick : cron quotidien (00054) ou bouton manuel.
- * Pour chaque inscription active : arrêt si lead perdu, arrêt si réponse reçue (IMAP),
- * sinon création du brouillon de l'étape due (mail via Gemini, appel = tâche).
+ * Pour chaque inscription active : arrêt si réponse reçue (IMAP), arrêt si le lead n'est plus un
+ * prospect, sinon création du brouillon de l'étape due (mail via Gemini, appel = tâche).
  * Corps optionnel : { campaign_id?: string, enrollment_ids?: string[] }.
  * Sans campaign_id, seules les campagnes 'live' sont traitées ; avec, la campagne est
  * traitée quel que soit son statut (permet de préparer les brouillons d'un brouillon de campagne).
  */
 
-import { ImapFlow } from 'npm:imapflow'
 import { corsHeaders, errorResponse, validateAuth } from '../_shared/auth.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 import { leadFacts } from '../_shared/campaignText.ts'
 import {
+  LEAD_COLUMNS,
   adminClient,
-  appendTimeline,
+  advanceEnrollment,
+  detectReplies,
   generateEmailDraft,
+  imapClient,
+  isProspect,
+  recordReply,
   stopEnrollment,
-  todayISO,
   type CampaignRow,
   type EnrollmentRow,
   type LeadRow,
   type MessageRow,
+  type Reply,
   type StepRow,
 } from '../_shared/campaign.ts'
 
-// ponytail: budget porté par la réponse HTTP ; si la gateway coupe avant (150 s constatés sur
-// email-lead-detector), passer en 202 + EdgeRuntime.waitUntil comme lui.
-const GLOBAL_TIMEOUT_MS = 300_000
-const REPLY_FOLDERS = ['INBOX', 'Prospects-BizDev']
+// Sous les ~150 s de la passerelle (coupure constatée sur email-lead-detector) : le run s'arrête
+// proprement et rend ses stats, le reste passe au tick suivant.
+const GLOBAL_TIMEOUT_MS = 120_000
 
 interface TickBody {
   campaign_id?: string
   enrollment_ids?: string[]
-}
-
-interface Reply {
-  subject: string
 }
 
 interface Stats {
@@ -44,46 +43,6 @@ interface Stats {
   drafts_created: number
   stopped: number
   errors: string[]
-}
-
-type ImapClient = InstanceType<typeof ImapFlow>
-
-/** Cherche, dossier par dossier, un mail du contact reçu depuis le début de l'inscription. */
-async function detectReplies(
-  client: ImapClient,
-  targets: { enrollment: EnrollmentRow; email: string }[],
-  errors: string[],
-): Promise<Map<string, Reply>> {
-  const found = new Map<string, Reply>()
-  for (const folder of REPLY_FOLDERS) {
-    let lock: { release(): void } | null = null
-    try {
-      lock = await client.getMailboxLock(folder)
-      for (const { enrollment, email } of targets) {
-        if (found.has(enrollment.id)) continue
-        const started = new Date(enrollment.started_at)
-        const uids = await client.search({ from: email, since: started }, { uid: true })
-        if (!Array.isArray(uids) || uids.length === 0) continue
-        // SINCE IMAP ne compare que la date : un mail du contact reçu le matin même, avant
-        // l'inscription, arrêterait la séquence. On revérifie l'heure, du plus récent au plus ancien.
-        for (const uid of [...uids].reverse().slice(0, 5)) {
-          const msg = await client.fetchOne(String(uid), { envelope: true, internalDate: true }, { uid: true })
-          const at = msg ? new Date(msg.internalDate ?? msg.envelope?.date ?? 0) : null
-          if (!msg || !at || at < started) continue
-          found.set(enrollment.id, { subject: msg.envelope?.subject || '(Sans objet)' })
-          break
-        }
-      }
-    } catch (e) {
-      // Prospects-BizDev peut manquer : on logue sans bloquer.
-      const m = e instanceof Error ? e.message : String(e)
-      console.error(`[campaign-tick] IMAP ${folder}:`, m)
-      if (folder === 'INBOX') errors.push(`imap:${folder}:${m}`)
-    } finally {
-      lock?.release()
-    }
-  }
-  return found
 }
 
 Deno.serve(async (req) => {
@@ -139,12 +98,9 @@ Deno.serve(async (req) => {
   if (enrollments.length === 0) return Response.json(stats, { headers: corsHeaders })
 
   const leadIds = [...new Set(enrollments.map((e) => e.lead_id))]
-  const { data: leadsData, error: leadsErr } = await admin
-    .from('leads')
-    .select('id, name, status, maturity, relance_count, timeline, contact_name, contact_role, contact_email, notes, why, pitch, source')
-    .in('id', leadIds)
+  const { data: leadsData, error: leadsErr } = await admin.from('leads').select(LEAD_COLUMNS).in('id', leadIds)
   if (leadsErr) return errorResponse(`leads_read_failed: ${leadsErr.message}`, 500)
-  const leads = new Map((leadsData as LeadRow[]).map((l) => [l.id, l]))
+  const leads = new Map((leadsData as unknown as LeadRow[]).map((l) => [l.id, l]))
 
   const { data: msgData, error: msgErr } = await admin
     .from('campaign_messages')
@@ -161,16 +117,8 @@ Deno.serve(async (req) => {
     return email ? [{ enrollment, email }] : []
   })
   let replies = new Map<string, Reply>()
-  const imapUser = Deno.env.get('HOSTINGER_EMAIL')
-  const imapPass = Deno.env.get('HOSTINGER_IMAP_PASSWORD')
-  if (targets.length > 0 && imapUser && imapPass) {
-    const client = new ImapFlow({
-      host: 'imap.hostinger.com',
-      port: 993,
-      secure: true,
-      auth: { user: imapUser, pass: imapPass },
-      logger: false,
-    })
+  const client = targets.length > 0 ? imapClient() : null
+  if (client) {
     try {
       await client.connect()
       replies = await detectReplies(client, targets, stats.errors)
@@ -200,28 +148,18 @@ Deno.serve(async (req) => {
         continue
       }
 
-      // a. Lead perdu
-      if (lead.status === 'perdu') {
-        await stopEnrollment(admin, enrollment.id, 'lost')
+      // a. Réponse reçue : d'abord, pour qu'elle entre dans la timeline même si le lead a bougé.
+      const reply = replies.get(enrollment.id)
+      if (reply) {
+        await recordReply(admin, enrollment.id, lead, campaign.name, reply, now)
+        stats.replies_detected++
         stats.stopped++
         continue
       }
 
-      // b. Réponse reçue
-      const reply = replies.get(enrollment.id)
-      if (reply) {
-        await stopEnrollment(admin, enrollment.id, 'replied')
-        await appendTimeline(admin, lead.id, {
-          date: todayISO(now),
-          direction: 'reçu',
-          sujet: reply.subject,
-          résumé: `Réponse reçue, campagne « ${campaign.name} » arrêtée`,
-        })
-        const patch: Record<string, string> = { maturity: 'chaud' }
-        if (lead.status === 'nouveau' || lead.status === 'contacte') patch.status = 'en_discussion'
-        const { error } = await admin.from('leads').update(patch).eq('id', lead.id)
-        if (error) throw new Error(`lead_update_failed: ${error.message}`)
-        stats.replies_detected++
+      // b. Lead sorti de la prospection (perdu, en discussion, client, archivé) : plus aucun envoi.
+      if (!isProspect(lead)) {
+        await stopEnrollment(admin, enrollment.id, lead.status === 'perdu' ? 'lost' : 'lead_moved')
         stats.stopped++
         continue
       }
@@ -238,33 +176,30 @@ Deno.serve(async (req) => {
       }
       const own = messages.filter((m) => m.enrollment_id === enrollment.id)
       if (own.some((m) => m.step_id === step.id && m.status === 'draft')) continue
-
-      if (step.kind === 'email') {
-        const previous = own.find((m) => m.kind === 'email' && m.status === 'sent') ?? null
-        const draft = await generateEmailDraft({ step, lead, previous, campaign, enrollment })
-        const { error } = await admin.from('campaign_messages').insert({
-          enrollment_id: enrollment.id,
-          step_id: step.id,
-          kind: 'email',
-          status: 'draft',
-          subject: draft.subject,
-          body: draft.body,
-          checks: draft.checks,
-          context: draft.context,
-          due_at: enrollment.next_due_at,
-        })
-        if (error) throw new Error(`draft_insert_failed: ${error.message}`)
-      } else {
-        const { error } = await admin.from('campaign_messages').insert({
-          enrollment_id: enrollment.id,
-          step_id: step.id,
-          kind: 'call',
-          status: 'draft',
-          context: { script: step.ai_brief, facts: leadFacts(lead) },
-          due_at: enrollment.next_due_at,
-        })
-        if (error) throw new Error(`call_insert_failed: ${error.message}`)
+      // Mail parti mais inscription pas avancée (écriture perdue après l'envoi) : on avance, jamais
+      // on ne régénère, sinon le même mail repartirait.
+      if (own.some((m) => m.step_id === step.id && m.status === 'sent')) {
+        await advanceEnrollment(admin, enrollment, steps, now)
+        continue
       }
+
+      const row = step.kind === 'email'
+        ? await (async () => {
+            const previous = own.find((m) => m.kind === 'email' && m.status === 'sent') ?? null
+            const draft = await generateEmailDraft({ step, lead, previous, campaign, enrollment })
+            return { kind: 'email', subject: draft.subject, body: draft.body, checks: draft.checks, context: draft.context }
+          })()
+        : { kind: 'call', context: { script: step.ai_brief, facts: leadFacts(lead) } }
+      const { error } = await admin.from('campaign_messages').insert({
+        enrollment_id: enrollment.id,
+        step_id: step.id,
+        status: 'draft',
+        due_at: enrollment.next_due_at,
+        ...row,
+      })
+      // 23505 : un autre run (cron et bouton en même temps) a créé ce brouillon juste avant (index 00055).
+      if (error?.code === '23505') continue
+      if (error) throw new Error(`draft_insert_failed: ${error.message}`)
       stats.drafts_created++
     } catch (e) {
       const m = e instanceof Error ? e.message : String(e)

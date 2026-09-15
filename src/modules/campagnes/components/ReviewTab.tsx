@@ -24,6 +24,17 @@ interface ReviewTabProps {
 
 const AI_YELLOW = '#FFF4C2'
 
+/** Refus métier renvoyés par campaign-send (409) ou par les gardes du front. Rien n'est parti. */
+const SEND_REFUSALS: Record<string, string> = {
+  contact_replied: "Le contact a répondu entre-temps : séquence arrêtée, rien n'est parti.",
+  already_sending: "Ce mail est déjà en cours d'envoi (autre onglet ou autre personne).",
+  enrollment_not_active: "Séquence arrêtée pour ce contact : rien n'est parti.",
+  step_not_current: "Cette étape n'est plus celle du contact : rien n'est parti.",
+  campaign_not_active: "Campagne en pause ou archivée : rien n'est parti.",
+  lead_not_prospect: "Ce lead n'est plus un prospect (client, perdu, en discussion ou archivé) : rien n'est parti.",
+  message_not_sendable: 'Déjà traité ailleurs : la file est rechargée.',
+}
+
 const CALL_ICONS: Record<CallResult, typeof PhoneIncoming> = {
   joint: PhoneIncoming,
   pas_repondu: PhoneMissed,
@@ -135,7 +146,7 @@ export function ReviewTab({ data, campaign, initialMessageId }: ReviewTabProps) 
         setBlocked(err.checks)
         toast.error(`Envoi bloqué : ${err.checks.map((c) => c.label).join(' · ')}`)
       } else {
-        toast.error("L'envoi a échoué.")
+        toast.error(SEND_REFUSALS[err instanceof Error ? err.message : ''] || "L'envoi a échoué.")
       }
     } finally {
       setBusy(false)
@@ -150,8 +161,8 @@ export function ReviewTab({ data, campaign, initialMessageId }: ReviewTabProps) 
       if (action === 'skip') { await skipMessage(selected.id); toast.success('Étape sautée.') }
       if (action === 'stop') { await stopEnrollment(selected.enrollment.id); toast.success(`Séquence arrêtée pour ${selected.enrollment.lead.name}.`) }
       goNext(selected.id)
-    } catch {
-      toast.error('Action impossible.')
+    } catch (err) {
+      toast.error(SEND_REFUSALS[err instanceof Error ? err.message : ''] || 'Action impossible.')
     } finally {
       setBusy(false)
     }
@@ -164,8 +175,8 @@ export function ReviewTab({ data, campaign, initialMessageId }: ReviewTabProps) 
       await completeCall(selected.id, outcome, note)
       toast.success('Appel enregistré.')
       goNext(selected.id)
-    } catch {
-      toast.error("Impossible d'enregistrer l'appel.")
+    } catch (err) {
+      toast.error(SEND_REFUSALS[err instanceof Error ? err.message : ''] || "Impossible d'enregistrer l'appel.")
     } finally {
       setBusy(false)
     }
@@ -226,7 +237,7 @@ export function ReviewTab({ data, campaign, initialMessageId }: ReviewTabProps) 
         {!selected ? (
           <div className="px-8 py-20 text-center">
             <p className="text-[18px] font-semibold text-[var(--text-primary)]">Tout est validé.</p>
-            <p className="mt-1 text-[13px] text-[var(--text-muted)]">Les brouillons apparaissent ici à chaque actualisation (cron à 7h, ou le bouton Actualiser).</p>
+            <p className="mt-1 text-[13px] text-[var(--text-muted)]">Les brouillons apparaissent ici à chaque actualisation (chaque matin de semaine, ou le bouton Actualiser).</p>
           </div>
         ) : (
           <>

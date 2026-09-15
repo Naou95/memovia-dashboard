@@ -581,6 +581,7 @@ export interface Database {
           current_position?: number
           next_due_at?: string
           stop_reason?: string | null
+          started_at?: string
           thread_message_id?: string | null
           thread_subject?: string | null
           updated_at?: string
