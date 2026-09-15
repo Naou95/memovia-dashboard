@@ -7,11 +7,11 @@ Repo séparé de app.memovia.io. Ne jamais modifier le code de la plateforme pri
 ## Stack technique
 - **Frontend** : React + TypeScript + Vite
 - **UI** : Tailwind CSS + shadcn/ui
-- **Backend/DB** : Supabase (projet existant : mzjzwffpqubpruyaaxew)
+- **Backend/DB** : Supabase (projet existant : mzjzwffpqubpruyaaxew, partagé avec app.memovia.io)
 - **Auth** : Supabase Auth (email/password + magic link)
 - **Realtime** : Supabase Realtime
 - **Edge Functions** : Supabase Edge Functions (Deno/TypeScript)
-- **Déploiement** : Vercel
+- **Déploiement** : **Vercel** (pas Cloudflare, contrairement aux autres sites MEMOVIA). Merge sur `main` = déploiement prod en ~1 min.
 
 ## Règles absolues
 1. Ne jamais écrire de clé API ou secret en dur dans le code — toujours `.env.local`
@@ -20,42 +20,82 @@ Repo séparé de app.memovia.io. Ne jamais modifier le code de la plateforme pri
 4. Chaque Edge Function doit valider l'authentification avant d'exécuter quoi que ce soit
 5. Commits atomiques et descriptifs en français
 6. Tests sur chaque module avant de passer au suivant
+7. **Jamais un mail réel à un prospect pendant un test** : tout test d'envoi vise une adresse de l'équipe
 
 ## Variables d'environnement requises
 Voir `.env.example` pour la liste complète. Créer `.env.local` avec les vraies valeurs.
 Ne jamais committer `.env.local` (déjà dans `.gitignore`).
 
-## Structure des dossiers
-```
-src/
-  components/     → composants réutilisables
-  modules/        → un dossier par module (stripe/, qonto/, crm/, etc.)
-  lib/            → clients API (supabase.ts, stripe.ts, qonto.ts...)
-  hooks/          → custom hooks React
-  types/          → types TypeScript globaux
-supabase/
-  functions/      → Edge Functions
-  migrations/     → migrations SQL
-public/
-  assets/         → logos MEMOVIA (SVG/PNG fond transparent)
+## Plan courant
+
+Le plan qui fait foi est `REFONT_PLAN.md` (refonte v2 : 5 sections + accueil).
+
+## Commandes
+
+```bash
+npm run dev                 # dev local
+npx tsc -b                  # typecheck
+npm run build               # tsc + vite build
+npx vitest run src/test/CampaignText.test.ts src/test/CampaignCsv.test.ts   # tests du module Campagnes
+# Edge functions : vérifier puis déployer UNE PAR UNE, jamais en parallèle
+deno check --node-modules-dir=none supabase/functions/<nom>/index.ts
+npx supabase functions deploy <nom> --project-ref mzjzwffpqubpruyaaxew --no-verify-jwt
 ```
 
-## Modules à construire (dans cet ordre)
-1. Auth + Layout général (sidebar, navigation)
-2. Overview (métriques clés temps réel)
-3. Stripe & Finance
-4. Qonto Trésorerie
-5. Contrats B2B
-6. Prospection / CRM
-7. Tâches intelligentes (Kanban + suggestions IA)
-8. Calendrier partagé (Google Calendar + Outlook)
-9. Utilisateurs MEMOVIA (lecture DB existante)
-10. Realtime (connexions live sur app.memovia.io)
-11. Roadmap & Feedback utilisateurs
-12. Email Hostinger (IMAP/SMTP via Edge Function)
-13. GitHub
-14. SEO & Blog (génération IA + DataForSEO)
-15. Copilote IA (agent avec accès à tous les modules)
+Des tests préexistants échouent hors du module Campagnes (ContractsPage, KpiCard, LoginPage, OverviewPage,
+QontoPage) : comparer à `main` avant de conclure qu'on a cassé quelque chose.
+
+## Module Campagnes (`/campagnes`)
+
+Séquences de prospection mail + appels façon Lemlist, sur les `leads` existants. Spec :
+`docs/superpowers/specs/2026-09-15-campagnes-design.md`.
+
+**Principe non négociable : rien ne part sans validation humaine.** L'IA prépare des brouillons, un humain
+clique « Valider et envoyer » dans l'onglet Revue, relances comprises.
+
+| Pièce | Où |
+|---|---|
+| Tables `campaigns`, `campaign_steps`, `campaign_enrollments`, `campaign_messages`, cron `campaign-tick-daily` (05:00 UTC lun-ven) | `supabase/migrations/00054_campagnes.sql` |
+| Un seul message vivant par étape d'une inscription (index unique anti double envoi) | `supabase/migrations/00055_campagnes_un_message_par_etape.sql` |
+| Assemblage des modèles (`{{civilité}}`, `{{nom}}`, `{{IA: consigne}}`, `{{signature}}`, `{{rgpd}}`), zones IA entre `[[ ]]`, contrôles et interdits | `supabase/functions/_shared/campaignText.ts` (logique pure, testée) |
+| Gemini, IMAP (détection de réponse), avancer / arrêter une inscription | `supabase/functions/_shared/campaign.ts` |
+| Préparer les brouillons dus, arrêter si réponse ou lead perdu | `supabase/functions/campaign-tick/index.ts` (cron ou bouton Actualiser) |
+| Envoyer un message validé (SMTP Hostinger, dans le fil) | `supabase/functions/campaign-send/index.ts` |
+| Front : liste, page campagne à 4 onglets (Séquence, Contacts, Revue, Rapports) | `src/modules/campagnes/`, hook `src/hooks/useCampaigns.ts`, import CSV `src/lib/campaignCsv.ts` |
+
+Comportements à connaître avant de toucher :
+- Le cron ne traite que les campagnes au statut `live`. Une campagne `draft` ne prépare rien seule ; le bouton
+  Actualiser marche quel que soit le statut.
+- Seuls les leads encore prospects (ni client, ni perdu, ni archivé) peuvent entrer dans une campagne, par l'ajout
+  comme par le CSV.
+- Une séquence s'arrête seule : réponse du contact détectée dans la boîte, issue d'appel « Refus » ou « Intéressé »,
+  lead passé perdu. Les réponses automatiques (absence) ne comptent pas.
+- `campaign-send` revérifie tout juste avant d'envoyer (inscription arrêtée, étape dépassée, campagne en pause, lead
+  plus prospect, réponse arrivée entre-temps) et répond 409 si un envoi n'a plus lieu d'être. Il réserve le message
+  avant le SMTP : ne pas retirer cette réservation, c'est elle qui empêche deux onglets d'envoyer le même mail.
+- `campaign-tick` et `campaign-send` sont déployées `--no-verify-jwt` mais valident l'auth elles-mêmes
+  (`validateAuth`, ou secret cron pour le tick). Test négatif attendu : 401 sans jeton ou avec la clé anon.
+- Gemini tourne avec `thinkingBudget: 0` (sans lui, 500 intermittents). Si Gemini échoue, le brouillon est quand
+  même créé avec un avertissement « zones à écrire à la main ».
+- Le brouillon d'un appel n'avance pas l'inscription côté edge : c'est l'issue d'appel saisie dans le front qui
+  avance ou arrête.
+
+## Pièges
+
+- **Boîte mail Hostinger** : `emir@memovia.io` est une identité de la boîte `naoufel@memovia.io`, pas une boîte à
+  part. Les dossiers IMAP portent le préfixe `INBOX.` (`INBOX.Prospects-BizDev`, `INBOX.Sent`) : un nom sans
+  préfixe échoue, et si l'erreur est avalée la détection lit un dossier en moins sans rien dire.
+- **Un envoi SMTP n'arrive jamais tout seul dans `INBOX.Sent`** : tout code qui envoie doit y copier le message brut
+  (`campaign-send` le fait). Seul `INBOX.Sent` prouve qu'un mail est parti.
+- **Vercel Security Checkpoint** : une boucle de `curl` sur dashboard.memovia.io bloque l'IP (403) pendant plus de
+  10 min. Pour prouver un déploiement : `gh api "repos/Naou95/memovia-dashboard/deployments?sha=<sha>"`, jamais une
+  boucle.
+- **QA navigateur** : `npm run build` + `npx vite preview --port 4173`, login par le vrai formulaire (injecter une
+  session en localStorage ne marche pas), Playwright avec `chromium.launch({ channel: 'chrome' })`. Écrire le script
+  dans le dépôt (depuis un autre dossier, `playwright` est introuvable) et le supprimer après.
+- **Migrations** : appliquées sur la base de prod partagée avec l'app. Relire en SQL après application (tables,
+  RLS, droits anon, cron). Une table n'émet du realtime que si elle est dans la publication `supabase_realtime`.
+- **Pile de PR** : recibler vers `main` avant de merger, sinon elles mergent dans leur branche de base.
 
 ## Skills installés
 - gstack : /office-hours, /plan-ceo-review, /plan-eng-review, /review, /qa, /ship, /retro, /autoplan
@@ -73,6 +113,10 @@ Avant de coder un nouveau module :
 4. /qa sur le rendu
 5. /review sur le code
 6. Commit propre
+
+Pour un changement qui envoie des mails, touche la base ou déploie une edge function, ajouter : test réel sur une
+adresse de l'équipe vérifié en base et dans `INBOX.Sent`, puis une relecture qui cherche à casser le changement
+(double envoi, garde manquante, cas négatif) avant le merge.
 
 ## Skill routing
 
