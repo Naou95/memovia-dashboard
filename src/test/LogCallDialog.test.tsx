@@ -7,6 +7,8 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { LogCallDialog } from '@/modules/prospection/components/LogCallDialog'
 import type { Lead } from '@/types/leads'
+import { CALL_RESULTS, CALL_RESULT_LABELS } from '@/types/leads'
+import { CALL_RESULT_LABELS as CAMPAIGN_LABELS } from '@/types/campagnes'
 
 const lead = {
   id: 'lead-1',
@@ -27,13 +29,13 @@ describe('LogCallDialog', () => {
     const user = userEvent.setup()
     render(<LogCallDialog lead={lead} onClose={onClose} onSubmit={onSubmit} />)
 
-    await user.click(screen.getByRole('radio', { name: 'Répondu' }))
+    await user.click(screen.getByRole('radio', { name: 'Intéressé' }))
     await user.type(screen.getByLabelText(/note/i), 'veut une démo')
     await user.click(screen.getByRole('button', { name: /logger l'appel/i }))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith('lead-1', {
-        outcome: 'repondu',
+        outcome: 'interesse',
         note: 'veut une démo',
         nextAction: undefined,
         followUpDate: undefined,
@@ -48,10 +50,22 @@ describe('LogCallDialog', () => {
     const user = userEvent.setup()
     render(<LogCallDialog lead={lead} onClose={onClose} onSubmit={onSubmit} />)
 
-    await user.click(screen.getByRole('radio', { name: 'Pas de réponse' }))
+    await user.click(screen.getByRole('radio', { name: 'Pas répondu' }))
     await user.click(screen.getByRole('button', { name: /logger l'appel/i }))
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('propose les 5 issues de la Revue des campagnes, et plus « Répondu »', () => {
+    render(<LogCallDialog lead={lead} onClose={() => {}} onSubmit={vi.fn()} />)
+    const labels = screen.getAllByRole('radio').map((r) => r.textContent)
+    expect(labels).toEqual(CALL_RESULTS.map((o) => CALL_RESULT_LABELS[o]))
+    expect(labels).toEqual(['Joint', 'Pas répondu', 'Rappel demandé', 'Refus', 'Intéressé'])
+    expect(screen.queryByRole('radio', { name: /^Répondu/ })).toBeNull()
+  })
+
+  it('une seule liste d’issues pour Leads et Campagnes', () => {
+    expect(CAMPAIGN_LABELS).toBe(CALL_RESULT_LABELS)
   })
 })

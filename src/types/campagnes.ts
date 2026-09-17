@@ -1,14 +1,17 @@
 // Campagnes de prospection (spec docs/superpowers/specs/2026-09-15-campagnes-design.md).
 // Les contacts d'une campagne sont les leads (src/types/leads.ts) : pas de seconde liste.
 
-import type { Lead } from './leads'
+import type { Lead, CallResult } from './leads'
 
 export type CampaignStatus = 'draft' | 'live' | 'paused' | 'archived'
 export type StepKind = 'email' | 'call' | 'stop'
 export type EnrollmentStatus = 'active' | 'stopped' | 'done'
 export type MessageKind = 'email' | 'call'
 export type MessageStatus = 'draft' | 'sent' | 'done' | 'skipped'
-export type CallResult = 'joint' | 'pas_repondu' | 'rappel' | 'refus' | 'interesse'
+// Les issues d'appel vivent dans types/leads.ts (une seule liste pour tout le dashboard) ;
+// ré-exportées ici pour que les imports existants de la Revue ne bougent pas.
+export type { CallResult } from './leads'
+export { CALL_RESULT_LABELS } from './leads'
 
 export interface Campaign {
   id: string
@@ -112,10 +115,3 @@ export const STOP_REASON_LABELS: Record<string, string> = {
   stop: 'STOP demandé',
 }
 
-export const CALL_RESULT_LABELS: Record<CallResult, string> = {
-  joint: 'Joint',
-  pas_repondu: 'Pas répondu',
-  rappel: 'Rappel demandé',
-  refus: 'Refus',
-  interesse: 'Intéressé',
-}

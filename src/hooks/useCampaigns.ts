@@ -12,7 +12,7 @@ import type {
   MessageCheck,
   CallResult,
 } from '@/types/campagnes'
-import type { LeadUpdate, CallOutcome } from '@/types/leads'
+import type { LeadUpdate } from '@/types/leads'
 
 const DAY_MS = 86_400_000
 const TEMPLATE_CAMPAIGN_NAME = 'CFA · référent handicap'
@@ -461,16 +461,32 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
   const completeCall = async (messageId: string, outcome: CallResult, note: string): Promise<void> => {
     const { enrollment } = requireMessage(messageId)
     const trimmed = note.trim()
-    // Garde d'abord : un onglet pas à jour ne rejoue pas un appel déjà enregistré ailleurs.
+    // L'APPEL D'ABORD, le message ensuite. Dans l'autre sens, un insert refusé laissait le message
+    // « fait » sans aucun appel en base, et la garde `status = 'draft'` interdisait tout nouvel essai :
+    // l'appel n'était plus enregistrable depuis l'écran. Ici, un échec ne laisse rien derrière lui.
+    // L'issue s'écrit telle quelle (00056 a élargi la contrainte) : avant, joint, refus et intéressé
+    // devenaient tous « repondu », indiscernables ensuite. campaign_message_id relie l'appel à son
+    // message, et l'index unique lead_calls_one_per_message refuse un second enregistrement du même
+    // message (deux onglets, double clic) : c'est lui la garde contre le doublon.
+    const call = await supabase
+      .from('lead_calls')
+      .insert({ lead_id: enrollment.lead_id, outcome, note: trimmed || null, campaign_message_id: messageId })
+      .select('id')
+      .single()
+    if (call.error) {
+      if (call.error.code === '23505') { await refresh(); throw new Error('message_not_sendable') }
+      throw call.error
+    }
+
     const msg = await supabase
       .from('campaign_messages').update({ status: 'done', outcome, note: trimmed || null }).eq('id', messageId).eq('status', 'draft').select('id')
-    if (msg.error) throw msg.error
-    if (!msg.data?.length) { await refresh(); throw new Error('message_not_sendable') }
-
-    const callOutcome: CallOutcome = outcome === 'pas_repondu' ? 'pas_repondu' : outcome === 'rappel' ? 'rappel' : 'repondu'
-    const callNote = outcome === 'refus' ? `Refus. ${trimmed}`.trim() : trimmed || null
-    const call = await supabase.from('lead_calls').insert({ lead_id: enrollment.lead_id, outcome: callOutcome, note: callNote })
-    if (call.error) throw call.error
+    if (msg.error || !msg.data?.length) {
+      // Le message n'est plus un brouillon (sauté ou séquence arrêtée entre-temps) : on retire l'appel
+      // qu'on vient d'écrire, pour ne pas garder un appel rattaché à une étape qui n'a pas eu lieu.
+      await supabase.from('lead_calls').delete().eq('id', call.data.id)
+      await refresh()
+      throw msg.error ?? new Error('message_not_sendable')
+    }
 
     const leadPatch: LeadUpdate = { last_contact_date: new Date().toISOString().slice(0, 10), canal: 'appel' }
     if (outcome === 'refus') leadPatch.status = 'perdu'

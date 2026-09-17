@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { X, PhoneIncoming, PhoneMissed, PhoneForwarded } from 'lucide-react'
+import { X, PhoneIncoming, PhoneMissed, PhoneForwarded, PhoneOff, ThumbsUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import type { Lead, CallOutcome } from '@/types/leads'
-import { CALL_OUTCOME_LABELS } from '@/types/leads'
+import type { Lead, CallResult } from '@/types/leads'
+import { CALL_RESULTS, CALL_RESULT_LABELS } from '@/types/leads'
 import type { LogCallInput } from '@/hooks/useLeads'
 
 interface LogCallDialogProps {
@@ -15,10 +15,13 @@ interface LogCallDialogProps {
   onSubmit: (leadId: string, input: LogCallInput) => Promise<void>
 }
 
-const OUTCOME_ICONS: Record<CallOutcome, typeof PhoneIncoming> = {
-  repondu: PhoneIncoming,
+// Mêmes issues, mêmes libellés et mêmes icônes que l'étape d'appel de la Revue des campagnes.
+const OUTCOME_ICONS: Record<CallResult, typeof PhoneIncoming> = {
+  joint: PhoneIncoming,
   pas_repondu: PhoneMissed,
   rappel: PhoneForwarded,
+  refus: PhoneOff,
+  interesse: ThumbsUp,
 }
 
 /**
@@ -26,7 +29,7 @@ const OUTCOME_ICONS: Record<CallOutcome, typeof PhoneIncoming> = {
  * optionnelle, prochaine action optionnelle. Pensé pouce sur téléphone.
  */
 export function LogCallDialog({ lead, onClose, onSubmit }: LogCallDialogProps) {
-  const [outcome, setOutcome] = useState<CallOutcome | null>(null)
+  const [outcome, setOutcome] = useState<CallResult | null>(null)
   const [note, setNote] = useState('')
   const [nextAction, setNextAction] = useState('')
   const [followUpDate, setFollowUpDate] = useState('')
@@ -80,9 +83,9 @@ export function LogCallDialog({ lead, onClose, onSubmit }: LogCallDialogProps) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Issue de l'appel — 3 gros boutons, un tap */}
-            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Issue de l'appel">
-              {(Object.keys(OUTCOME_ICONS) as CallOutcome[]).map((o) => {
+            {/* Issue de l'appel — 5 gros boutons, un tap : trois sur la première ligne, deux sur la seconde */}
+            <div className="grid grid-cols-6 gap-2" role="radiogroup" aria-label="Issue de l'appel">
+              {CALL_RESULTS.map((o, i) => {
                 const Icon = OUTCOME_ICONS[o]
                 const active = outcome === o
                 return (
@@ -93,14 +96,15 @@ export function LogCallDialog({ lead, onClose, onSubmit }: LogCallDialogProps) {
                     aria-checked={active}
                     onClick={() => setOutcome(o)}
                     className={cn(
-                      'flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-[12px] font-medium transition-colors',
+                      'flex min-h-[64px] flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-center text-[12px] font-medium leading-tight transition-colors',
+                      i < 3 ? 'col-span-2' : 'col-span-3',
                       active
                         ? 'border-[var(--memovia-violet)] bg-[var(--memovia-violet-light)] text-[var(--memovia-violet)]'
                         : 'border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--text-muted)]'
                     )}
                   >
                     <Icon className="h-5 w-5" strokeWidth={2} />
-                    {CALL_OUTCOME_LABELS[o]}
+                    {CALL_RESULT_LABELS[o]}
                   </button>
                 )
               })}
