@@ -5,7 +5,8 @@ import type { Task } from '@/types/tasks'
 const t = (over: Partial<Task>): Task => ({
   id: 'x', title: 'T', description: null, status: 'todo', priority: 'normale',
   due_date: null, assigned_to: 'naoufel', assignees: [], is_private: false,
-  created_at: '', updated_at: '', created_by: null, lead_id: null, ...over,
+  created_at: '', updated_at: '', created_by: null, lead_id: null,
+  scheduled_at: null, duration_min: 30, auto_key: null, ...over,
 })
 
 describe('splitTasksForLead', () => {

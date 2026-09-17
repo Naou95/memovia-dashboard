@@ -27,6 +27,10 @@ export interface Database {
           updated_at: string
           created_by: string | null
           lead_id: string | null
+          // Agenda (00056) : créneau facultatif, durée, clé des tâches automatiques.
+          scheduled_at: string | null
+          duration_min: number
+          auto_key: string | null
         }
         Insert: {
           id?: string
@@ -42,6 +46,9 @@ export interface Database {
           updated_at?: string
           created_by?: string | null
           lead_id?: string | null
+          scheduled_at?: string | null
+          duration_min?: number
+          auto_key?: string | null
         }
         Update: {
           id?: string
@@ -56,6 +63,60 @@ export interface Database {
           updated_at?: string
           created_by?: string | null
           lead_id?: string | null
+          scheduled_at?: string | null
+          duration_min?: number
+          auto_key?: string | null
+        }
+        Relationships: []
+      }
+      agenda_sessions: {
+        Row: {
+          day: string
+          start_min: number
+          end_min: number
+          cancelled: boolean
+          updated_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          day: string
+          start_min: number
+          end_min: number
+          cancelled?: boolean
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          start_min?: number
+          end_min?: number
+          cancelled?: boolean
+          updated_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      debrief_messages: {
+        Row: {
+          id: string
+          day: string
+          role: 'user' | 'assistant'
+          content: string
+          recap: Json | null
+          applied_at: string | null
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          day: string
+          role: 'user' | 'assistant'
+          content: string
+          recap?: Json | null
+          applied_at?: string | null
+          created_by?: string
+        }
+        Update: {
+          applied_at?: string | null
         }
         Relationships: []
       }
@@ -351,6 +412,8 @@ export interface Database {
           created_by: string | null
           created_at: string
           updated_at: string
+          // Agenda (00056) : durée du bloc sur la grille.
+          duration_min: number
         }
         Insert: {
           id?: string
@@ -366,6 +429,7 @@ export interface Database {
           cr?: string | null
           cr_status?: 'manquant' | 'en_cours' | 'fait'
           created_by?: string | null
+          duration_min?: number
         }
         Update: {
           title?: string
@@ -379,6 +443,7 @@ export interface Database {
           cr?: string | null
           cr_status?: 'manquant' | 'en_cours' | 'fait'
           updated_at?: string
+          duration_min?: number
         }
         Relationships: []
       }
@@ -415,18 +480,28 @@ export interface Database {
         Row: {
           id: string
           lead_id: string
-          outcome: 'repondu' | 'pas_repondu' | 'rappel'
+          // 00056 : contrainte élargie aux 5 issues de la Revue ; 'repondu' reste lisible (ancien front).
+          outcome: 'repondu' | 'pas_repondu' | 'rappel' | 'joint' | 'refus' | 'interesse'
           note: string | null
           called_at: string
           created_by: string | null
+          campaign_message_id: string | null
+          cr: string | null
+          cr_data: Json | null
+          objection: string | null
+          callback_at: string | null
+          debriefed_at: string | null
+          debriefed_by: string | null
         }
         Insert: {
           id?: string
           lead_id: string
-          outcome: 'repondu' | 'pas_repondu' | 'rappel'
+          outcome: 'repondu' | 'pas_repondu' | 'rappel' | 'joint' | 'refus' | 'interesse'
           note?: string | null
           called_at?: string
           created_by?: string | null
+          campaign_message_id?: string | null
+          callback_at?: string | null
         }
         Update: {
           note?: string | null
