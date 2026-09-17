@@ -4,6 +4,7 @@ import { ImapFlow } from 'npm:imapflow'
 import { simpleParser } from 'npm:mailparser'
 import { Buffer } from 'node:buffer'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { mergeLeadFromAnalysis, type ExistingLead } from '../_shared/leadMerge.ts'
 
 // Fourni par le runtime edge Supabase (absent des types Deno) : garde le worker vivant
 // jusqu'à la fin de la promesse sans retenir la réponse HTTP.
@@ -342,7 +343,7 @@ const STATUS_MAP: Record<string, string> = {
 async function upsertLead(
   supabaseAdmin: ReturnType<typeof createClient>,
   analysis: ClaudeAnalysis,
-): Promise<'inserted' | 'updated' | 'skipped'> {
+): Promise<'inserted' | 'updated' | 'unchanged' | 'skipped'> {
   const contactEmail = (analysis.contact_email || '').trim().toLowerCase() || null
   if (!contactEmail) return 'skipped'
 
@@ -356,43 +357,50 @@ async function upsertLead(
       ? analysis.maturity
       : 'froid'
 
-  const { data: existing } = await supabaseAdmin
-    .from('leads')
-    .select('id')
-    .eq('contact_email', contactEmail)
-    .maybeSingle()
-
-  if (existing) {
-    const { error: updateError } = await supabaseAdmin
-      .from('leads')
-      .update({
-        name: analysis.org_name?.trim() || analysis.contact_name?.trim() || contactEmail,
-        status: dbStatus,
-        maturity: dbMaturity,
-        notes: analysis.notes || null,
-        next_action: analysis.next_action || null,
-        relance_count: analysis.relance_count ?? 0,
-        last_contact_date: analysis.last_contact_date || null,
-        timeline: analysis.timeline || null,
-        contact_role: analysis.contact_role || null,
-      })
-      .eq('id', existing.id)
-    if (updateError) throw new Error(`update_failed: ${updateError.message}`)
-    return 'updated'
-  }
-
   const name =
     analysis.org_name?.trim() ||
     analysis.contact_name?.trim() ||
     contactEmail
 
-  // `upsert` et non `insert` : le select ci-dessus et cet insert ne sont PAS atomiques, et deux
-  // exécutions peuvent se chevaucher (cron de 23h + déclenchement manuel depuis le dashboard, ou
-  // deux zombies laissés par le `Promise.race` du handler, qui n'annule pas runDetector). Deux
-  // `select` simultanés ne trouvent rien, deux `insert` passent, et le CRM porte deux lignes pour
-  // le même prospect. L'index unique partiel `leads_contact_email_unique` (migration 00037) est la
-  // garantie dure ; `onConflict` évite qu'elle ne se manifeste en erreur 500 côté appelant.
-  const { error: insertError } = await supabaseAdmin.from('leads').upsert({
+  const LEAD_MERGE_COLUMNS = 'id, name, status, maturity, notes, next_action, relance_count, last_contact_date, timeline, contact_role'
+  const findExisting = () =>
+    supabaseAdmin.from('leads').select(LEAD_MERGE_COLUMNS).eq('contact_email', contactEmail).maybeSingle()
+
+  // Lead déjà connu : on complète, on n'écrase pas (leadMerge.ts). Avant, cette branche
+  // remplaçait notes, statut, prochaine action et toute la timeline par l'analyse du fil de
+  // mails : un prospect de campagne qui répondait perdait ses envois, ses appels et ses notes.
+  const mergeInto = async (row: unknown): Promise<'updated' | 'unchanged'> => {
+    const current = row as ExistingLead & { id: string }
+    const patch = mergeLeadFromAnalysis(current, {
+      name,
+      status: dbStatus,
+      maturity: dbMaturity,
+      notes: analysis.notes || null,
+      next_action: analysis.next_action || null,
+      relance_count: analysis.relance_count ?? 0,
+      last_contact_date: analysis.last_contact_date || null,
+      timeline: analysis.timeline || null,
+      contact_role: analysis.contact_role || null,
+    })
+    // Rien à écrire : le lead est déjà à jour, on ne réveille ni la ligne ni ses déclencheurs.
+    if (Object.keys(patch).length === 0) return 'unchanged'
+    const { error: updateError } = await supabaseAdmin.from('leads').update(patch).eq('id', current.id)
+    if (updateError) throw new Error(`update_failed: ${updateError.message}`)
+    return 'updated'
+  }
+
+  const { data: existing } = await findExisting()
+  if (existing) return mergeInto(existing)
+
+  // `insert`, et plus `upsert`. Le select ci-dessus et cet insert ne sont PAS atomiques : deux
+  // exécutions peuvent se chevaucher (cron de 23h + déclenchement manuel, ou deux zombies laissés par
+  // le `Promise.race` du handler, qui n'annule pas runDetector). L'index unique partiel
+  // `leads_contact_email_unique` (migration 00037) est la garantie dure : la seconde insertion échoue
+  // en 23505, et on FUSIONNE alors dans le lead que l'autre exécution vient de créer.
+  // L'ancien `upsert({ onConflict: 'contact_email' })` avait deux défauts : sur conflit il écrasait
+  // toutes les colonnes (le défaut que ce fichier corrige, par un autre chemin), et PostgREST n'émet
+  // pas le prédicat `WHERE contact_email IS NOT NULL` qu'un index PARTIEL exige pour servir d'arbitre.
+  const { error: insertError } = await supabaseAdmin.from('leads').insert({
     name,
     type: leadType,
     canal: 'email',
@@ -408,14 +416,20 @@ async function upsertLead(
     next_action: analysis.next_action || null,
     timeline: analysis.timeline || null,
     source: 'email_auto',
-  }, { onConflict: 'contact_email' })
+  })
+  if (insertError?.code === '23505') {
+    const { data: raced } = await findExisting()
+    if (raced) return mergeInto(raced)
+  }
   if (insertError) throw new Error(`insert_failed: ${insertError.message}`)
   return 'inserted'
 }
 
 // ── Core logic (tâche de fond derrière le 202) ─────────────────────────────────
 
-type RunStats = { analyzed: number; inserted: number; updated: number; skipped: number; errors: number }
+// `unchanged` : leads reconnus mais déjà à jour (aucune écriture). Sans lui, « N mis à jour »
+// comptait des leads que le run n'avait pas touchés.
+type RunStats = { analyzed: number; inserted: number; updated: number; unchanged: number; skipped: number; errors: number }
 
 async function runDetector(
   supabaseAdmin: ReturnType<typeof createClient>,
@@ -434,7 +448,7 @@ async function runDetector(
     connectionTimeout: 10000,
   })
 
-  const stats: RunStats = { analyzed: 0, inserted: 0, updated: 0, skipped: 0, errors: 0 }
+  const stats: RunStats = { analyzed: 0, inserted: 0, updated: 0, unchanged: 0, skipped: 0, errors: 0 }
 
   try {
     await client.connect()
@@ -487,6 +501,7 @@ async function runDetector(
         const result = await upsertLead(supabaseAdmin, analysis)
         if (result === 'inserted') stats.inserted++
         else if (result === 'updated') stats.updated++
+        else if (result === 'unchanged') stats.unchanged++
         else stats.skipped++
       } catch (err) {
         console.error('Upsert error:', err)
