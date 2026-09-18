@@ -7,20 +7,12 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { UseCampaignResult, StepStats } from '@/hooks/useCampaigns'
 import type { Campaign, CampaignStep } from '@/types/campagnes'
+import { FORBIDDEN } from '../forbidden'
 
 interface SequenceTabProps {
   data: UseCampaignResult
   campaign: Campaign
 }
-
-/** Interdits vérifiés par campaignText.ts avant chaque envoi (texte de la maquette). */
-const FORBIDDEN = [
-  '« 100 % financé par l\'OPCO », « gratuit pour vous »',
-  '« partenaire Agefiph »',
-  '« labellisée French Tech », « soutenue par TBSeeds »',
-  '« sous 48 h », « 15 minutes », « je me permets de vous relancer », « envoyez-moi un support »',
-  'Un chiffre « stagiaires » de la liste OF · logo ou accord national des Compagnons',
-]
 
 const VARIABLES: [string, string][] = [
   ['{{civilité}} {{nom}}', 'depuis la fiche du lead'],

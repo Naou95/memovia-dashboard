@@ -32,6 +32,7 @@ const AccueilPage = lazy(() => import('@/modules/accueil/AccueilPage'))
 const RoadmapProduitPage = lazy(() => import('@/modules/roadmap-produit/RoadmapProduitPage'))
 const CampagnesPage = lazy(() => import('@/modules/campagnes/CampagnesPage'))
 const CampagnePage = lazy(() => import('@/modules/campagnes/CampagnePage'))
+const AgendaPage = lazy(() => import('@/modules/agenda/AgendaPage'))
 
 // ── Loading fallback ───────────────────────────────────────────────────────────
 function PageLoader() {
@@ -93,6 +94,17 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <CampagnePage />
+          </Suspense>
+        ),
+      },
+      {
+        // Agenda de prospection (plan 2026-09-17-agenda-prospection.md). Volontairement ABSENT de
+        // navigation.ts tant que le module n'est pas fini : on y entre par l'URL, comme pour les
+        // modules archivés. L'entrée de nav arrive avec la dernière PR du plan.
+        path: 'agenda',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AgendaPage />
           </Suspense>
         ),
       },
