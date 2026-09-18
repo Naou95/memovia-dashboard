@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, MoreHorizontal, Check, Mail, Phone, PhoneIncoming, PhoneMissed, PhoneForwarded, PhoneOff, ThumbsUp } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CalendarDays, ChevronLeft, MoreHorizontal, Check, Mail, Phone, PhoneIncoming, PhoneMissed, PhoneForwarded, PhoneOff, ThumbsUp } from 'lucide-react'
 import { format, differenceInCalendarDays, subDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { parisDay } from '@/lib/agenda'
 import { SendBlockedError, nextStep } from '@/hooks/useCampaigns'
 import type { UseCampaignResult } from '@/hooks/useCampaigns'
 import type { Campaign, CallResult, MessageCheck, ReviewItem } from '@/types/campagnes'
@@ -348,6 +350,13 @@ export function ReviewTab({ data, campaign, initialMessageId }: ReviewTabProps) 
                     <p className="mt-1 text-[15px] font-medium text-[var(--text-muted)]">Numéro à trouver sur le site de l'établissement</p>
                   )}
                 </div>
+                {/* Un appel en retard s'affiche à la séance du jour dans l'agenda : le lien mène là où il est. */}
+                <Link
+                  to={`/agenda?date=${[parisDay(selected.due_at), parisDay(new Date())].sort()[1]}`}
+                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--memovia-violet)] hover:underline"
+                >
+                  <CalendarDays className="h-3.5 w-3.5" /> Ouvrir dans l’agenda
+                </Link>
                 <div>
                   <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wider text-[var(--text-label)]">Script</p>
                   <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-[var(--text-primary)]">{selected.step.ai_brief || 'Aucun script pour cette étape.'}</p>

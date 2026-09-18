@@ -27,6 +27,7 @@ import type {
 } from '@/types/agenda'
 import type { Task, TaskAssignee } from '@/types/tasks'
 import type { UserRole } from '@/types/auth'
+import type { CallResult } from '@/types/leads'
 
 export const TZ = 'Europe/Paris'
 export const DAY_START_MIN = 8 * 60
@@ -161,6 +162,18 @@ export function nextCallDay(day: string, window: CallWindow, overrides: SessionO
     if (sessionFor(d, window, overrides)) return d
   }
   return null
+}
+
+/**
+ * Prochaine relance proposée après un appel de relance (hors campagne), selon son issue. Sans elle, la
+ * date de relance restait dans le passé et le lead revenait « en retard » dès le lendemain.
+ * Sans réponse ou rappel demandé : dans 2 jours, comme la règle des campagnes. Joint ou intéressé : un
+ * point dans une semaine. Refus : plus de relance. Toujours sur un jour de séance ; modifiable à l'écran.
+ */
+export function suggestFollowUp(outcome: CallResult, today: string, window: CallWindow, overrides: SessionOverride[]): string | null {
+  if (outcome === 'refus') return null
+  const from = addDays(today, outcome === 'pas_repondu' || outcome === 'rappel' ? 2 : 7)
+  return nextCallDay(from, window, overrides) ?? from
 }
 
 /** Nombre de séances qui ont eu lieu dans [from, to[ : sert à dire si un appel est VRAIMENT en retard. */
@@ -413,7 +426,7 @@ export function buildAgenda(input: BuildInput): AgendaDay[] {
       if (parisDay(r.rdv_date) !== day) continue
       blocks.push({
         id: `rdv:${r.id}`, kind: 'rdv', refId: r.id, day,
-        startMin: parisMinutes(r.rdv_date), durMin: r.duration_min ?? 45, title: r.title,
+        startMin: parisMinutes(r.rdv_date), durMin: r.duration_min ?? 45, title: r.title, leadId: r.lead_id,
         leadName: r.lead_id ? input.leadsById.get(r.lead_id)?.name ?? null : null, done: false,
       })
     }
@@ -425,7 +438,7 @@ export function buildAgenda(input: BuildInput): AgendaDay[] {
       if (v.startMin === null) allDayTasks.push(v)
       else blocks.push({
         id: `task:${t.id}`, kind: 'task', refId: t.id, day, startMin: v.startMin, durMin: t.duration_min ?? 30,
-        title: t.title, leadName: t.lead_id ? input.leadsById.get(t.lead_id)?.name ?? null : null, done: t.status === 'done',
+        title: t.title, leadId: t.lead_id, leadName: t.lead_id ? input.leadsById.get(t.lead_id)?.name ?? null : null, done: t.status === 'done',
       })
     }
     allDayTasks.sort((a, b) => b.lateDays - a.lateDays || a.task.title.localeCompare(b.task.title, 'fr'))

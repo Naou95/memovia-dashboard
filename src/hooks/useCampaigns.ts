@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { parseCampaignCsv } from '@/lib/campaignCsv'
+import { advanceEnrollmentRow, completeCampaignCall, inDays, postponeCampaignMessage, skipDraftMessages } from '@/lib/callActions'
 import type {
   Campaign,
   CampaignStep,
@@ -12,14 +13,8 @@ import type {
   MessageCheck,
   CallResult,
 } from '@/types/campagnes'
-import type { LeadUpdate } from '@/types/leads'
 
-const DAY_MS = 86_400_000
 const TEMPLATE_CAMPAIGN_NAME = 'CFA · référent handicap'
-
-function inDays(from: Date, days: number): string {
-  return new Date(from.getTime() + days * DAY_MS).toISOString()
-}
 
 // ── Liste des campagnes ────────────────────────────────────────────────────────
 
@@ -395,23 +390,10 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
     await refresh()
   }
 
-  /** Passe l'inscription à l'étape suivante, ou la termine s'il n'y en a pas. */
-  const advance = async (enrollment: CampaignEnrollment): Promise<void> => {
-    const next = steps.find((s) => s.position > enrollment.current_position)
-    const patch = next
-      ? { current_position: next.position, next_due_at: inDays(new Date(), next.wait_days) }
-      : { status: 'done' as const, stop_reason: 'finished' }
-    // Garde : un onglet pas à jour n'avance pas deux fois la même inscription.
-    const { error: sbError } = await supabase
-      .from('campaign_enrollments').update(patch).eq('id', enrollment.id).eq('current_position', enrollment.current_position)
-    if (sbError) throw sbError
-  }
-
-  const skipDrafts = async (enrollmentId: string): Promise<void> => {
-    const { error: sbError } = await supabase
-      .from('campaign_messages').update({ status: 'skipped' }).eq('enrollment_id', enrollmentId).eq('status', 'draft')
-    if (sbError) throw sbError
-  }
+  // Avancer une inscription, ignorer ses brouillons, enregistrer un appel : ces écritures vivent dans
+  // lib/callActions.ts, partagées avec l'agenda. Ici on ne garde que l'enrobage (état du hook, refresh).
+  const advance = (enrollment: CampaignEnrollment): Promise<void> => advanceEnrollmentRow(enrollment, steps)
+  const skipDrafts = skipDraftMessages
 
   const requireMessage = (messageId: string) => {
     const message = messages.find((m) => m.id === messageId)
@@ -432,11 +414,7 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
 
   const postponeMessage = async (messageId: string, days: number): Promise<void> => {
     const { enrollment } = requireMessage(messageId)
-    const due = inDays(new Date(), days)
-    const m = await supabase.from('campaign_messages').update({ due_at: due }).eq('id', messageId)
-    if (m.error) throw m.error
-    const e = await supabase.from('campaign_enrollments').update({ next_due_at: due }).eq('id', enrollment.id)
-    if (e.error) throw e.error
+    await postponeCampaignMessage(messageId, enrollment.id, inDays(new Date(), days))
     await refresh()
   }
 
@@ -460,54 +438,12 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
 
   const completeCall = async (messageId: string, outcome: CallResult, note: string): Promise<void> => {
     const { enrollment } = requireMessage(messageId)
-    const trimmed = note.trim()
-    // L'APPEL D'ABORD, le message ensuite. Dans l'autre sens, un insert refusé laissait le message
-    // « fait » sans aucun appel en base, et la garde `status = 'draft'` interdisait tout nouvel essai :
-    // l'appel n'était plus enregistrable depuis l'écran. Ici, un échec ne laisse rien derrière lui.
-    // L'issue s'écrit telle quelle (00056 a élargi la contrainte) : avant, joint, refus et intéressé
-    // devenaient tous « repondu », indiscernables ensuite. campaign_message_id relie l'appel à son
-    // message, et l'index unique lead_calls_one_per_message refuse un second enregistrement du même
-    // message (deux onglets, double clic) : c'est lui la garde contre le doublon.
-    const call = await supabase
-      .from('lead_calls')
-      .insert({ lead_id: enrollment.lead_id, outcome, note: trimmed || null, campaign_message_id: messageId })
-      .select('id')
-      .single()
-    if (call.error) {
-      if (call.error.code === '23505') { await refresh(); throw new Error('message_not_sendable') }
-      throw call.error
-    }
-
-    const msg = await supabase
-      .from('campaign_messages').update({ status: 'done', outcome, note: trimmed || null }).eq('id', messageId).eq('status', 'draft').select('id')
-    if (msg.error || !msg.data?.length) {
-      // Le message n'est plus un brouillon (sauté ou séquence arrêtée entre-temps) : on retire l'appel
-      // qu'on vient d'écrire, pour ne pas garder un appel rattaché à une étape qui n'a pas eu lieu.
-      await supabase.from('lead_calls').delete().eq('id', call.data.id)
+    try {
+      await completeCampaignCall({ messageId, enrollment, steps, outcome, note })
+    } finally {
+      // Réussite ou refus (« déjà traité ailleurs ») : la file se recharge dans les deux cas.
       await refresh()
-      throw msg.error ?? new Error('message_not_sendable')
     }
-
-    const leadPatch: LeadUpdate = { last_contact_date: new Date().toISOString().slice(0, 10), canal: 'appel' }
-    if (outcome === 'refus') leadPatch.status = 'perdu'
-    if (outcome === 'interesse') leadPatch.status = 'en_discussion'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const lead = await supabase.from('leads').update(leadPatch as any).eq('id', enrollment.lead_id)
-    if (lead.error) throw lead.error
-
-    if (outcome === 'refus' || outcome === 'interesse') {
-      // Un intéressé sort de la séquence comme un refus : ni relance ni mail de clôture.
-      const e = await supabase
-        .from('campaign_enrollments').update({ status: 'stopped', stop_reason: outcome === 'refus' ? 'refused' : 'interested' }).eq('id', enrollment.id)
-      if (e.error) throw e.error
-      await skipDrafts(enrollment.id)
-    } else if (outcome === 'rappel') {
-      const e = await supabase.from('campaign_enrollments').update({ next_due_at: inDays(new Date(), 2) }).eq('id', enrollment.id)
-      if (e.error) throw e.error
-    } else {
-      await advance(enrollment)
-    }
-    await refresh()
   }
 
   return {

@@ -3,7 +3,7 @@
  * regarderait : l'ordre de la séance, la fiche qui s'ouvre, les messages d'état, la navigation.
  */
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 // AgendaPage importe le conteneur (useAgenda → client Supabase). La vue testée ici ne lit jamais la
@@ -11,7 +11,8 @@ import { MemoryRouter } from 'react-router-dom'
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
 import { AgendaView } from '@/modules/agenda/AgendaPage'
-import { agendaFixture, FIXTURE_TODAY } from './fixtures/agendaFixture'
+import { agendaFixture, noopActions, FIXTURE_TODAY } from './fixtures/agendaFixture'
+import type { AgendaActions } from '@/types/agenda'
 
 const renderView = (over = {}, view: 'jour' | 'semaine' = 'jour', onGo = vi.fn()) => {
   render(
@@ -60,7 +61,9 @@ describe('AgendaView · vue jour', () => {
     expect(within(sheet).getByText(/Demander le référent handicap par son nom/)).toBeInTheDocument()
     expect(within(sheet).getByText(/Combien d’apprentis RQTH/)).toBeInTheDocument()
     expect(within(sheet).getByRole('link', { name: /Appeler/ })).toHaveAttribute('href', 'tel:0500000003')
-    expect(within(sheet).getByRole('link', { name: 'ouvrir cette étape' })).toHaveAttribute('href', '/campagnes/C1?tab=revue&message=M3')
+    // L'issue se note ici même : les 5 issues de la Revue, et rien n'est enregistrable sans en choisir une.
+    expect(within(sheet).getAllByRole('radio').map((r) => r.textContent)).toEqual(['Joint', 'Pas répondu', 'Rappel demandé', 'Refus', 'Intéressé'])
+    expect(within(sheet).getByRole('button', { name: 'Enregistrer l’appel' })).toBeDisabled()
     await user.click(within(sheet).getByRole('button', { name: /Agenda/ }))
     expect(within(screen.getByRole('complementary')).getByText('Reste à faire')).toBeInTheDocument()
   })
@@ -91,6 +94,143 @@ describe('AgendaView · vue jour', () => {
   it('dit clairement quand la migration n’est pas appliquée', () => {
     renderView({ week: [], error: 'La migration 00056 (agenda) n’est pas appliquée sur cette base.', schemaMissing: true })
     expect(screen.getByText(/00056_agenda\.sql/)).toBeInTheDocument()
+  })
+})
+
+describe('AgendaView · écritures', () => {
+  const spied = (over: Partial<AgendaActions> = {}): AgendaActions => ({ ...noopActions, ...over })
+
+  it('enregistre l’issue d’un appel depuis la fiche, avec sa note, puis referme la fiche', async () => {
+    const user = userEvent.setup()
+    const recordOutcome = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ recordOutcome }) })
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByRole('button', { name: /MFR du Lauragais/ }))
+    const sheet = screen.getByRole('complementary')
+    await user.click(within(sheet).getByRole('radio', { name: 'Intéressé' }))
+    await user.type(within(sheet).getByLabelText('Note d\'appel'), 'veut une démo')
+    await user.click(within(sheet).getByRole('button', { name: 'Enregistrer l’appel' }))
+    expect(recordOutcome).toHaveBeenCalledTimes(1)
+    expect(recordOutcome.mock.calls[0][0]).toMatchObject({ key: 'msg:M3', campaign: { messageId: 'M3' } })
+    // Une étape de campagne suit sa séquence : pas de date de relance à choisir, rien de passé pour elle.
+    expect(within(sheet).queryByLabelText('Prochaine relance')).not.toBeInTheDocument()
+    expect(recordOutcome.mock.calls[0].slice(1)).toEqual(['interesse', 'veut une démo', undefined])
+    expect(await within(screen.getByRole('complementary')).findByText('Reste à faire')).toBeInTheDocument()
+  })
+
+  it('une relance hors campagne propose sa prochaine relance selon l’issue, et garde une date changée à la main', async () => {
+    const user = userEvent.setup()
+    const recordOutcome = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ recordOutcome }) })
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByRole('button', { name: /CFA Agricole du Roussillon/ }))
+    const sheet = screen.getByRole('complementary')
+    await user.click(within(sheet).getByRole('radio', { name: 'Pas répondu' }))
+    const date = within(sheet).getByLabelText('Prochaine relance')
+    expect(date).toHaveValue('2026-09-16')
+    fireEvent.change(date, { target: { value: '2026-09-24' } })
+    // Une autre issue ne réécrit pas une date choisie à la main.
+    await user.click(within(sheet).getByRole('radio', { name: 'Joint' }))
+    expect(date).toHaveValue('2026-09-24')
+    await user.click(within(sheet).getByRole('button', { name: 'Enregistrer l’appel' }))
+    expect(recordOutcome.mock.calls[0][0]).toMatchObject({ key: 'lead:L5', campaign: null })
+    expect(recordOutcome.mock.calls[0].slice(1)).toEqual(['joint', '', '2026-09-24'])
+  })
+
+  it('un refus sur une relance la clôt : aucune prochaine relance', async () => {
+    const user = userEvent.setup()
+    const recordOutcome = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ recordOutcome }) })
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByRole('button', { name: /CFA Agricole du Roussillon/ }))
+    const sheet = screen.getByRole('complementary')
+    await user.click(within(sheet).getByRole('radio', { name: 'Refus' }))
+    expect(within(sheet).getByLabelText('Prochaine relance')).toHaveValue('')
+    expect(within(sheet).getByText('aucune : le lead sort des relances')).toBeInTheDocument()
+    await user.click(within(sheet).getByRole('button', { name: 'Enregistrer l’appel' }))
+    expect(recordOutcome.mock.calls[0].slice(1)).toEqual(['refus', '', null])
+  })
+
+  it('garde la fiche ouverte si l’enregistrement échoue', async () => {
+    const user = userEvent.setup()
+    const recordOutcome = vi.fn().mockRejectedValue(new Error('boom'))
+    renderView({ actions: spied({ recordOutcome }) })
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByRole('button', { name: /MFR du Lauragais/ }))
+    const sheet = screen.getByRole('complementary')
+    await user.click(within(sheet).getByRole('radio', { name: 'Joint' }))
+    await user.click(within(sheet).getByRole('button', { name: 'Enregistrer l’appel' }))
+    expect(recordOutcome).toHaveBeenCalled()
+    expect(within(screen.getByRole('complementary')).getByText('Objectif de l’appel')).toBeInTheDocument()
+  })
+
+  it('reporte un appel à la prochaine séance', async () => {
+    const user = userEvent.setup()
+    const postponeCall = vi.fn().mockResolvedValue('2026-09-15')
+    renderView({ actions: spied({ postponeCall }) })
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByRole('button', { name: /MFR du Lauragais/ }))
+    await user.click(within(screen.getByRole('complementary')).getByRole('button', { name: 'Reporter' }))
+    expect(postponeCall.mock.calls[0][0]).toMatchObject({ key: 'msg:M3' })
+  })
+
+  it('coche une tâche depuis le panneau', async () => {
+    const user = userEvent.setup()
+    const updateTask = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ updateTask }) })
+    await user.click(within(screen.getByRole('complementary')).getByRole('checkbox', { name: 'Terminer : Renvoyer l’accès démo' }))
+    expect(updateTask).toHaveBeenCalledWith('T2', { done: true })
+  })
+
+  it('ajoute une tâche sans heure par le champ du panneau', async () => {
+    const user = userEvent.setup()
+    const createTask = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ createTask }) })
+    const panel = screen.getByRole('complementary')
+    await user.type(within(panel).getByLabelText('Nouvelle tâche'), 'Relire la spec')
+    await user.click(within(panel).getByRole('button', { name: 'Ajouter' }))
+    expect(createTask).toHaveBeenCalledWith({ title: 'Relire la spec', day: FIXTURE_TODAY, startMin: null, durMin: 30, leadId: null })
+  })
+
+  it('ouvre une tâche, change son heure et l’enregistre', async () => {
+    const user = userEvent.setup()
+    const updateTask = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ updateTask }) })
+    await user.click(within(screen.getByRole('complementary')).getByRole('button', { name: /^Renvoyer l’accès démo/ }))
+    const form = screen.getByRole('complementary')
+    expect(within(form).getByLabelText('Titre')).toHaveValue('Renvoyer l’accès démo')
+    expect(within(form).getByLabelText('Heure')).toHaveValue('')
+    await user.selectOptions(within(form).getByLabelText('Heure'), '900')
+    await user.click(within(form).getByRole('button', { name: 'Enregistrer' }))
+    expect(updateTask).toHaveBeenCalledWith('T2', { title: 'Renvoyer l’accès démo', day: FIXTURE_TODAY, startMin: 900, durMin: 30, leadId: 'L5', done: false })
+  })
+
+  it('ne propose pas de supprimer une tâche que la base refuserait de supprimer', async () => {
+    const user = userEvent.setup()
+    renderView()
+    await user.click(within(screen.getByRole('complementary')).getByRole('button', { name: /^Renvoyer l’accès démo/ }))
+    const form = screen.getByRole('complementary')
+    expect(within(form).queryByRole('button', { name: 'Supprimer' })).toBeNull()
+    expect(within(form).getByText(/on peut la terminer/)).toBeInTheDocument()
+  })
+
+  it('un clic sur un créneau vide ouvre la création, à l’heure du créneau', async () => {
+    const user = userEvent.setup()
+    const createTask = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ createTask }) })
+    // jsdom ne mesure rien : le haut de la colonne et le clic valent 0, donc le créneau de 8h.
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByTestId(`agenda-colonne-${FIXTURE_TODAY}`))
+    const form = screen.getByRole('complementary')
+    expect(within(form).getByLabelText('Heure')).toHaveValue('480')
+    await user.type(within(form).getByLabelText('Titre'), 'Appeler le standard de Béziers')
+    await user.click(within(form).getByRole('button', { name: 'Créer' }))
+    expect(createTask).toHaveBeenCalledWith({ title: 'Appeler le standard de Béziers', day: FIXTURE_TODAY, startMin: 480, durMin: 30, leadId: null })
+  })
+
+  it('la séance d’appels s’ouvre en modification et se déplace par le formulaire', async () => {
+    const user = userEvent.setup()
+    const saveSession = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ saveSession }) })
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByText(/Séance d’appels · 09:00 – 11:30/))
+    const form = screen.getByRole('complementary')
+    await user.selectOptions(within(form).getByLabelText('Heure'), '840')
+    await user.click(within(form).getByRole('button', { name: 'Enregistrer' }))
+    expect(saveSession).toHaveBeenCalledWith(FIXTURE_TODAY, 840, 150, FIXTURE_TODAY)
   })
 })
 

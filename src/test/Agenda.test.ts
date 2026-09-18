@@ -22,6 +22,7 @@ import {
   projectNextCalls,
   sessionFor,
   snap,
+  suggestFollowUp,
   taskView,
   workWeek,
   type BuildInput,
@@ -118,6 +119,18 @@ describe('séances d’appels', () => {
     expect(nextCallDay(THU, DEFAULT_WINDOW, [])).toBe(THU)
     expect(nextCallDay(FRI, DEFAULT_WINDOW, [])).toBe(NEXT_MON)
     expect(nextCallDay(FRI, { ...DEFAULT_WINDOW, days: [] as number[] }, [], 5)).toBeNull()
+  })
+
+  it('propose la prochaine relance selon l’issue, toujours un jour de séance', () => {
+    // Mercredi + 2 = vendredi, sans séance : lundi suivant.
+    expect(suggestFollowUp('pas_repondu', WED, DEFAULT_WINDOW, [])).toBe(NEXT_MON)
+    expect(suggestFollowUp('rappel', MON, DEFAULT_WINDOW, [])).toBe(WED)
+    expect(suggestFollowUp('joint', WED, DEFAULT_WINDOW, [])).toBe('2026-09-23')
+    expect(suggestFollowUp('interesse', WED, DEFAULT_WINDOW, [])).toBe('2026-09-23')
+    expect(suggestFollowUp('refus', WED, DEFAULT_WINDOW, [])).toBeNull()
+    // Séance annulée ce lundi-là : le jour d'après.
+    const off: SessionOverride = { day: NEXT_MON, start_min: 540, end_min: 690, cancelled: true }
+    expect(suggestFollowUp('pas_repondu', WED, DEFAULT_WINDOW, [off])).toBe('2026-09-22')
   })
 
   it('borne le calcul pour un appel dû depuis des années', () => {

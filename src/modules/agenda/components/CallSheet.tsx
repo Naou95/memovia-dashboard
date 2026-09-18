@@ -1,15 +1,15 @@
-import { Link } from 'react-router-dom'
 import { ChevronLeft, Phone } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Button } from '@/components/ui/button'
 import { FIRST_QUESTION, scriptSection } from '@/lib/callScript'
 import { parisDay } from '@/lib/agenda'
-import type { LeadCallLite, SessionRow, ThreadEntry } from '@/types/agenda'
+import type { ClassifiedCall, LeadCallLite, SessionRow, ThreadEntry } from '@/types/agenda'
 import type { Task } from '@/types/tasks'
-import { CALL_OUTCOME_LABELS } from '@/types/leads'
+import { CALL_OUTCOME_LABELS, type CallResult } from '@/types/leads'
 import { FORBIDDEN, FORBIDDEN_ORAL } from '@/modules/campagnes/forbidden'
 import { TONE_STYLE, dateFr, rowChip, rowLeadName } from '../display'
+import { CallOutcomeBar } from './CallOutcomeBar'
 
 interface CallSheetProps {
   row: SessionRow
@@ -18,6 +18,9 @@ interface CallSheetProps {
   openTasks: Task[]
   script: string | null
   onClose: () => void
+  onRecord: (call: ClassifiedCall, outcome: CallResult, note: string, followUp?: string | null) => Promise<void>
+  onPostpone: (call: ClassifiedCall) => Promise<void>
+  suggestFollowUp: (outcome: CallResult) => string | null
 }
 
 // Même rendu que la fiche argumentaire (LeadPitchDialog) : why et pitch sont des notes en markdown.
@@ -37,10 +40,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 /**
  * La fiche d'appel, lisible en 30 secondes : qui, l'objectif, où on en est, pourquoi eux, quoi
- * demander, quoi ne pas dire, ce qui s'est déjà dit. Lecture seule dans cette PR : l'issue se note
- * encore dans la Revue des campagnes (lien en bas), la barre d'issue arrive avec la PR 5.
+ * demander, quoi ne pas dire, ce qui s'est déjà dit. En bas, l'issue de l'appel en un geste.
  */
-export function CallSheet({ row, thread, calls, openTasks, script, onClose }: CallSheetProps) {
+export function CallSheet({ row, thread, calls, openTasks, script, onClose, onRecord, onPostpone, suggestFollowUp }: CallSheetProps) {
   const lead = row.call.lead
   const pending = row.kind === 'pending' ? row.call : null
   const campaign = pending?.campaign ?? null
@@ -165,13 +167,19 @@ export function CallSheet({ row, thread, calls, openTasks, script, onClose }: Ca
         </Section>
       </div>
 
-      <footer className="shrink-0 border-t border-[var(--border-color)] px-4 py-3 text-[13px] text-[var(--text-secondary)]">
-        {campaign ? (
-          <>Après l’appel, l’issue se note dans la Revue : <Link className="font-medium text-[var(--memovia-violet)] hover:underline" to={`/campagnes/${campaign.campaignId}?tab=revue&message=${campaign.messageId}`}>ouvrir cette étape</Link>.</>
-        ) : (
-          <>Après l’appel, l’issue se note depuis la section <Link className="font-medium text-[var(--memovia-violet)] hover:underline" to="/leads">Leads</Link>.</>
-        )}
-      </footer>
+      {pending ? (
+        <CallOutcomeBar
+          onRecord={(outcome, note, followUp) => onRecord(pending, outcome, note, followUp)}
+          onPostpone={() => onPostpone(pending)}
+          suggestFollowUp={pending.campaign ? undefined : suggestFollowUp}
+        />
+      ) : (
+        <footer className="shrink-0 border-t border-[var(--border-color)] px-4 py-3 text-[13px] text-[var(--text-secondary)]">
+          {row.kind === 'done' && !row.call.debriefed
+            ? 'Appel enregistré. Son compte rendu reste à écrire : le débrief de séance arrive à l’étape suivante du chantier.'
+            : 'Appel enregistré, compte rendu validé.'}
+        </footer>
+      )}
     </div>
   )
 }
