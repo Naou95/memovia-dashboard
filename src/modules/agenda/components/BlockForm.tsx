@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { DAY_END_MIN, DAY_START_MIN, fmtMinutes, parisDay, parisMinutes } from '@/lib/agenda'
+import { DAY_END_MIN, DAY_START_MIN, WEEKEND_REFUSAL, fmtMinutes, hasSessionOn, isoWeekday, parisDay, parisMinutes, sessionMoveRefusal } from '@/lib/agenda'
 import type { UseAgendaResult } from '@/hooks/useAgenda'
+import type { BlockInput } from '@/types/agenda'
 import { dayLong } from '../display'
 
 /** Ce que le panneau édite : un créneau vide à remplir, une tâche, un RDV, ou la séance d'appels d'un jour. */
@@ -98,7 +99,7 @@ export function BlockForm({ editor, agenda, onClose }: BlockFormProps) {
       onClose()
     } catch (err) {
       console.error('[agenda] écriture en échec :', err)
-      toast.error('Enregistrement impossible. Rien n’a été modifié.')
+      toast.error('Enregistrement impossible. L’agenda montre ce qui est enregistré.')
     } finally {
       setBusy(false)
     }
@@ -109,16 +110,37 @@ export function BlockForm({ editor, agenda, onClose }: BlockFormProps) {
     const name = title.trim()
     if (kind !== 'session' && !name) { toast.error('Un titre, au moins.'); return }
     const start = needsTime ? startMin ?? 9 * 60 : startMin
+    // Le week-end n'a pas de colonne : un bloc posé là disparaîtrait de la grille.
+    if (day !== initial?.day && isoWeekday(day) > 5) { toast.error(WEEKEND_REFUSAL); return }
     const input = { title: name, day, startMin: start, durMin, leadId }
     const at = start == null ? 'sans heure' : `à ${fmtMinutes(start)}`
-    if (kind === 'session') return run(() => agenda.actions.saveSession(day, start ?? 9 * 60, durMin, initial?.fromDay), `Séance d’appels : ${dayLong(day).toLowerCase()} ${at}.`)
+    if (kind === 'session') {
+      // Sans jour d'origine (création), le jour visé ne doit simplement pas avoir déjà sa séance.
+      const from = initial?.fromDay ?? ''
+      const refusal = sessionMoveRefusal(from, day, (d) => hasSessionOn(d, agenda.week, agenda.window))
+      if (refusal) { toast.error(refusal); return }
+      const moved = from && from !== day ? ` Les appels dus ${dayLong(from).toLowerCase()} passent à la séance suivante.` : ''
+      return run(() => agenda.actions.saveSession(day, start ?? 9 * 60, durMin, initial?.fromDay), `Séance d’appels : ${dayLong(day).toLowerCase()} ${at}.${moved}`)
+    }
     if (creating) {
       return kind === 'rdv'
         ? run(() => agenda.actions.createRdv(input), `RDV créé : ${dayLong(day).toLowerCase()} ${at}.`)
         : run(() => agenda.actions.createTask(input), `Tâche créée : ${dayLong(day).toLowerCase()}, ${at}.`)
     }
-    if (editor.mode === 'rdv') return run(() => agenda.actions.updateRdv(editor.id, input), 'RDV enregistré.')
-    if (editor.mode === 'task') return run(() => agenda.actions.updateTask(editor.id, { ...input, done }), 'Tâche enregistrée.')
+    // En modification, seulement ce qui a changé : une tâche « en cours » qu'on renomme le reste, et une
+    // tâche sans échéance qu'on termine ne reçoit pas la date du jour affichée par défaut.
+    const patch: Partial<BlockInput> & { done?: boolean } = {}
+    if (initial) {
+      if (name !== initial.title) patch.title = name
+      if (day !== initial.day) patch.day = day
+      if (start !== initial.startMin) patch.startMin = start
+      if (durMin !== initial.durMin) patch.durMin = durMin
+      if (leadId !== initial.leadId) patch.leadId = leadId
+      if (editor.mode === 'task' && done !== initial.done) patch.done = done
+    }
+    if (Object.keys(patch).length === 0) { onClose(); return }
+    if (editor.mode === 'rdv') return run(() => agenda.actions.updateRdv(editor.id, patch), 'RDV enregistré.')
+    if (editor.mode === 'task') return run(() => agenda.actions.updateTask(editor.id, patch), 'Tâche enregistrée.')
   }
 
   return (
@@ -142,7 +164,13 @@ export function BlockForm({ editor, agenda, onClose }: BlockFormProps) {
                   type="button"
                   role="radio"
                   aria-checked={kind === k}
-                  onClick={() => { setKind(k); if (k === 'session') setDurMin(150); else if (durMin === 150) setDurMin(30) }}
+                  onClick={() => {
+                    setKind(k)
+                    if (k === 'session') setDurMin(150)
+                    else if (durMin === 150) setDurMin(30)
+                    // Un RDV et une séance ont une heure : l'afficher, plutôt qu'un 08:00 qui n'en est pas une.
+                    if (k !== 'task' && startMin == null) setStartMin(9 * 60)
+                  }}
                   className={cn('rounded-md px-3 py-1 text-[13px] font-medium', kind === k ? 'bg-[var(--bg-active)] text-[var(--memovia-violet)]' : 'text-[var(--text-secondary)]')}
                 >
                   {label}

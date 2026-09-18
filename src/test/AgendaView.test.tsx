@@ -6,12 +6,14 @@ import { describe, it, expect, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { toast } from 'sonner'
 // AgendaPage importe le conteneur (useAgenda → client Supabase). La vue testée ici ne lit jamais la
 // base : un client vide suffit, et évite d'exiger des variables d'environnement pour tester.
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
 import { AgendaView } from '@/modules/agenda/AgendaPage'
 import { agendaFixture, noopActions, FIXTURE_TODAY } from './fixtures/agendaFixture'
+import { CallPartiallySavedError } from '@/lib/callActions'
 import type { AgendaActions } from '@/types/agenda'
 
 const renderView = (over = {}, view: 'jour' | 'semaine' = 'jour', onGo = vi.fn()) => {
@@ -166,7 +168,22 @@ describe('AgendaView · écritures', () => {
     renderView({ actions: spied({ postponeCall }) })
     await user.click(within(screen.getByTestId('agenda-grille-jour')).getByRole('button', { name: /MFR du Lauragais/ }))
     await user.click(within(screen.getByRole('complementary')).getByRole('button', { name: 'Reporter' }))
+    // Le jour où l'appel s'affiche part avec lui : le report se compte depuis ce jour-là.
     expect(postponeCall.mock.calls[0][0]).toMatchObject({ key: 'msg:M3' })
+    expect(postponeCall.mock.calls[0][1]).toBe(FIXTURE_TODAY)
+  })
+
+  it('appel écrit mais fiche non mise à jour : on le dit, et la fiche se ferme pour ne pas le ressaisir', async () => {
+    const user = userEvent.setup()
+    const warning = vi.spyOn(toast, 'warning')
+    const recordOutcome = vi.fn().mockRejectedValue(new CallPartiallySavedError(new Error('boom')))
+    renderView({ actions: spied({ recordOutcome }) })
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByRole('button', { name: /MFR du Lauragais/ }))
+    await user.click(within(screen.getByRole('complementary')).getByRole('radio', { name: 'Joint' }))
+    await user.click(within(screen.getByRole('complementary')).getByRole('button', { name: 'Enregistrer l’appel' }))
+    expect(warning).toHaveBeenCalledWith(expect.stringMatching(/^Appel enregistré, mais/))
+    expect(await within(screen.getByRole('complementary')).findByText('Reste à faire')).toBeInTheDocument()
+    warning.mockRestore()
   })
 
   it('coche une tâche depuis le panneau', async () => {
@@ -185,6 +202,18 @@ describe('AgendaView · écritures', () => {
     await user.type(within(panel).getByLabelText('Nouvelle tâche'), 'Relire la spec')
     await user.click(within(panel).getByRole('button', { name: 'Ajouter' }))
     expect(createTask).toHaveBeenCalledWith({ title: 'Relire la spec', day: FIXTURE_TODAY, startMin: null, durMin: 30, leadId: null })
+    expect(within(panel).getByLabelText('Nouvelle tâche')).toHaveValue('')
+  })
+
+  it('garde le titre tapé si l’ajout échoue', async () => {
+    const user = userEvent.setup()
+    const createTask = vi.fn().mockRejectedValue(new Error('boom'))
+    renderView({ actions: spied({ createTask }) })
+    const panel = screen.getByRole('complementary')
+    await user.type(within(panel).getByLabelText('Nouvelle tâche'), 'Relire la spec')
+    await user.click(within(panel).getByRole('button', { name: 'Ajouter' }))
+    expect(createTask).toHaveBeenCalled()
+    expect(within(panel).getByLabelText('Nouvelle tâche')).toHaveValue('Relire la spec')
   })
 
   it('ouvre une tâche, change son heure et l’enregistre', async () => {
@@ -197,7 +226,26 @@ describe('AgendaView · écritures', () => {
     expect(within(form).getByLabelText('Heure')).toHaveValue('')
     await user.selectOptions(within(form).getByLabelText('Heure'), '900')
     await user.click(within(form).getByRole('button', { name: 'Enregistrer' }))
-    expect(updateTask).toHaveBeenCalledWith('T2', { title: 'Renvoyer l’accès démo', day: FIXTURE_TODAY, startMin: 900, durMin: 30, leadId: 'L5', done: false })
+    // Seulement ce qui a changé : ni le statut, ni le titre, ni le lead ne sont réécrits.
+    expect(updateTask).toHaveBeenCalledWith('T2', { startMin: 900 })
+  })
+
+  it('une tâche sans échéance qu’on termine ne reçoit pas la date du jour', async () => {
+    const user = userEvent.setup()
+    const updateTask = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ updateTask }) })
+    await user.click(within(screen.getByRole('complementary')).getByRole('button', { name: /^Ranger le vault/ }))
+    const form = screen.getByRole('complementary')
+    await user.click(within(form).getByRole('checkbox', { name: 'Terminée' }))
+    await user.click(within(form).getByRole('button', { name: 'Enregistrer' }))
+    expect(updateTask).toHaveBeenCalledWith('T5', { done: true })
+  })
+
+  it('au clavier, la poignée d’un bloc ouvre son formulaire (qui sait tout déplacer)', async () => {
+    const user = userEvent.setup()
+    renderView()
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByRole('button', { name: 'Modifier ou déplacer : Séance d’appels' }))
+    expect(within(screen.getByRole('complementary')).getByLabelText('Jour')).toHaveValue(FIXTURE_TODAY)
   })
 
   it('ne propose pas de supprimer une tâche que la base refuserait de supprimer', async () => {
@@ -231,6 +279,27 @@ describe('AgendaView · écritures', () => {
     await user.selectOptions(within(form).getByLabelText('Heure'), '840')
     await user.click(within(form).getByRole('button', { name: 'Enregistrer' }))
     expect(saveSession).toHaveBeenCalledWith(FIXTURE_TODAY, 840, 150, FIXTURE_TODAY)
+  })
+
+  it('refuse de poser la séance sur un jour qui a la sienne, ou le week-end ; vendredi, oui', async () => {
+    const user = userEvent.setup()
+    const error = vi.spyOn(toast, 'error')
+    const saveSession = vi.fn().mockResolvedValue(undefined)
+    renderView({ actions: spied({ saveSession }) })
+    await user.click(within(screen.getByTestId('agenda-grille-jour')).getByText(/Séance d’appels · 09:00 – 11:30/))
+    const form = screen.getByRole('complementary')
+    const day = within(form).getByLabelText('Jour')
+    fireEvent.change(day, { target: { value: '2026-09-15' } })
+    await user.click(within(form).getByRole('button', { name: 'Enregistrer' }))
+    expect(error).toHaveBeenLastCalledWith(expect.stringMatching(/déjà sa séance/))
+    fireEvent.change(day, { target: { value: '2026-09-19' } })
+    await user.click(within(form).getByRole('button', { name: 'Enregistrer' }))
+    expect(error).toHaveBeenLastCalledWith(expect.stringMatching(/lundi au vendredi/))
+    expect(saveSession).not.toHaveBeenCalled()
+    fireEvent.change(day, { target: { value: '2026-09-18' } })
+    await user.click(within(form).getByRole('button', { name: 'Enregistrer' }))
+    expect(saveSession).toHaveBeenCalledWith('2026-09-18', 540, 150, FIXTURE_TODAY)
+    error.mockRestore()
   })
 })
 

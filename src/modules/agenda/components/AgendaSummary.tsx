@@ -23,7 +23,8 @@ interface AgendaSummaryProps {
   onOpenCall: (row: SessionRow) => void
   onEditTask: (id: string) => void
   onToggleTask: (id: string, done: boolean) => void
-  onAddTask: (title: string, day: string) => Promise<void>
+  /** Rend true si la tâche est créée : le champ ne se vide qu'alors, pour ne pas perdre ce qui a été tapé. */
+  onAddTask: (title: string, day: string) => Promise<boolean>
 }
 
 interface TaskLine {
@@ -56,7 +57,7 @@ const linesOf = (d: AgendaDay, withDay: boolean): TaskLine[] => {
 function TaskItem({ line, onEdit, onToggle }: { line: TaskLine; onEdit: (id: string) => void; onToggle: (id: string, done: boolean) => void }) {
   const data: DragData = { kind: 'task', id: line.id, durMin: line.durMin, title: line.title }
   // Identifiant distinct de celui du même bloc dans la grille : une tâche planifiée est visible aux deux endroits.
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id: `${dragId('task', line.id)}:panneau`, data })
+  const { listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id: `${dragId('task', line.id)}:panneau`, data })
   return (
     <li ref={setNodeRef} {...listeners} className={cn('relative flex cursor-grab items-start gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1.5 pl-2 pr-6 active:cursor-grabbing', line.done && 'opacity-55', isDragging && 'opacity-35')}>
       <input
@@ -70,9 +71,10 @@ function TaskItem({ line, onEdit, onToggle }: { line: TaskLine; onEdit: (id: str
         <span className={cn('block text-[13px] font-medium text-[var(--text-primary)]', line.done && 'line-through')}>{line.title}</span>
         <span className={cn('block text-[12px]', line.late ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]')}>{line.when}</span>
       </button>
-      <button ref={setActivatorNodeRef} type="button" {...attributes} aria-label={`Déplacer : ${line.title}`} className="absolute right-0.5 top-1.5 grid h-6 w-5 touch-none place-items-center text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+      {/* Poignée pour la souris et le doigt seulement ; au clavier, le titre ouvre le formulaire (jour, heure). */}
+      <span ref={setActivatorNodeRef} aria-hidden="true" className="absolute right-0.5 top-1.5 grid h-6 w-5 touch-none place-items-center text-[var(--text-muted)] hover:text-[var(--text-primary)]">
         <GripVertical className="h-3.5 w-3.5" />
-      </button>
+      </span>
     </li>
   )
 }
@@ -95,8 +97,7 @@ export function AgendaSummary({ day, week, mailsToReview, undatedTasks, mineOnly
     if (!title || !day) return
     setAdding(true)
     try {
-      await onAddTask(title, day.day)
-      setNewTitle('')
+      if (await onAddTask(title, day.day)) setNewTitle('')
     } finally {
       setAdding(false)
     }

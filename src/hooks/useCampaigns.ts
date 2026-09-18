@@ -414,8 +414,12 @@ export function useCampaign(id: string | undefined): UseCampaignResult {
 
   const postponeMessage = async (messageId: string, days: number): Promise<void> => {
     const { enrollment } = requireMessage(messageId)
-    await postponeCampaignMessage(messageId, enrollment.id, inDays(new Date(), days))
-    await refresh()
+    try {
+      await postponeCampaignMessage(messageId, enrollment.id, inDays(new Date(), days))
+    } finally {
+      // Refusé parce que déjà traité ailleurs : la file se recharge aussi, comme l'annonce le message.
+      await refresh()
+    }
   }
 
   const stopEnrollment = async (enrollmentId: string): Promise<void> => {

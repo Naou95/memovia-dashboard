@@ -7,16 +7,18 @@ import {
   addDays,
   assigneeForRole,
   buildAgenda,
+  canDeleteTask,
   diffDays,
   isMine,
-  nextCallDay,
   parisDay,
   parisMinutes,
   parisToUtcIso,
   parseCallWindow,
+  postponeTarget,
   projectNextCalls,
   sessionFor,
   suggestFollowUp,
+  taskUpdate,
   workWeek,
   type ProjectionEnrollment,
   type ProjectionStep,
@@ -35,10 +37,11 @@ import type {
 import type { Task } from '@/types/tasks'
 
 /**
- * Agenda de prospection, LECTURE SEULE (PR 4 du plan 2026-09-17-agenda-prospection.md).
- * Aucune écriture ici : l'agenda se calcule à partir des brouillons d'appel des campagnes, des
- * relances de leads, des appels passés, des RDV et des tâches. Snapshot + « Actualiser », pas de
- * temps réel (règle de la refonte v2) ; seules les tâches suivent useTasks, qui existe déjà.
+ * Agenda de prospection (PR 4 et 5 du plan 2026-09-17-agenda-prospection.md). L'agenda se calcule à
+ * partir des brouillons d'appel des campagnes, des relances de leads, des appels passés, des RDV et
+ * des tâches. Snapshot + « Actualiser », pas de temps réel (règle de la refonte v2) ; seules les
+ * tâches suivent useTasks, qui existe déjà. Les écritures (`actions`) sont en bas : chacune lève en
+ * cas d'échec, et celles faites de plusieurs requêtes rechargent l'écran quoi qu'il arrive.
  */
 
 const LEAD_COLUMNS =
@@ -154,6 +157,11 @@ export function useAgenda(anchorDay: string): UseAgendaResult {
     const endIso = parisToUtcIso(addDays(days[4], 1), 0)
     const historyIso = parisToUtcIso(addDays(days[0], -90), 0)
     const nowIso = new Date().toISOString()
+    // Séances : la semaine affichée ET les trois semaines qui suivent aujourd'hui, car « Reporter » et la
+    // prochaine relance se calculent depuis aujourd'hui, même quand on regarde une autre semaine.
+    const todayDay = parisDay(new Date())
+    const sessionsFrom = [days[0], todayDay].sort()[0]
+    const sessionsTo = [addDays(days[4], 21), addDays(todayDay, 21)].sort()[1]
 
     const [drafts, enrollments, campaigns, steps, leads, calls, rdvs, settings, overrides, mails] = await Promise.all([
       // Du plus ancien au plus récent : si un lead a deux brouillons d'appel (deux campagnes), c'est le plus ancien qui s'affiche.
@@ -170,7 +178,7 @@ export function useAgenda(anchorDay: string): UseAgendaResult {
         .limit(500),
       supabase.from('rdv').select('id, title, rdv_date, lead_id, duration_min').gte('rdv_date', startIso).lt('rdv_date', endIso),
       supabase.from('dashboard_settings').select('key, value').in('key', ['agenda_call_window', 'leads_script']),
-      supabase.from('agenda_sessions').select('day, start_min, end_min, cancelled').gte('day', days[0]).lte('day', addDays(days[4], 21)),
+      supabase.from('agenda_sessions').select('day, start_min, end_min, cancelled').gte('day', sessionsFrom).lte('day', sessionsTo),
       supabase.from('campaign_messages').select('id', { count: 'exact', head: true }).eq('kind', 'email').eq('status', 'draft').lte('due_at', nowIso),
     ])
 
@@ -346,20 +354,11 @@ export function useAgenda(anchorDay: string): UseAgendaResult {
       async updateTask(id, patch) {
         const current = tasks.find((t) => t.id === id)
         if (!current) throw new Error('Tâche introuvable')
-        const update: Parameters<typeof updateTask>[1] = {}
-        if (patch.title !== undefined) update.title = patch.title
-        if (patch.leadId !== undefined) update.lead_id = patch.leadId
-        if (patch.durMin !== undefined) update.duration_min = patch.durMin
-        if (patch.done !== undefined) update.status = patch.done ? 'done' : 'todo'
-        if (patch.day !== undefined || patch.startMin !== undefined) {
-          const day = patch.day ?? (current.scheduled_at ? parisDay(current.scheduled_at) : current.due_date) ?? today
-          const startMin = patch.startMin !== undefined ? patch.startMin : current.scheduled_at ? parisMinutes(current.scheduled_at) : null
-          Object.assign(update, when(day, startMin))
-        }
-        await updateTask(id, update)
+        const update = taskUpdate(current, patch, today)
+        if (Object.keys(update).length > 0) await updateTask(id, update)
       },
       deleteTask,
-      canDeleteTask: (task) => task.auto_key == null && (user?.role === 'admin_full' || (!!userId && task.created_by === userId)),
+      canDeleteTask: (task) => canDeleteTask(task, user?.role, userId),
       async createRdv({ title, day, startMin, durMin, leadId }) {
         if (startMin == null) throw new Error('Un RDV a une heure')
         const { error: e } = await supabase.from('rdv').insert({ title, rdv_date: parisToUtcIso(day, startMin), duration_min: durMin, lead_id: leadId })
@@ -381,18 +380,23 @@ export function useAgenda(anchorDay: string): UseAgendaResult {
       },
       async saveSession(day, startMin, durMin, fromDay) {
         const left = fromDay && fromDay !== day ? sessionFor(fromDay, window, overrides) : null
-        const { error: e } = await supabase
-          .from('agenda_sessions')
-          .upsert({ day, start_min: startMin, end_min: startMin + durMin, cancelled: false, updated_at: new Date().toISOString() }, { onConflict: 'day' })
-        if (e) throw e
-        if (left && fromDay) {
-          // La séance a changé de jour : le jour quitté n'en a plus (ses appels s'affichent à la séance suivante).
-          const { error: e2 } = await supabase
+        const stamp = { updated_at: new Date().toISOString(), ...(userId ? { updated_by: userId } : {}) }
+        try {
+          const { error: e } = await supabase
             .from('agenda_sessions')
-            .upsert({ day: fromDay, start_min: left.startMin, end_min: left.endMin, cancelled: true, updated_at: new Date().toISOString() }, { onConflict: 'day' })
-          if (e2) throw e2
+            .upsert({ day, start_min: startMin, end_min: startMin + durMin, cancelled: false, ...stamp }, { onConflict: 'day' })
+          if (e) throw e
+          if (left && fromDay) {
+            // La séance a changé de jour : le jour quitté n'en a plus (ses appels s'affichent à la séance suivante).
+            const { error: e2 } = await supabase
+              .from('agenda_sessions')
+              .upsert({ day: fromDay, start_min: left.startMin, end_min: left.endMin, cancelled: true, ...stamp }, { onConflict: 'day' })
+            if (e2) throw e2
+          }
+        } finally {
+          // Deux écritures : si la seconde échoue, l'écran doit montrer les deux séances telles qu'en base.
+          await refresh()
         }
-        await refresh()
       },
       async resetSession(day) {
         const { error: e } = await supabase.from('agenda_sessions').delete().eq('day', day)
@@ -414,17 +418,20 @@ export function useAgenda(anchorDay: string): UseAgendaResult {
         }
       },
       suggestFollowUp: (outcome) => suggestFollowUp(outcome, today, window, overrides),
-      async postponeCall(call) {
-        const tomorrow = addDays(today, 1)
-        const day = nextCallDay(tomorrow, window, overrides) ?? tomorrow
-        if (call.campaign) {
-          const start = sessionFor(day, window, overrides)?.startMin ?? 9 * 60
-          await postponeCampaignMessage(call.campaign.messageId, call.campaign.enrollmentId, parisToUtcIso(day, start))
-        } else {
-          const { error: e } = await supabase.from('leads').update({ follow_up_date: day }).eq('id', call.lead.id)
-          if (e) throw e
+      async postponeCall(call, shownDay) {
+        const day = postponeTarget(today, call.dueDay, shownDay, window, overrides)
+        try {
+          if (call.campaign) {
+            const start = sessionFor(day, window, overrides)?.startMin ?? 9 * 60
+            await postponeCampaignMessage(call.campaign.messageId, call.campaign.enrollmentId, parisToUtcIso(day, start))
+          } else {
+            const { error: e } = await supabase.from('leads').update({ follow_up_date: day }).eq('id', call.lead.id)
+            if (e) throw e
+          }
+        } finally {
+          // Refusé parce que déjà traité ailleurs : l'appel doit quitter l'écran, donc on recharge aussi.
+          await refresh()
         }
-        await refresh()
         return day
       },
     }

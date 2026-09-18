@@ -56,18 +56,19 @@ interface DraggableBoxProps {
  * Un bloc déplaçable. À la souris, on l'attrape n'importe où ; au doigt, par sa poignée seulement
  * (elle seule coupe le défilement du navigateur, sinon on ne pourrait plus faire défiler la grille).
  * Un clic sans déplacement reste un clic : le glisser ne démarre qu'après 5 px.
+ * Au clavier, la poignée est un vrai bouton qui ouvre le formulaire (jour, heure, durée) : c'est lui qui
+ * « déplace » sans souris. Pas d'attributs de glisser au clavier : aucun capteur clavier ne les servirait.
  */
 function DraggableBox({ id, data, className, style, title, onClick, children }: DraggableBoxProps) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id, data })
+  const { listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id, data })
   return (
     <div ref={setNodeRef} {...listeners} onClick={onClick} title={title} className={cn('cursor-grab active:cursor-grabbing', className, isDragging && 'opacity-35')} style={style}>
       {children}
       <button
         ref={setActivatorNodeRef}
         type="button"
-        {...attributes}
-        aria-label={`Déplacer : ${data.title}`}
-        onClick={(e) => e.stopPropagation()}
+        aria-label={`Modifier ou déplacer : ${data.title}`}
+        onClick={(e) => { e.stopPropagation(); onClick?.() }}
         className="absolute right-0 top-0 grid h-5 w-4 touch-none place-items-center text-current opacity-45 hover:opacity-90"
       >
         <GripVertical className="h-3 w-3" />

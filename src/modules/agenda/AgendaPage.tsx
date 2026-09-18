@@ -8,7 +8,8 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAgenda, type UseAgendaResult } from '@/hooks/useAgenda'
-import { addDays, daySummary, fmtMinutes, isoWeekday, parisDay } from '@/lib/agenda'
+import { addDays, daySummary, fmtMinutes, hasSessionOn, isoWeekday, parisDay, sessionMoveRefusal } from '@/lib/agenda'
+import { CallPartiallySavedError } from '@/lib/callActions'
 import type { ClassifiedCall, SessionRow } from '@/types/agenda'
 import { CALL_RESULT_LABELS, type CallResult } from '@/types/leads'
 import { CalendarGrid, type DropHint, type GridHandlers } from './components/CalendarGrid'
@@ -105,15 +106,17 @@ export function AgendaView({ agenda, date, view, onGo }: AgendaViewProps) {
   }
 
   const day = agenda.week.find((d) => d.day === date) ?? null
+  // Chaque ligne d'appel, avec le jour où elle s'affiche (« Reporter » part de ce jour-là).
   const rowsByKey = useMemo(() => {
-    const m = new Map<string, SessionRow>()
+    const m = new Map<string, { row: SessionRow; day: string }>()
     for (const d of agenda.week) {
-      for (const r of d.rows) m.set(r.call.key, r)
-      for (const c of d.overflow) m.set(c.key, { kind: 'pending', startMin: -1, call: c })
+      for (const r of d.rows) m.set(r.call.key, { row: r, day: d.day })
+      for (const c of d.overflow) m.set(c.key, { row: { kind: 'pending', startMin: -1, call: c }, day: d.day })
     }
     return m
   }, [agenda.week])
-  const selected = selectedKey ? rowsByKey.get(selectedKey) ?? null : null
+  const selectedEntry = selectedKey ? rowsByKey.get(selectedKey) ?? null : null
+  const selected = selectedEntry?.row ?? null
   const panelOpen = !!editor || !!selected
 
   const noCr = agenda.week.reduce((n, d) => n + daySummary(d).noCr, 0)
@@ -135,16 +138,24 @@ export function AgendaView({ agenda, date, view, onGo }: AgendaViewProps) {
     return () => window.removeEventListener('keydown', onKey)
   }, [panelOpen])
 
-  /** Une écriture : elle réussit avec un mot, ou échoue en le disant. Jamais en silence. */
-  async function act(work: () => Promise<unknown>, success: string) {
+  /**
+   * Une écriture : elle réussit avec un mot, ou échoue en le disant. Jamais en silence. Rend true si
+   * elle a réussi. Le message d'échec reste vrai même pour une écriture en deux temps : celles-là
+   * rechargent l'écran quoi qu'il arrive, donc ce qu'on voit est ce qui est en base.
+   */
+  async function act(work: () => Promise<unknown>, success: string): Promise<boolean> {
     try {
       await work()
       toast.success(success)
+      return true
     } catch (err) {
       console.error('[agenda] écriture en échec :', err)
-      toast.error('Enregistrement impossible. Rien n’a été modifié.')
+      toast.error('Enregistrement impossible. L’agenda montre ce qui est enregistré.')
+      return false
     }
   }
+
+  const sessionOn = (d: string) => hasSessionOn(d, agenda.week, agenda.window)
 
   const openCall = (row: SessionRow) => { setEditor(null); setSelectedKey(row.call.key) }
   const edit = (next: Editor) => { setSelectedKey(null); setEditor(next) }
@@ -167,6 +178,12 @@ export function AgendaView({ agenda, date, view, onGo }: AgendaViewProps) {
       toast.success(`Appel enregistré : ${CALL_RESULT_LABELS[outcome]}.${effect ? ` ${effect}` : ''}`)
       setSelectedKey(null)
     } catch (err) {
+      if (err instanceof CallPartiallySavedError) {
+        // L'appel EST écrit : on ferme la fiche, pour qu'il ne soit pas ressaisi (et compté deux fois).
+        toast.warning('Appel enregistré, mais la fiche du lead ou la séquence n’a pas suivi. Vérifiez-les avant de ressaisir quoi que ce soit.')
+        setSelectedKey(null)
+        return
+      }
       const already = err instanceof Error && err.message === 'message_not_sendable'
       toast.error(already ? 'Déjà traité ailleurs : l’agenda est rechargé.' : 'Impossible d’enregistrer l’appel.')
       if (already) setSelectedKey(null)
@@ -174,12 +191,19 @@ export function AgendaView({ agenda, date, view, onGo }: AgendaViewProps) {
   }
 
   async function postponeCall(call: ClassifiedCall) {
+    const shownDay = rowsByKey.get(call.key)?.day ?? call.dueDay
     try {
-      const to = await agenda.actions.postponeCall(call)
+      const to = await agenda.actions.postponeCall(call, shownDay)
       toast.success(`Reporté à ${dayLong(to).toLowerCase()}.`)
       setSelectedKey(null)
-    } catch {
-      toast.error('Report impossible. Rien n’a été modifié.')
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : ''
+      if (reason === 'message_not_sendable' || reason === 'enrollment_not_active') {
+        toast.error(reason === 'message_not_sendable' ? 'Déjà traité ailleurs : l’agenda est rechargé.' : 'Séquence arrêtée entre-temps : l’agenda est rechargé.')
+        setSelectedKey(null)
+        return
+      }
+      toast.error('Report impossible. L’agenda montre ce qui est enregistré.')
     }
   }
 
@@ -198,7 +222,12 @@ export function AgendaView({ agenda, date, view, onGo }: AgendaViewProps) {
     if (!drag || !initial || !start || !now) return null
     const zone = zoneAt(now.x, now.y)
     if (!zone) return null
-    return dropTarget(drag, zone.data, now.y - (start.y - initial.top), zone.top)
+    const t = dropTarget(drag, zone.data, now.y - (start.y - initial.top), zone.top)
+    if (t.ok && drag.kind === 'session') {
+      const refusal = sessionMoveRefusal(drag.id, t.day, sessionOn)
+      if (refusal) return { ok: false, reason: refusal }
+    }
+    return t
   }
 
   function onDragStart(e: DragStartEvent) {
@@ -243,7 +272,12 @@ export function AgendaView({ agenda, date, view, onGo }: AgendaViewProps) {
     const write =
       drag.kind === 'task' ? act(() => agenda.actions.updateTask(drag.id, { day: to, startMin }), `Tâche déplacée : ${where}.`)
       : drag.kind === 'rdv' ? act(() => agenda.actions.updateRdv(drag.id, { day: to, startMin }), `RDV déplacé : ${where}.`)
-      : act(() => agenda.actions.saveSession(to, startMin!, drag.durMin, drag.id), `Séance d’appels déplacée : ${where}. Ses appels la suivent.`)
+      : act(
+          () => agenda.actions.saveSession(to, startMin!, drag.durMin, drag.id),
+          to === drag.id
+            ? `Séance d’appels : ${where}.`
+            : `Séance d’appels déplacée : ${where}. Les appels dus ${dayLong(drag.id).toLowerCase()} passent à la séance suivante.`,
+        )
     // Le bloc ne bouge qu'une fois la base relue : d'ici là, le cadre pointillé reste sur l'arrivée,
     // pour qu'il n'ait pas l'air d'être revenu. En cas d'échec, le toast le dit et le bloc reste où il était.
     const pending: DropHint = { day: to, startMin, durMin: drag.durMin }

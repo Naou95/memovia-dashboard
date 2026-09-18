@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
@@ -24,8 +25,10 @@ function callItem(id: string, dueAt: string): ReviewItem {
 }
 
 function renderReview(items: ReviewItem[], initialMessageId: string | null) {
-  const data = { items, steps: [step], sendMessage: vi.fn(), skipMessage: vi.fn(), postponeMessage: vi.fn(), stopEnrollment: vi.fn(), completeCall: vi.fn() } as unknown as UseCampaignResult
-  return render(<MemoryRouter><ReviewTab data={data} campaign={campaign} initialMessageId={initialMessageId} /></MemoryRouter>)
+  const completeCall = vi.fn().mockResolvedValue(undefined)
+  const data = { items, steps: [step], sendMessage: vi.fn(), skipMessage: vi.fn(), postponeMessage: vi.fn(), stopEnrollment: vi.fn(), completeCall } as unknown as UseCampaignResult
+  render(<MemoryRouter><ReviewTab data={data} campaign={campaign} initialMessageId={initialMessageId} /></MemoryRouter>)
+  return { completeCall }
 }
 
 describe('Revue · fiche d’appel', () => {
@@ -49,5 +52,16 @@ describe('Revue · fiche d’appel', () => {
   it('un appel à venir ouvre l’agenda à son jour', () => {
     renderReview([callItem('M2', '2026-09-21T07:00:00Z')], 'M2')
     expect(screen.getByRole('link', { name: /Ouvrir dans l’agenda/ })).toHaveAttribute('href', '/agenda?date=2026-09-21')
+  })
+
+  it('enregistre par completeCall, inchangé, et masque le lien dès qu’une issue est choisie', async () => {
+    const user = userEvent.setup()
+    const { completeCall } = renderReview([callItem('M1', '2026-09-17T07:00:00Z')], null)
+    await user.click(screen.getByRole('radio', { name: 'Refus' }))
+    // Quitter la page maintenant perdrait l'issue et la note : le lien s'efface.
+    expect(screen.queryByRole('link', { name: /Ouvrir dans l’agenda/ })).toBeNull()
+    await user.type(screen.getByLabelText('Note d\'appel'), 'pas de RQTH cette année')
+    await user.click(screen.getByRole('button', { name: 'Enregistrer l\'appel' }))
+    expect(completeCall).toHaveBeenCalledWith('M1', 'refus', 'pas de RQTH cette année')
   })
 })

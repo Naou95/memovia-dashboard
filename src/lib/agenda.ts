@@ -10,6 +10,7 @@
 import type {
   AgendaDay,
   AgendaLead,
+  BlockInput,
   CallSignal,
   CallWindow,
   ClassifiedCall,
@@ -25,7 +26,7 @@ import type {
   SessionRow,
   TaskView,
 } from '@/types/agenda'
-import type { Task, TaskAssignee } from '@/types/tasks'
+import type { Task, TaskAssignee, TaskUpdate } from '@/types/tasks'
 import type { UserRole } from '@/types/auth'
 import type { CallResult } from '@/types/leads'
 
@@ -176,6 +177,36 @@ export function suggestFollowUp(outcome: CallResult, today: string, window: Call
   return nextCallDay(from, window, overrides) ?? from
 }
 
+/**
+ * Où « Reporter » envoie un appel : la séance qui suit le plus tardif de aujourd'hui, son échéance et
+ * le jour où il s'affiche. Partir d'aujourd'hui seulement AVANÇAIT un appel ouvert dans un jour futur
+ * (jeudi reporté… à mardi).
+ */
+export function postponeTarget(today: string, dueDay: string, shownDay: string, window: CallWindow, overrides: SessionOverride[]): string {
+  const from = addDays([today, dueDay, shownDay].sort()[2], 1)
+  return nextCallDay(from, window, overrides) ?? from
+}
+
+/** L'agenda va du lundi au vendredi : un bloc posé le week-end n'aurait aucune colonne pour s'afficher. */
+export const WEEKEND_REFUSAL = 'L’agenda va du lundi au vendredi : choisissez un jour de semaine.'
+
+/**
+ * Pourquoi une séance ne peut pas aller de `from` à `to`, ou null si elle le peut. Elle ne se pose pas
+ * sur un jour qui a déjà la sienne : l'une remplacerait l'autre sans prévenir. `sessionOn` dit si un
+ * jour a une séance (la semaine affichée, sinon le créneau par défaut).
+ */
+export function hasSessionOn(day: string, week: AgendaDay[], window: CallWindow): boolean {
+  // La semaine affichée fait foi (séances déplacées ou annulées comprises) ; au-delà, le créneau par défaut.
+  const shown = week.find((d) => d.day === day)
+  return shown ? shown.session != null : sessionFor(day, window, []) != null
+}
+
+export function sessionMoveRefusal(from: string, to: string, sessionOn: (day: string) => boolean): string | null {
+  if (isoWeekday(to) > 5) return WEEKEND_REFUSAL
+  if (to !== from && sessionOn(to)) return 'Ce jour a déjà sa séance d’appels : changez plutôt son heure, ou déplacez-la d’abord.'
+  return null
+}
+
 /** Nombre de séances qui ont eu lieu dans [from, to[ : sert à dire si un appel est VRAIMENT en retard. */
 export function missedSessions(from: string, to: string, window: CallWindow, overrides: SessionOverride[]): number {
   // Au-delà de 60 jours, le nombre exact de séances manquées ne change plus rien : on borne, pour
@@ -278,6 +309,37 @@ export function assigneeForRole(role: UserRole | null | undefined): TaskAssignee
 export function isMine(task: Task, me: TaskAssignee | null, userId: string | null): boolean {
   if (me && (task.assigned_to === me || (task.assignees ?? []).includes(me))) return true
   return task.assigned_to == null && (task.assignees ?? []).length === 0 && !!userId && task.created_by === userId
+}
+
+/** Ce que la base accepte de supprimer (policies de 00056) : jamais une tâche automatique. */
+export function canDeleteTask(task: Task, role: UserRole | null | undefined, userId: string | null): boolean {
+  return task.auto_key == null && (role === 'admin_full' || (!!userId && task.created_by === userId))
+}
+
+/**
+ * Ce qu'une modification de tâche écrit en base : SEULEMENT ce qui change. La table sert aussi au
+ * Kanban, au bot et au MCP : une tâche « en cours » qu'on renomme depuis l'agenda doit le rester, et
+ * une tâche sans échéance qu'on termine ne doit pas recevoir la date du jour au passage.
+ */
+export function taskUpdate(current: Task, patch: Partial<BlockInput> & { done?: boolean }, today: string): TaskUpdate {
+  const update: TaskUpdate = {}
+  if (patch.title !== undefined && patch.title !== current.title) update.title = patch.title
+  if (patch.leadId !== undefined && patch.leadId !== current.lead_id) update.lead_id = patch.leadId
+  if (patch.durMin !== undefined && patch.durMin !== current.duration_min) update.duration_min = patch.durMin
+  if (patch.done === true && current.status !== 'done') update.status = 'done'
+  if (patch.done === false && current.status === 'done') update.status = 'todo'
+  const curDay = current.scheduled_at ? parisDay(current.scheduled_at) : current.due_date
+  const curStart = current.scheduled_at ? parisMinutes(current.scheduled_at) : null
+  const dayChanged = patch.day !== undefined && patch.day !== curDay
+  const startChanged = patch.startMin !== undefined && patch.startMin !== curStart
+  if (dayChanged || startChanged) {
+    const day = patch.day ?? curDay ?? today
+    const startMin = patch.startMin !== undefined ? patch.startMin : curStart
+    // due_date et scheduled_at s'écrivent ensemble : le jour d'un créneau est toujours son échéance.
+    update.due_date = day
+    update.scheduled_at = startMin == null ? null : parisToUtcIso(day, startMin)
+  }
+  return update
 }
 
 /**

@@ -35,6 +35,7 @@ const SEND_REFUSALS: Record<string, string> = {
   campaign_not_active: "Campagne en pause ou archivée : rien n'est parti.",
   lead_not_prospect: "Ce lead n'est plus un prospect (client, perdu, en discussion ou archivé) : rien n'est parti.",
   message_not_sendable: 'Déjà traité ailleurs : la file est rechargée.',
+  call_partially_saved: 'Appel enregistré, mais la fiche du lead ou la séquence n’a pas suivi : vérifiez-les avant de ressaisir quoi que ce soit.',
 }
 
 const CALL_ICONS: Record<CallResult, typeof PhoneIncoming> = {
@@ -350,13 +351,16 @@ export function ReviewTab({ data, campaign, initialMessageId }: ReviewTabProps) 
                     <p className="mt-1 text-[15px] font-medium text-[var(--text-muted)]">Numéro à trouver sur le site de l'établissement</p>
                   )}
                 </div>
-                {/* Un appel en retard s'affiche à la séance du jour dans l'agenda : le lien mène là où il est. */}
-                <Link
-                  to={`/agenda?date=${[parisDay(selected.due_at), parisDay(new Date())].sort()[1]}`}
-                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--memovia-violet)] hover:underline"
-                >
-                  <CalendarDays className="h-3.5 w-3.5" /> Ouvrir dans l’agenda
-                </Link>
+                {/* Un appel en retard s'affiche à la séance du jour dans l'agenda : le lien mène là où il est.
+                    Masqué dès qu'une issue ou une note est en cours : quitter la page la perdrait. */}
+                {!readOnly && !outcome && !note.trim() && (
+                  <Link
+                    to={`/agenda?date=${[parisDay(selected.due_at), parisDay(new Date())].sort()[1]}`}
+                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--memovia-violet)] hover:underline"
+                  >
+                    <CalendarDays className="h-3.5 w-3.5" /> Ouvrir dans l’agenda
+                  </Link>
+                )}
                 <div>
                   <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wider text-[var(--text-label)]">Script</p>
                   <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-[var(--text-primary)]">{selected.step.ai_brief || 'Aucun script pour cette étape.'}</p>

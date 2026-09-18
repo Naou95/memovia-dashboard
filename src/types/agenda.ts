@@ -198,8 +198,8 @@ export interface AgendaActions {
   recordOutcome(call: ClassifiedCall, outcome: CallResult, note: string, followUp?: string | null): Promise<void>
   /** La prochaine relance proposée pour cette issue (voir suggestFollowUp dans lib/agenda). */
   suggestFollowUp(outcome: CallResult): string | null
-  /** Reporte l'appel à la prochaine séance ; rend le jour retenu. */
-  postponeCall(call: ClassifiedCall): Promise<string>
+  /** Reporte l'appel à la séance qui suit le jour où il s'affiche (`shownDay`) ; rend le jour retenu. */
+  postponeCall(call: ClassifiedCall, shownDay: string): Promise<string>
 }
 
 export type { TaskAssignee }

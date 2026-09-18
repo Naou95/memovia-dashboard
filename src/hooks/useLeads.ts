@@ -76,8 +76,12 @@ export function useLeads(): UseLeadsResult {
 
   // Log d'appel < 30 s : l'appel puis la fiche (dernier contact, prochaine action).
   const logCall = async (leadId: string, input: LogCallInput): Promise<void> => {
-    await logLeadCall(leadId, input)
-    await fetchAll()
+    try {
+      await logLeadCall(leadId, input)
+    } finally {
+      // Même en cas d'échec partiel (appel écrit, fiche non mise à jour), la liste montre l'état réel.
+      await fetchAll()
+    }
   }
 
   return { leads, isLoading, error, createLead, updateLead, deleteLead, logCall }
