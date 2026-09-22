@@ -81,6 +81,18 @@ Comportements à connaître avant de toucher :
 - Le brouillon d'un appel n'avance pas l'inscription côté edge : c'est l'issue d'appel saisie dans le front qui
   avance ou arrête.
 
+**Règles pendant qu'une campagne tourne (décidées le 22/09/2026)** :
+- `main` est protégée : tout passe par une branche et une PR relue et mergée par Naoufel. Pas de push direct,
+  pas de merge sans son approbation. Ce qui est en local sur un poste ne compte pas tant que ce n'est pas poussé
+  sur une branche.
+- Aucune migration sur `campaigns`, `campaign_steps`, `campaign_enrollments`, `campaign_messages`, et aucun
+  redéploiement de `campaign-tick` ni `campaign-send`, sans PR relue ET sans avoir vérifié qu'aucune campagne
+  n'est `live` (`select name, status from campaigns`). Un changement de schéma pendant une inscription active =
+  envois perdus ou doublés.
+- Le dev se fait sur une branche, avec sa preview Vercel, contre la base de prod partagée. Une campagne de test
+  se nomme `TEST · …`, n'inscrit que des adresses de l'équipe et se supprime après. Ne jamais inscrire un vrai
+  lead depuis une branche de dev.
+
 ## Pièges
 
 - **Boîte mail Hostinger** : `emir@memovia.io` est une identité de la boîte `naoufel@memovia.io`, pas une boîte à
