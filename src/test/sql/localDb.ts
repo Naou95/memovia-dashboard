@@ -54,6 +54,9 @@ create table storage.objects (id uuid primary key default gen_random_uuid(), buc
 alter table storage.objects enable row level security;
 create function storage.foldername(name text) returns text[] language sql immutable as $$ select string_to_array(name, '/') $$;
 create publication supabase_realtime;
+-- Supabase donne ces droits d'office : sans eux, auth.uid() échoue et toute policy paraîtrait fausse.
+grant usage on schema auth to authenticated, anon, service_role;
+grant execute on all functions in schema auth to authenticated, anon, service_role;
 create table public.organizations (id uuid primary key default gen_random_uuid(), name text);
 create table public.profiles (id uuid primary key default gen_random_uuid(), user_id uuid, first_name text, last_name text, plan text,
   account_type text, subscription_status text, subscription_price_family text, organization_id uuid, created_at timestamptz default now());
@@ -128,5 +131,5 @@ export async function seedUsers(db: PGlite): Promise<void> {
   `)
 }
 
-/** Nombre de lignes touchées ou rendues par une requête. */
-export const rowsOf = (r: { affectedRows?: number; rows: unknown[] }) => r.affectedRows ?? r.rows.length
+/** Lignes rendues, sinon lignes touchées. Attention : PGlite met affectedRows à 0 sur un SELECT. */
+export const rowsOf = (r: { affectedRows?: number; rows: unknown[] }) => (r.rows?.length ?? 0) || (r.affectedRows ?? 0)

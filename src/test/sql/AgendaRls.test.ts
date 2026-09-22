@@ -89,6 +89,10 @@ describe('écritures de l’agenda, en tant qu’Emir (admin_bizdev)', () => {
 
 describe('un compte de l’application, hors dashboard', () => {
   it('ne lit ni n’écrit rien de l’agenda', async () => {
+    // Contre-épreuve : les mêmes lectures rendent des lignes à Emir. Sans elle, ce test passerait
+    // même si la requête ne ramenait jamais rien (piège : PGlite met affectedRows à 0 sur un SELECT).
+    const vus = await asUser(db, USERS.emir, async () => rowsOf(await db.query(`select id from public.lead_calls`)))
+    expect(vus).toBeGreaterThan(0)
     await asUser(db, USERS.app, async () => {
       expect(rowsOf(await db.query(`select id from public.lead_calls`))).toBe(0)
       expect(rowsOf(await db.query(`select id from public.debrief_messages`))).toBe(0)
