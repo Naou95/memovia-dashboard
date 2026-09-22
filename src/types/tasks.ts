@@ -17,11 +17,22 @@ export interface Task {
   created_by: string | null
   // Engagement lié à une fiche lead/partenaire (mémoire d'entreprise, 21/08/2026)
   lead_id: string | null
+  // Agenda (00056). scheduled_at : le créneau ; sans lui la tâche est « sans heure » sur son
+  // jour d'échéance. auto_key : clé unique des tâches créées automatiquement (jamais deux fois).
+  scheduled_at: string | null  // ISO timestamptz
+  duration_min: number
+  auto_key: string | null
 }
 
 // lead_id optionnel à l'insertion : le module Tâches historique crée des tâches
-// sans fiche, seul le bloc Engagements le renseigne.
-export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'lead_id'> & { lead_id?: string | null }
+// sans fiche, seul le bloc Engagements le renseigne. Les champs de l'agenda aussi :
+// la base pose leurs défauts, les écrans existants n'ont rien à envoyer de plus.
+export type TaskInsert = Omit<Task, 'id' | 'created_at' | 'updated_at' | 'lead_id' | 'scheduled_at' | 'duration_min' | 'auto_key'> & {
+  lead_id?: string | null
+  scheduled_at?: string | null
+  duration_min?: number
+  auto_key?: string | null
+}
 export type TaskUpdate = Partial<Omit<Task, 'id' | 'created_at' | 'updated_at'>>
 
 // Engagements d'une fiche : ce qu'on doit (ouvertes) + ce qu'on a fait (faites).

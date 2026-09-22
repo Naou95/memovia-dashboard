@@ -16,7 +16,8 @@ export type LeadMaturity = 'froid' | 'tiede' | 'chaud'
 
 export interface TimelineEntry {
   date: string
-  direction: 'envoyé' | 'reçu'
+  // 'appel' : écrit par le débrief de l'agenda (00056) quand un CR d'appel est validé.
+  direction: 'envoyé' | 'reçu' | 'appel'
   sujet: string
   résumé: string
 }

@@ -73,7 +73,8 @@ export interface MessageRow {
 
 export interface TimelineEntry {
   date: string
-  direction: 'envoyé' | 'reçu'
+  // 'appel' : écrit par le débrief de l'agenda (00056), jamais par tick ni send.
+  direction: 'envoyé' | 'reçu' | 'appel'
   sujet: string
   résumé: string
 }
