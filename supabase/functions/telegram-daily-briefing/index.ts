@@ -262,9 +262,10 @@ Deno.serve(async (req) => {
       const run = detectorResult.value.data
       const heures = Math.floor((Date.now() - new Date(run.started_at).getTime()) / 3600000)
       const age = heures < 1 ? 'il y a moins d\'1 h' : heures < 48 ? `il y a ${heures} h` : `il y a ${Math.floor(heures / 24)} j`
-      const s = run.stats as { analyzed?: number; inserted?: number; updated?: number; errors?: number } | null
+      // `unchanged` (leads reconnus, déjà à jour) : sans lui une nuit saine lirait « 0 màj », comme une panne.
+      const s = run.stats as { analyzed?: number; inserted?: number; updated?: number; unchanged?: number; errors?: number } | null
       const detail = s
-        ? ` (${s.analyzed ?? 0} analysées · ${s.inserted ?? 0} nouvelles · ${s.updated ?? 0} màj${s.errors ? ` · ${s.errors} erreurs` : ''})`
+        ? ` (${s.analyzed ?? 0} analysées · ${s.inserted ?? 0} nouvelles · ${s.updated ?? 0} màj${s.unchanged ? ` · ${s.unchanged} déjà à jour` : ''}${s.errors ? ` · ${s.errors} erreurs` : ''})`
         : ''
       const libelle =
         run.outcome === 'ok' ? `dernier run OK ${age}${detail}`
