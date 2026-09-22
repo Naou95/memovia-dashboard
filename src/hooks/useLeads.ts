@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Lead, LeadInsert, LeadUpdate, CallOutcome } from '@/types/leads'
+import type { Lead, LeadInsert, LeadUpdate, CallResult } from '@/types/leads'
 
 export interface LogCallInput {
-  outcome: CallOutcome
+  outcome: CallResult
   note?: string
   nextAction?: string
   followUpDate?: string

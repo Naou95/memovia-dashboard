@@ -58,7 +58,17 @@ export type LeadUpdate = Partial<Omit<Lead, 'id' | 'created_at' | 'updated_at'>>
 
 // ── Log d'appel (refonte v2 Phase 1) ──────────────────────────────────────────
 
-export type CallOutcome = 'repondu' | 'pas_repondu' | 'rappel'
+/**
+ * Les 5 issues qu'on peut SAISIR : une seule liste pour la Revue des campagnes, la section Leads et
+ * l'agenda. Avant, la Revue en connaissait 5 et lead_calls 3 : un Refus, un Intéressé et un Joint
+ * s'écrivaient tous « repondu » en base et devenaient indiscernables.
+ */
+export type CallResult = 'joint' | 'pas_repondu' | 'rappel' | 'refus' | 'interesse'
+
+export const CALL_RESULTS: CallResult[] = ['joint', 'pas_repondu', 'rappel', 'refus', 'interesse']
+
+/** Ce qu'on peut LIRE en base : les 5 issues, plus « repondu », écrit par le front d'avant 00056. */
+export type CallOutcome = CallResult | 'repondu'
 
 export interface LeadCall {
   id: string
@@ -67,12 +77,27 @@ export interface LeadCall {
   note: string | null
   called_at: string
   created_by: string | null
+  // Agenda (00056)
+  campaign_message_id: string | null
+  cr: string | null
+  cr_data: unknown | null
+  objection: string | null
+  callback_at: string | null
+  debriefed_at: string | null
+  debriefed_by: string | null
+}
+
+export const CALL_RESULT_LABELS: Record<CallResult, string> = {
+  joint: 'Joint',
+  pas_repondu: 'Pas répondu',
+  rappel: 'Rappel demandé',
+  refus: 'Refus',
+  interesse: 'Intéressé',
 }
 
 export const CALL_OUTCOME_LABELS: Record<CallOutcome, string> = {
-  repondu: 'Répondu',
-  pas_repondu: 'Pas de réponse',
-  rappel: 'À rappeler',
+  ...CALL_RESULT_LABELS,
+  repondu: 'Répondu (ancien)',
 }
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
