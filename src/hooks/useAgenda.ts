@@ -2,22 +2,29 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTasks } from '@/hooks/useTasks'
+import { completeCampaignCall, logLeadCall, postponeCampaignMessage } from '@/lib/callActions'
 import {
   addDays,
   assigneeForRole,
   buildAgenda,
+  canDeleteTask,
   diffDays,
   isMine,
   parisDay,
   parisMinutes,
   parisToUtcIso,
   parseCallWindow,
+  postponeTarget,
   projectNextCalls,
+  sessionFor,
+  suggestFollowUp,
+  taskUpdate,
   workWeek,
   type ProjectionEnrollment,
   type ProjectionStep,
 } from '@/lib/agenda'
 import type {
+  AgendaActions,
   AgendaDay,
   AgendaLead,
   CallWindow,
@@ -30,10 +37,11 @@ import type {
 import type { Task } from '@/types/tasks'
 
 /**
- * Agenda de prospection, LECTURE SEULE (PR 4 du plan 2026-09-17-agenda-prospection.md).
- * Aucune écriture ici : l'agenda se calcule à partir des brouillons d'appel des campagnes, des
- * relances de leads, des appels passés, des RDV et des tâches. Snapshot + « Actualiser », pas de
- * temps réel (règle de la refonte v2) ; seules les tâches suivent useTasks, qui existe déjà.
+ * Agenda de prospection (PR 4 et 5 du plan 2026-09-17-agenda-prospection.md). L'agenda se calcule à
+ * partir des brouillons d'appel des campagnes, des relances de leads, des appels passés, des RDV et
+ * des tâches. Snapshot + « Actualiser », pas de temps réel (règle de la refonte v2) ; seules les
+ * tâches suivent useTasks, qui existe déjà. Les écritures (`actions`) sont en bas : chacune lève en
+ * cas d'échec, et celles faites de plusieurs requêtes rechargent l'écran quoi qu'il arrive.
  */
 
 const LEAD_COLUMNS =
@@ -91,6 +99,9 @@ export interface UseAgendaResult {
   threadFor: (enrollmentId: string) => ThreadEntry[]
   callsFor: (leadId: string) => LeadCallLite[]
   openTasksFor: (leadId: string) => Task[]
+  /** Pour rattacher une tâche ou un RDV à un lead depuis un formulaire. */
+  leads: { id: string; name: string }[]
+  actions: AgendaActions
   isLoading: boolean
   error: string | null
   /** La migration 00056 n'est pas appliquée : l'agenda ne peut pas lire ses colonnes. */
@@ -101,7 +112,7 @@ export interface UseAgendaResult {
 
 export function useAgenda(anchorDay: string): UseAgendaResult {
   const { user } = useAuth()
-  const { tasks } = useTasks()
+  const { tasks, createTask, updateTask, deleteTask } = useTasks()
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -146,6 +157,11 @@ export function useAgenda(anchorDay: string): UseAgendaResult {
     const endIso = parisToUtcIso(addDays(days[4], 1), 0)
     const historyIso = parisToUtcIso(addDays(days[0], -90), 0)
     const nowIso = new Date().toISOString()
+    // Séances : la semaine affichée ET les trois semaines qui suivent aujourd'hui, car « Reporter » et la
+    // prochaine relance se calculent depuis aujourd'hui, même quand on regarde une autre semaine.
+    const todayDay = parisDay(new Date())
+    const sessionsFrom = [days[0], todayDay].sort()[0]
+    const sessionsTo = [addDays(days[4], 21), addDays(todayDay, 21)].sort()[1]
 
     const [drafts, enrollments, campaigns, steps, leads, calls, rdvs, settings, overrides, mails] = await Promise.all([
       // Du plus ancien au plus récent : si un lead a deux brouillons d'appel (deux campagnes), c'est le plus ancien qui s'affiche.
@@ -162,7 +178,7 @@ export function useAgenda(anchorDay: string): UseAgendaResult {
         .limit(500),
       supabase.from('rdv').select('id, title, rdv_date, lead_id, duration_min').gte('rdv_date', startIso).lt('rdv_date', endIso),
       supabase.from('dashboard_settings').select('key, value').in('key', ['agenda_call_window', 'leads_script']),
-      supabase.from('agenda_sessions').select('day, start_min, end_min, cancelled').gte('day', days[0]).lte('day', addDays(days[4], 21)),
+      supabase.from('agenda_sessions').select('day, start_min, end_min, cancelled').gte('day', sessionsFrom).lte('day', sessionsTo),
       supabase.from('campaign_messages').select('id', { count: 'exact', head: true }).eq('kind', 'email').eq('status', 'draft').lte('due_at', nowIso),
     ])
 
@@ -318,6 +334,114 @@ export function useAgenda(anchorDay: string): UseAgendaResult {
     [visibleTasks],
   )
 
+  // ── Écritures ────────────────────────────────────────────────────────────────
+  // Chacune lève en cas d'échec et recharge ce qu'elle a touché. Les tâches passent par useTasks (il
+  // recharge tout seul) ; le reste recharge l'instantané de la semaine.
+  const actions = useMemo<AgendaActions>(() => {
+    const window = snap?.window ?? parseCallWindow(null)
+    const overrides = snap?.overrides ?? []
+    const when = (day: string, startMin: number | null) => ({
+      due_date: day,
+      scheduled_at: startMin == null ? null : parisToUtcIso(day, startMin),
+    })
+    return {
+      async createTask({ title, day, startMin, durMin, leadId }) {
+        await createTask({
+          title, description: null, status: 'todo', priority: 'normale', assigned_to: me, assignees: [], is_private: false,
+          created_by: null, lead_id: leadId, duration_min: durMin, ...when(day, startMin),
+        })
+      },
+      async updateTask(id, patch) {
+        const current = tasks.find((t) => t.id === id)
+        if (!current) throw new Error('Tâche introuvable')
+        const update = taskUpdate(current, patch, today)
+        if (Object.keys(update).length > 0) await updateTask(id, update)
+      },
+      deleteTask,
+      canDeleteTask: (task) => canDeleteTask(task, user?.role, userId),
+      async createRdv({ title, day, startMin, durMin, leadId }) {
+        if (startMin == null) throw new Error('Un RDV a une heure')
+        const { error: e } = await supabase.from('rdv').insert({ title, rdv_date: parisToUtcIso(day, startMin), duration_min: durMin, lead_id: leadId })
+        if (e) throw e
+        await refresh()
+      },
+      async updateRdv(id, patch) {
+        const current = snap?.rdvs.find((r) => r.id === id)
+        if (!current) throw new Error('RDV introuvable')
+        const day = patch.day ?? parisDay(current.rdv_date)
+        const startMin = patch.startMin ?? parisMinutes(current.rdv_date)
+        const update: { title?: string; rdv_date: string; duration_min?: number; lead_id?: string | null } = { rdv_date: parisToUtcIso(day, startMin) }
+        if (patch.title !== undefined) update.title = patch.title
+        if (patch.durMin !== undefined) update.duration_min = patch.durMin
+        if (patch.leadId !== undefined) update.lead_id = patch.leadId
+        const { error: e } = await supabase.from('rdv').update(update).eq('id', id)
+        if (e) throw e
+        await refresh()
+      },
+      async saveSession(day, startMin, durMin, fromDay) {
+        const left = fromDay && fromDay !== day ? sessionFor(fromDay, window, overrides) : null
+        const stamp = { updated_at: new Date().toISOString(), ...(userId ? { updated_by: userId } : {}) }
+        try {
+          const { error: e } = await supabase
+            .from('agenda_sessions')
+            .upsert({ day, start_min: startMin, end_min: startMin + durMin, cancelled: false, ...stamp }, { onConflict: 'day' })
+          if (e) throw e
+          if (left && fromDay) {
+            // La séance a changé de jour : le jour quitté n'en a plus (ses appels s'affichent à la séance suivante).
+            const { error: e2 } = await supabase
+              .from('agenda_sessions')
+              .upsert({ day: fromDay, start_min: left.startMin, end_min: left.endMin, cancelled: true, ...stamp }, { onConflict: 'day' })
+            if (e2) throw e2
+          }
+        } finally {
+          // Deux écritures : si la seconde échoue, l'écran doit montrer les deux séances telles qu'en base.
+          await refresh()
+        }
+      },
+      async resetSession(day) {
+        const { error: e } = await supabase.from('agenda_sessions').delete().eq('day', day)
+        if (e) throw e
+        await refresh()
+      },
+      async recordOutcome(call, outcome, note, followUp) {
+        try {
+          if (call.campaign) {
+            const enrollment = snap?.enrollments.find((x) => x.id === call.campaign!.enrollmentId)
+            if (!enrollment) throw new Error('message_not_sendable')
+            const steps = (snap?.steps ?? []).filter((s) => s.campaign_id === enrollment.campaign_id)
+            await completeCampaignCall({ messageId: call.campaign.messageId, enrollment, steps, outcome, note })
+          } else {
+            await logLeadCall(call.lead.id, { outcome, note: note.trim() || undefined, followUpDate: followUp })
+          }
+        } finally {
+          await refresh()
+        }
+      },
+      suggestFollowUp: (outcome) => suggestFollowUp(outcome, today, window, overrides),
+      async postponeCall(call, shownDay) {
+        const day = postponeTarget(today, call.dueDay, shownDay, window, overrides)
+        try {
+          if (call.campaign) {
+            const start = sessionFor(day, window, overrides)?.startMin ?? 9 * 60
+            await postponeCampaignMessage(call.campaign.messageId, call.campaign.enrollmentId, parisToUtcIso(day, start))
+          } else {
+            const { error: e } = await supabase.from('leads').update({ follow_up_date: day }).eq('id', call.lead.id)
+            if (e) throw e
+          }
+        } finally {
+          // Refusé parce que déjà traité ailleurs : l'appel doit quitter l'écran, donc on recharge aussi.
+          await refresh()
+        }
+        return day
+      },
+    }
+  }, [snap, tasks, createTask, updateTask, deleteTask, refresh, me, user?.role, userId, today])
+
+  const leadOptions = useMemo(
+    () => (snap?.leads ?? []).map((l) => ({ id: l.id, name: l.name })).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    [snap],
+  )
+
   return {
     week: model?.week ?? [],
     weekDays,
@@ -333,6 +457,8 @@ export function useAgenda(anchorDay: string): UseAgendaResult {
     threadFor,
     callsFor,
     openTasksFor,
+    leads: leadOptions,
+    actions,
     isLoading,
     error,
     schemaMissing,

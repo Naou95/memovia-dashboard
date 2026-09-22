@@ -1,7 +1,7 @@
 // Données FICTIVES pour tester la vue de l'agenda sans base : aucun vrai lead, numéros factices.
 import { DEFAULT_WINDOW, buildAgenda, workWeek } from '@/lib/agenda'
 import type { UseAgendaResult } from '@/hooks/useAgenda'
-import type { AgendaLead, LeadCallLite, PendingCall } from '@/types/agenda'
+import type { AgendaActions, AgendaDay, AgendaLead, LeadCallLite, PendingCall, RdvLite, SessionOverride } from '@/types/agenda'
 import type { Task } from '@/types/tasks'
 
 export const FIXTURE_TODAY = '2026-09-14' // un lundi
@@ -43,7 +43,9 @@ const task = (id: string, title: string, over: Partial<Task> = {}): Task => ({
   created_at: '', updated_at: '', created_by: null, lead_id: null, scheduled_at: null, duration_min: 30, auto_key: null, ...over,
 })
 
-const TASKS: Task[] = [
+export const FIXTURE_RDVS: RdvLite[] = [{ id: 'R1', title: 'Visio · Point hebdo équipe', rdv_date: '2026-09-14T12:00:00Z', lead_id: null, duration_min: 45 }]
+
+export const FIXTURE_TASKS: Task[] = [
   task('T1', 'Valider les 4 mails J0 dans la Revue', { scheduled_at: '2026-09-14T10:00:00Z', due_date: FIXTURE_TODAY, duration_min: 20 }),
   task('T2', 'Renvoyer l’accès démo', { due_date: FIXTURE_TODAY, lead_id: 'L5' }),
   task('T3', 'Contacter TBS Alumni', { due_date: '2026-09-02' }),
@@ -51,20 +53,35 @@ const TASKS: Task[] = [
   task('T5', 'Ranger le vault', {}),
 ]
 
+/** Des écritures qui ne font rien : un test qui veut les observer passe les siennes (vi.fn()). */
+export const noopActions: AgendaActions = {
+  createTask: async () => {}, updateTask: async () => {}, deleteTask: async () => {}, canDeleteTask: (t) => t.auto_key == null && t.created_by === 'moi',
+  createRdv: async () => {}, updateRdv: async () => {}, saveSession: async () => {}, resetSession: async () => {},
+  recordOutcome: async () => {}, postponeCall: async () => '2026-09-15', suggestFollowUp: (o) => (o === 'refus' ? null : '2026-09-16'),
+}
+
+const TASKS = FIXTURE_TASKS
+const NOW_MIN = 9 * 60 + 22
+
+/** La semaine fictive, recalculée pour des tâches, RDV et séances donnés (sert aussi à une démo en mémoire). */
+export function fixtureWeek(tasks: Task[] = FIXTURE_TASKS, rdvs: RdvLite[] = FIXTURE_RDVS, overrides: SessionOverride[] = []): AgendaDay[] {
+  return buildAgenda({
+    today: FIXTURE_TODAY, nowMin: NOW_MIN, days: workWeek(FIXTURE_TODAY), window: DEFAULT_WINDOW, overrides, pending: PENDING, calls: CALLS, leadsById: byId,
+    rdvs, tasks, projections: [{ enrollmentId: 'E7', leadId: 'L9', day: '2026-09-16', stepName: 'Appel au standard' }],
+  })
+}
+
 export function agendaFixture(over: Partial<UseAgendaResult> = {}): UseAgendaResult {
   const weekDays = workWeek(FIXTURE_TODAY)
-  const nowMin = 9 * 60 + 22
-  const week = buildAgenda({
-    today: FIXTURE_TODAY, nowMin, days: weekDays, window: DEFAULT_WINDOW, overrides: [], pending: PENDING, calls: CALLS, leadsById: byId,
-    rdvs: [{ id: 'R1', title: 'Visio · Point hebdo équipe', rdv_date: '2026-09-14T12:00:00Z', lead_id: null, duration_min: 45 }],
-    tasks: TASKS, projections: [{ enrollmentId: 'E7', leadId: 'L9', day: '2026-09-16', stepName: 'Appel au standard' }],
-  })
+  const nowMin = NOW_MIN
+  const week = fixtureWeek()
   return {
     week, weekDays, today: FIXTURE_TODAY, nowMin, window: DEFAULT_WINDOW, script: null, mailsToReview: 4,
     undatedTasks: TASKS.filter((t) => !t.due_date && !t.scheduled_at), tasks: TASKS, mineOnly: true, setMineOnly: () => {},
     threadFor: () => [{ id: 'm1', kind: 'email', at: '2026-09-10T07:40:00Z', stepName: 'Mail 1 · premier contact', subject: 'Agroéquipement : des fiches machine lisibles', outcome: null, note: null }],
     callsFor: (leadId) => CALLS.filter((c) => c.lead_id === leadId),
     openTasksFor: (leadId) => TASKS.filter((t) => t.lead_id === leadId && t.status !== 'done'),
+    leads: LEADS.map((l) => ({ id: l.id, name: l.name })), actions: noopActions,
     isLoading: false, error: null, schemaMissing: false, loadedAt: new Date('2026-09-14T07:20:00Z'), refresh: async () => {}, ...over,
   }
 }

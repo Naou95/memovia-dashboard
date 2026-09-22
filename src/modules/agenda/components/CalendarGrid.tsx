@@ -1,9 +1,26 @@
-import type { CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import type { CSSProperties, MouseEvent, ReactNode } from 'react'
+import { useDraggable } from '@dnd-kit/core'
+import { GripVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { DAY_END_MIN, DAY_START_MIN, blockHeight, blockTop, daySummary, fmtMinutes } from '@/lib/agenda'
+import { DAY_END_MIN, DAY_START_MIN, blockHeight, blockTop, clampStart, daySummary, fmtMinutes } from '@/lib/agenda'
 import type { AgendaDay, SessionRow } from '@/types/agenda'
 import { TONE_STYLE, dayNumber, dayShort, rowChip, rowLeadName } from '../display'
+import { dragId, dropId, type DragData } from '../dnd'
+
+/** Où le bloc en cours de déplacement atterrirait : dessiné en pointillé dans la colonne visée. */
+export interface DropHint {
+  day: string
+  startMin: number | null
+  durMin: number
+}
+
+export interface GridHandlers {
+  onCreateAt: (day: string, startMin: number) => void
+  onEditTask: (id: string) => void
+  onEditRdv: (id: string) => void
+  onEditSession: (day: string) => void
+  onToggleTask: (id: string, done: boolean) => void
+}
 
 interface CalendarGridProps {
   days: AgendaDay[]
@@ -15,17 +32,121 @@ interface CalendarGridProps {
   selectedKey: string | null
   onOpenCall: (row: SessionRow) => void
   onOpenDay?: (day: string) => void
+  handlers: GridHandlers
+  hint: DropHint | null
 }
 
 const HOURS = Array.from({ length: (DAY_END_MIN - DAY_START_MIN) / 60 }, (_, i) => DAY_START_MIN / 60 + i)
 const SESSION_HEAD_PX = 42
+const TASK_COLORS: CSSProperties = { backgroundColor: 'var(--warning-bg)', borderColor: 'color-mix(in srgb, var(--warning) 35%, transparent)', color: '#78350F' }
+
+// ── Briques du glisser-déposer ─────────────────────────────────────────────────
+
+interface DraggableBoxProps {
+  id: string
+  data: DragData
+  className?: string
+  style?: CSSProperties
+  title?: string
+  onClick?: () => void
+  children: ReactNode
+}
+
+/**
+ * Un bloc déplaçable. À la souris, on l'attrape n'importe où ; au doigt, par sa poignée seulement
+ * (elle seule coupe le défilement du navigateur, sinon on ne pourrait plus faire défiler la grille).
+ * Un clic sans déplacement reste un clic : le glisser ne démarre qu'après 5 px.
+ * Au clavier, la poignée est un vrai bouton qui ouvre le formulaire (jour, heure, durée) : c'est lui qui
+ * « déplace » sans souris. Pas d'attributs de glisser au clavier : aucun capteur clavier ne les servirait.
+ */
+function DraggableBox({ id, data, className, style, title, onClick, children }: DraggableBoxProps) {
+  const { listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id, data })
+  return (
+    <div ref={setNodeRef} {...listeners} onClick={onClick} title={title} className={cn('cursor-grab active:cursor-grabbing', className, isDragging && 'opacity-35')} style={style}>
+      {children}
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        aria-label={`Modifier ou déplacer : ${data.title}`}
+        onClick={(e) => { e.stopPropagation(); onClick?.() }}
+        className="absolute right-0 top-0 grid h-5 w-4 touch-none place-items-center text-current opacity-45 hover:opacity-90"
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+    </div>
+  )
+}
+
+function TaskCheckbox({ id, done, title, onToggle }: { id: string; done: boolean; title: string; onToggle: (id: string, done: boolean) => void }) {
+  return (
+    <input
+      type="checkbox"
+      checked={done}
+      aria-label={`${done ? 'Rouvrir' : 'Terminer'} : ${title}`}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => onToggle(id, e.target.checked)}
+      className="mt-[1px] h-3.5 w-3.5 shrink-0 cursor-pointer accent-[var(--memovia-violet)]"
+    />
+  )
+}
+
+// Les zones de dépôt se déclarent par leurs attributs data-drop-id et data-hour-px : le glisser les
+// retrouve sous le pointeur (voir zoneAt dans ../dnd), pas par la surface du bloc déplacé.
+function AllDayCell({ day, hourPx, active, children }: { day: string; hourPx: number; active: boolean; children: ReactNode }) {
+  return (
+    <div data-drop-id={dropId('allday', day)} data-hour-px={hourPx} className={cn('flex min-h-[34px] flex-col gap-1 border-l border-[var(--border-subtle)] px-1.5 py-1', active && 'bg-[var(--bg-active)]')}>
+      {children}
+    </div>
+  )
+}
+
+interface DayColumnProps {
+  day: AgendaDay
+  hourPx: number
+  height: number
+  hint: DropHint | null
+  onCreateAt: (day: string, startMin: number) => void
+  children: ReactNode
+}
+
+function DayColumn({ day, hourPx, height, hint, onCreateAt, children }: DayColumnProps) {
+  // Un clic sur un créneau VIDE crée ; un clic sur un bloc est pour ce bloc (il n'arrive pas jusqu'ici).
+  function handleClick(e: MouseEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const raw = DAY_START_MIN + ((e.clientY - rect.top) / hourPx) * 60
+    onCreateAt(day.day, clampStart(Math.floor(raw / 15) * 15, 30))
+  }
+
+  return (
+    <div
+      onClick={handleClick}
+      data-drop-id={dropId('col', day.day)}
+      data-hour-px={hourPx}
+      data-testid={`agenda-colonne-${day.day}`}
+      className={cn('relative cursor-cell border-l border-[var(--border-subtle)]', day.isToday && 'bg-[color-mix(in_srgb,var(--memovia-violet-light)_22%,transparent)]')}
+      style={{ height, backgroundImage: 'linear-gradient(var(--border-subtle) 1px, transparent 1px)', backgroundSize: `100% ${hourPx}px` }}
+    >
+      {children}
+      {hint && hint.day === day.day && hint.startMin !== null && (
+        <div
+          className="pointer-events-none absolute left-1 right-1 z-[4] rounded-lg border-2 border-dashed border-[var(--memovia-violet)] bg-[color-mix(in_srgb,var(--memovia-violet)_7%,transparent)]"
+          style={{ top: blockTop(hint.startMin, hourPx), height: blockHeight(hint.durMin, hourPx) }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── La grille ──────────────────────────────────────────────────────────────────
 
 /**
  * La grille façon Outlook : une colonne par jour, une ligne « journée » en haut, puis les heures.
- * Un seul composant pour la vue jour (1 colonne) et la vue semaine (5 colonnes). Lecture seule
- * dans cette PR : le glisser-déposer arrive avec la PR 5.
+ * Un seul composant pour la vue jour (1 colonne) et la vue semaine (5 colonnes). Tâches, RDV et
+ * séance d'appels se déplacent (pas de 15 min) ; un clic sur un créneau vide crée, un clic sur un
+ * bloc l'ouvre en modification. Doit vivre sous un DndContext (posé par AgendaView).
  */
-export function CalendarGrid({ days, hourPx, nowMin, detailed, selectedKey, onOpenCall, onOpenDay }: CalendarGridProps) {
+export function CalendarGrid({ days, hourPx, nowMin, detailed, selectedKey, onOpenCall, onOpenDay, handlers, hint }: CalendarGridProps) {
   const cols: CSSProperties = { gridTemplateColumns: `48px repeat(${days.length}, minmax(0, 1fr))` }
   const bodyHeight = HOURS.length * hourPx
 
@@ -52,27 +173,30 @@ export function CalendarGrid({ days, hourPx, nowMin, detailed, selectedKey, onOp
           ))}
         </div>
 
-        {/* Ligne « journée » : ce qui n'a pas d'heure */}
+        {/* Ligne « journée » : ce qui n'a pas d'heure. Y lâcher une tâche lui retire son heure. */}
         <div className="grid border-b border-[var(--border-color)] bg-[var(--bg-primary)]" style={cols}>
           <div className="px-1.5 pt-2 text-right text-[10.5px] text-[var(--text-muted)]">journée</div>
           {days.map((d) => (
-            <div key={d.day} className="flex min-h-[34px] flex-col gap-1 border-l border-[var(--border-subtle)] px-1.5 py-1">
+            <AllDayCell key={d.day} day={d.day} hourPx={hourPx} active={!!hint && hint.day === d.day && hint.startMin === null}>
               {d.chips.map((c) => (
                 <span key={c.label} className="rounded-md px-1.5 py-0.5 text-[11.5px] font-medium leading-snug" style={TONE_STYLE[c.tone]}>{c.label}</span>
               ))}
               {d.allDayTasks.map((t) => (
-                <span
+                <DraggableBox
                   key={t.task.id}
+                  id={dragId('task', t.task.id)}
+                  data={{ kind: 'task', id: t.task.id, durMin: t.task.duration_min ?? 30, title: t.task.title }}
                   title={t.task.title}
-                  className={cn('flex items-start gap-1.5 rounded-md border px-1.5 py-0.5 text-[11.5px] leading-snug', t.task.status === 'done' && 'opacity-55')}
-                  style={{ backgroundColor: 'var(--warning-bg)', borderColor: 'color-mix(in srgb, var(--warning) 35%, transparent)', color: '#78350F' }}
+                  onClick={() => handlers.onEditTask(t.task.id)}
+                  className={cn('relative flex items-start gap-1.5 rounded-md border py-0.5 pl-1.5 pr-4 text-[11.5px] leading-snug', t.task.status === 'done' && 'opacity-55')}
+                  style={TASK_COLORS}
                 >
-                  <span className="mt-[3px] h-2.5 w-2.5 shrink-0 rounded-[3px] border border-current" aria-hidden />
+                  <TaskCheckbox id={t.task.id} done={t.task.status === 'done'} title={t.task.title} onToggle={handlers.onToggleTask} />
                   <span className={cn('min-w-0 flex-1 truncate', t.task.status === 'done' && 'line-through')}>{t.task.title}</span>
                   {t.lateDays > 0 && <span className="shrink-0 font-semibold text-[var(--danger)]">{t.lateDays} j</span>}
-                </span>
+                </DraggableBox>
               ))}
-            </div>
+            </AllDayCell>
           ))}
         </div>
 
@@ -88,37 +212,31 @@ export function CalendarGrid({ days, hourPx, nowMin, detailed, selectedKey, onOp
 
           {days.map((d) => {
             const sum = daySummary(d)
-            const sessionHeight = d.session ? blockHeight(d.session.endMin - d.session.startMin, hourPx) : 0
-            const capacity = d.session ? Math.max(1, Math.floor((d.session.endMin - d.session.startMin) / d.session.slotMinutes)) : 1
+            const sessionMin = d.session ? d.session.endMin - d.session.startMin : 0
+            const sessionHeight = d.session ? blockHeight(sessionMin, hourPx) : 0
+            const capacity = d.session ? Math.max(1, Math.floor(sessionMin / d.session.slotMinutes)) : 1
             const rowPx = Math.max(22, Math.floor((sessionHeight - SESSION_HEAD_PX) / capacity))
             return (
-              <div
-                key={d.day}
-                className={cn('relative border-l border-[var(--border-subtle)]', d.isToday && 'bg-[color-mix(in_srgb,var(--memovia-violet-light)_22%,transparent)]')}
-                style={{
-                  height: bodyHeight,
-                  backgroundImage: 'linear-gradient(var(--border-subtle) 1px, transparent 1px)',
-                  backgroundSize: `100% ${hourPx}px`,
-                }}
-              >
+              <DayColumn key={d.day} day={d} hourPx={hourPx} height={bodyHeight} hint={hint} onCreateAt={handlers.onCreateAt}>
                 {d.session && (
                   <div
                     className="absolute left-1 right-1 z-[1] flex flex-col overflow-hidden rounded-lg border"
-                    style={{
-                      top: blockTop(d.session.startMin, hourPx),
-                      height: sessionHeight,
-                      backgroundColor: '#FAF8FF',
-                      borderColor: '#DDD6FE',
-                    }}
+                    style={{ top: blockTop(d.session.startMin, hourPx), height: sessionHeight, backgroundColor: '#FAF8FF', borderColor: '#DDD6FE' }}
                   >
-                    <div className="shrink-0 px-2 pt-1.5 leading-tight" style={{ height: SESSION_HEAD_PX }}>
+                    <DraggableBox
+                      id={dragId('session', d.day)}
+                      data={{ kind: 'session', id: d.day, durMin: sessionMin, title: 'Séance d’appels' }}
+                      onClick={() => handlers.onEditSession(d.day)}
+                      className="relative shrink-0 px-2 pr-4 pt-1.5 leading-tight"
+                      style={{ height: SESSION_HEAD_PX }}
+                    >
                       <div className="truncate text-[12px] font-semibold text-[var(--memovia-violet)]">
                         Séance d’appels · {fmtMinutes(d.session.startMin)} – {fmtMinutes(d.session.endMin)}
                       </div>
                       <div className="truncate text-[11px] text-[var(--text-secondary)]">
                         {sum.total === 0 ? 'Aucun appel dû' : `${sum.total} appel${sum.total > 1 ? 's' : ''} · ${sum.done} fait${sum.done > 1 ? 's' : ''}`}
                       </div>
-                    </div>
+                    </DraggableBox>
                     {detailed && d.rows.length > 0 && (
                       <div className="min-h-0 flex-1 overflow-y-auto border-t" style={{ borderColor: '#E9E3FF' }}>
                         {d.rows.map((row) => {
@@ -153,31 +271,36 @@ export function CalendarGrid({ days, hourPx, nowMin, detailed, selectedKey, onOp
                   const style: CSSProperties = { top: blockTop(b.startMin, hourPx), height: blockHeight(b.durMin, hourPx) }
                   if (b.kind === 'rdv') {
                     return (
-                      <Link
+                      <DraggableBox
                         key={b.id}
-                        to="/rdv"
+                        id={dragId('rdv', b.refId)}
+                        data={{ kind: 'rdv', id: b.refId, durMin: b.durMin, title: b.title }}
                         title={b.title}
-                        className="absolute left-1 right-1 z-[2] overflow-hidden rounded-lg border px-2 py-1 text-[12px] leading-tight hover:brightness-95"
+                        onClick={() => handlers.onEditRdv(b.refId)}
+                        className="absolute left-1 right-1 z-[2] overflow-hidden rounded-lg border py-1 pl-2 pr-4 text-[12px] leading-tight hover:brightness-95"
                         style={{ ...style, backgroundColor: 'var(--accent-blue-bg)', borderColor: '#BFDBFE', color: 'var(--accent-blue)' }}
                       >
                         <span className="block truncate font-semibold">{fmtMinutes(b.startMin)} · {b.title}</span>
                         {b.leadName && <span className="block truncate text-[11px] opacity-85">{b.leadName}</span>}
-                      </Link>
+                      </DraggableBox>
                     )
                   }
                   return (
-                    <div
+                    <DraggableBox
                       key={b.id}
+                      id={dragId('task', b.refId)}
+                      data={{ kind: 'task', id: b.refId, durMin: b.durMin, title: b.title }}
                       title={b.title}
-                      className={cn('absolute left-1 right-1 z-[2] flex items-start gap-1.5 overflow-hidden rounded-lg border px-2 py-1 text-[12px] leading-tight', b.done && 'opacity-55')}
-                      style={{ ...style, backgroundColor: 'var(--warning-bg)', borderColor: 'color-mix(in srgb, var(--warning) 35%, transparent)', color: '#78350F' }}
+                      onClick={() => handlers.onEditTask(b.refId)}
+                      className={cn('absolute left-1 right-1 z-[2] flex items-start gap-1.5 overflow-hidden rounded-lg border py-1 pl-2 pr-4 text-[12px] leading-tight', b.done && 'opacity-55')}
+                      style={{ ...style, ...TASK_COLORS }}
                     >
-                      <span className="mt-[2px] h-3 w-3 shrink-0 rounded-[3px] border border-current" aria-hidden />
+                      <TaskCheckbox id={b.refId} done={b.done} title={b.title} onToggle={handlers.onToggleTask} />
                       <span className="min-w-0 flex-1">
                         <span className={cn('block truncate font-medium', b.done && 'line-through')}>{b.title}</span>
                         {b.leadName && <span className="block truncate text-[11px] opacity-85">{b.leadName}</span>}
                       </span>
-                    </div>
+                    </DraggableBox>
                   )
                 })}
 
@@ -186,7 +309,7 @@ export function CalendarGrid({ days, hourPx, nowMin, detailed, selectedKey, onOp
                     <span className="absolute -left-1 -top-[5px] h-2 w-2 rounded-full bg-[#EF4444]" />
                   </div>
                 )}
-              </div>
+              </DayColumn>
             )
           })}
         </div>

@@ -491,6 +491,29 @@ extrait, comportement identique).
    deux fois la même issue (second refus `message_not_sendable`).
 9. Retour arrière : `git revert`. Les tâches créées restent des tâches normales du dashboard.
 
+**Fait le 18/09 (branche `feat/agenda-ecriture`), et ce qui a changé en route :**
+
+- **Viser au pointeur.** La colonne d'arrivée est celle sous le pointeur (`elementsFromPoint` et les
+  attributs `data-drop-id` / `data-hour-px`), mesurée à l'instant. Viser par la surface du fantôme
+  (plus large qu'une colonne) ou par le déplacement de dnd-kit (qui compte le défilement de la grille)
+  envoyait un bloc lâché sur mer. 10:00 à jeu. 10:30. Vérifié au vrai navigateur : 10 gestes sur 10,
+  dont un avec 336 px de défilement automatique.
+- **Les écritures d'un appel sont dans `src/lib/callActions.ts`**, partagées par la Revue, Leads et
+  l'agenda. `CallPartiallySavedError` distingue « rien n'est écrit » de « l'appel est écrit, la suite
+  non » : dans le second cas, on ferme la fiche au lieu d'inviter à ressaisir (doublon).
+- **Modifier n'écrit que ce qui change** (`taskUpdate`) : `tasks` sert aussi au Kanban, au bot et au
+  MCP. Une tâche « en cours » renommée depuis l'agenda le reste ; une tâche sans échéance terminée ne
+  reçoit pas de date.
+- **Reporter** part du plus tardif de : aujourd'hui, l'échéance, le jour où l'appel s'affiche
+  (`postponeTarget`). Partir d'aujourd'hui avançait un appel ouvert dans un jour futur. Le report ne
+  touche un brouillon que s'il en est encore un (`status = 'draft'`, inscription `active`), puisque
+  l'agenda n'est pas en temps réel.
+- **Séance** : refusée sur un jour qui a déjà la sienne et le week-end (`sessionMoveRefusal`).
+- **Relance hors campagne** : la fiche propose la prochaine relance selon l'issue (J+2 sans réponse ou
+  rappel, J+7 joint ou intéressé, aucune après un refus), sur un jour de séance, modifiable.
+- La PR 6 remplacera les écritures en plusieurs temps par `apply_call_outcome` (une transaction) :
+  `CallPartiallySavedError` disparaîtra avec elles.
+
 ### PR 6 — Le débrief en chat
 
 Trois morceaux : la fonction SQL qui écrit, la fonction edge qui comprend, le chat.

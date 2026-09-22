@@ -1,19 +1,39 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useDraggable } from '@dnd-kit/core'
+import { GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { daySummary, fmtMinutes } from '@/lib/agenda'
 import type { AgendaDay, SessionRow } from '@/types/agenda'
 import type { Task } from '@/types/tasks'
-import { dayMonth, pendingChip, dateFr } from '../display'
+import { dayMonth, dayShort, dayNumber, pendingChip, dateFr } from '../display'
+import { dragId, type DragData } from '../dnd'
 
 interface AgendaSummaryProps {
   /** Le jour regardé (aujourd'hui par défaut). */
   day: AgendaDay | null
+  /** Les autres jours de la semaine, pour « plus tard cette semaine ». */
+  week: AgendaDay[]
   mailsToReview: number
   undatedTasks: Task[]
   mineOnly: boolean
   onMineOnly: (v: boolean) => void
   onOpenCall: (row: SessionRow) => void
+  onEditTask: (id: string) => void
+  onToggleTask: (id: string, done: boolean) => void
+  /** Rend true si la tâche est créée : le champ ne se vide qu'alors, pour ne pas perdre ce qui a été tapé. */
+  onAddTask: (title: string, day: string) => Promise<boolean>
+}
+
+interface TaskLine {
+  id: string
+  title: string
+  done: boolean
+  when: string
+  late: boolean
+  durMin: number
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -25,16 +45,63 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-/** Le panneau au repos : le prochain appel, ce qui reste à faire, les tâches du jour. */
-export function AgendaSummary({ day, mailsToReview, undatedTasks, mineOnly, onMineOnly, onOpenCall }: AgendaSummaryProps) {
+const linesOf = (d: AgendaDay, withDay: boolean): TaskLine[] => {
+  const prefix = withDay ? `${dayShort(d.day).toLowerCase()}. ${dayNumber(d.day)} · ` : ''
+  return [
+    ...d.allDayTasks.map((t) => ({ id: t.task.id, title: t.task.title, done: t.task.status === 'done', when: t.lateDays > 0 ? `en retard de ${t.lateDays} j` : `${prefix}sans heure`, late: t.lateDays > 0, durMin: t.task.duration_min ?? 30 })),
+    ...d.blocks.filter((b) => b.kind === 'task').map((b) => ({ id: b.refId, title: b.title, done: b.done, when: `${prefix}${fmtMinutes(b.startMin)} · ${b.durMin} min`, late: false, durMin: b.durMin })),
+  ]
+}
+
+/** Une tâche du panneau : on la coche, on l'ouvre, ou on la glisse sur le calendrier pour lui donner un créneau. */
+function TaskItem({ line, onEdit, onToggle }: { line: TaskLine; onEdit: (id: string) => void; onToggle: (id: string, done: boolean) => void }) {
+  const data: DragData = { kind: 'task', id: line.id, durMin: line.durMin, title: line.title }
+  // Identifiant distinct de celui du même bloc dans la grille : une tâche planifiée est visible aux deux endroits.
+  const { listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id: `${dragId('task', line.id)}:panneau`, data })
+  return (
+    <li ref={setNodeRef} {...listeners} className={cn('relative flex cursor-grab items-start gap-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1.5 pl-2 pr-6 active:cursor-grabbing', line.done && 'opacity-55', isDragging && 'opacity-35')}>
+      <input
+        type="checkbox"
+        checked={line.done}
+        aria-label={`${line.done ? 'Rouvrir' : 'Terminer'} : ${line.title}`}
+        onChange={(e) => onToggle(line.id, e.target.checked)}
+        className="mt-[3px] h-3.5 w-3.5 shrink-0 cursor-pointer accent-[var(--memovia-violet)]"
+      />
+      <button type="button" onClick={() => onEdit(line.id)} className="min-w-0 flex-1 text-left">
+        <span className={cn('block text-[13px] font-medium text-[var(--text-primary)]', line.done && 'line-through')}>{line.title}</span>
+        <span className={cn('block text-[12px]', line.late ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]')}>{line.when}</span>
+      </button>
+      {/* Poignée pour la souris et le doigt seulement ; au clavier, le titre ouvre le formulaire (jour, heure). */}
+      <span ref={setActivatorNodeRef} aria-hidden="true" className="absolute right-0.5 top-1.5 grid h-6 w-5 touch-none place-items-center text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+        <GripVertical className="h-3.5 w-3.5" />
+      </span>
+    </li>
+  )
+}
+
+/** Le panneau au repos : le prochain appel, ce qui reste à faire, et les tâches façon « Ma journée ». */
+export function AgendaSummary({ day, week, mailsToReview, undatedTasks, mineOnly, onMineOnly, onOpenCall, onEditTask, onToggleTask, onAddTask }: AgendaSummaryProps) {
+  const [newTitle, setNewTitle] = useState('')
+  const [adding, setAdding] = useState(false)
   if (!day) return null
+
   const sum = daySummary(day)
   const next = day.rows.find((r) => r.kind === 'pending')
-  const tasks = [
-    ...day.allDayTasks.map((t) => ({ id: t.task.id, title: t.task.title, done: t.task.status === 'done', when: t.lateDays > 0 ? `en retard de ${t.lateDays} j` : 'sans heure', late: t.lateDays > 0 })),
-    ...day.blocks.filter((b) => b.kind === 'task').map((b) => ({ id: b.refId, title: b.title, done: b.done, when: `${fmtMinutes(b.startMin)} · ${b.durMin} min`, late: false })),
-  ]
+  const tasks = linesOf(day, false)
+  const later = week.filter((d) => d.day > day.day).flatMap((d) => linesOf(d, true)).filter((t) => !t.done)
   const rdvs = day.blocks.filter((b) => b.kind === 'rdv')
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
+    const title = newTitle.trim()
+    if (!title || !day) return
+    setAdding(true)
+    try {
+      if (await onAddTask(title, day.day)) setNewTitle('')
+    } finally {
+      setAdding(false)
+    }
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -93,30 +160,34 @@ export function AgendaSummary({ day, mailsToReview, undatedTasks, mineOnly, onMi
         {tasks.length === 0 ? (
           <p className="text-[13px] text-[var(--text-muted)]">Aucune tâche ce jour-là.</p>
         ) : (
-          <ul className="flex flex-col gap-1">
-            {tasks.map((t) => (
-              <li key={t.id} className={cn('flex items-start gap-2 rounded-lg border border-[var(--border-color)] px-2 py-1.5', t.done && 'opacity-55')}>
-                <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded border border-[var(--border-strong)]" aria-hidden />
-                <span className="min-w-0">
-                  <span className={cn('block text-[13px] font-medium text-[var(--text-primary)]', t.done && 'line-through')}>{t.title}</span>
-                  <span className={cn('block text-[12px]', t.late ? 'text-[var(--danger)]' : 'text-[var(--text-secondary)]')}>{t.when}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+          <ul className="flex flex-col gap-1">{tasks.map((t) => <TaskItem key={t.id} line={t} onEdit={onEditTask} onToggle={onToggleTask} />)}</ul>
+        )}
+
+        <form onSubmit={handleAdd} className="mt-2 flex gap-2">
+          <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Nouvelle tâche…" aria-label="Nouvelle tâche" autoComplete="off" className="h-9" />
+          <Button type="submit" variant="brand" size="sm" disabled={adding || !newTitle.trim()}>Ajouter</Button>
+        </form>
+
+        {later.length > 0 && (
+          <>
+            <h3 className="mb-1 mt-4 text-[12px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Plus tard cette semaine</h3>
+            <ul className="flex flex-col gap-1">{later.map((t) => <TaskItem key={t.id} line={t} onEdit={onEditTask} onToggle={onToggleTask} />)}</ul>
+          </>
         )}
 
         {undatedTasks.length > 0 && (
           <details className="mt-3">
             <summary className="cursor-pointer text-[12.5px] text-[var(--text-secondary)]">{undatedTasks.length} tâche{undatedTasks.length > 1 ? 's' : ''} sans échéance, hors agenda</summary>
             <ul className="mt-1 space-y-0.5">
-              {undatedTasks.map((t) => <li key={t.id} className="text-[13px] text-[var(--text-primary)]">{t.title}</li>)}
+              {undatedTasks.map((t) => (
+                <li key={t.id}><button type="button" onClick={() => onEditTask(t.id)} className="text-left text-[13px] text-[var(--text-primary)] hover:underline">{t.title}</button></li>
+              ))}
             </ul>
           </details>
         )}
 
         <p className="mt-4 text-[12px] text-[var(--text-muted)]">
-          Lecture seule pour l’instant : créer, modifier et déplacer une tâche ou une séance arrivent à l’étape suivante.
+          Glissez une tâche sur le calendrier pour lui donner un créneau ; lâchez-la dans « journée » pour le lui retirer. Un clic sur un créneau vide crée.
         </p>
       </div>
     </div>

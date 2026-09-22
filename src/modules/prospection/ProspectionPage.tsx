@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { Button } from '@/components/ui/button'
 import { useLeads } from '@/hooks/useLeads'
+import { CallPartiallySavedError } from '@/lib/callActions'
 import { useAuth } from '@/contexts/AuthContext'
 import { LeadStats } from './components/LeadStats'
 import { LeadTable } from './components/LeadTable'
@@ -119,7 +120,12 @@ export default function ProspectionPage() {
     try {
       await logCall(leadId, input)
       toast.success('Appel loggé.')
-    } catch {
+    } catch (err) {
+      // L'appel est écrit, seule la fiche n'a pas suivi : on ferme (réessayer le compterait deux fois).
+      if (err instanceof CallPartiallySavedError) {
+        toast.warning('Appel loggé, mais la fiche du lead n’a pas été mise à jour : corrigez-la à la main.')
+        return
+      }
       toast.error("Impossible d'enregistrer l'appel.")
       throw new Error('log call failed')
     }

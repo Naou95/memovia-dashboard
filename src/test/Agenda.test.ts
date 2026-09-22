@@ -4,11 +4,13 @@ import {
   addDays,
   assigneeForRole,
   buildAgenda,
+  canDeleteTask,
   clampStart,
   classify,
   daySummary,
   diffDays,
   firstWorkdayFrom,
+  hasSessionOn,
   isMine,
   isoWeekday,
   missedSessions,
@@ -18,10 +20,14 @@ import {
   parisToUtcIso,
   parseCallWindow,
   placeInSession,
+  postponeTarget,
   prioritize,
   projectNextCalls,
   sessionFor,
+  sessionMoveRefusal,
   snap,
+  suggestFollowUp,
+  taskUpdate,
   taskView,
   workWeek,
   type BuildInput,
@@ -118,6 +124,18 @@ describe('séances d’appels', () => {
     expect(nextCallDay(THU, DEFAULT_WINDOW, [])).toBe(THU)
     expect(nextCallDay(FRI, DEFAULT_WINDOW, [])).toBe(NEXT_MON)
     expect(nextCallDay(FRI, { ...DEFAULT_WINDOW, days: [] as number[] }, [], 5)).toBeNull()
+  })
+
+  it('propose la prochaine relance selon l’issue, toujours un jour de séance', () => {
+    // Mercredi + 2 = vendredi, sans séance : lundi suivant.
+    expect(suggestFollowUp('pas_repondu', WED, DEFAULT_WINDOW, [])).toBe(NEXT_MON)
+    expect(suggestFollowUp('rappel', MON, DEFAULT_WINDOW, [])).toBe(WED)
+    expect(suggestFollowUp('joint', WED, DEFAULT_WINDOW, [])).toBe('2026-09-23')
+    expect(suggestFollowUp('interesse', WED, DEFAULT_WINDOW, [])).toBe('2026-09-23')
+    expect(suggestFollowUp('refus', WED, DEFAULT_WINDOW, [])).toBeNull()
+    // Séance annulée ce lundi-là : le jour d'après.
+    const off: SessionOverride = { day: NEXT_MON, start_min: 540, end_min: 690, cancelled: true }
+    expect(suggestFollowUp('pas_repondu', WED, DEFAULT_WINDOW, [off])).toBe('2026-09-22')
   })
 
   it('borne le calcul pour un appel dû depuis des années', () => {
@@ -252,6 +270,74 @@ describe('tâches', () => {
     expect(isMine(task({ assigned_to: 'naoufel', assignees: ['emir'] }), 'emir', null)).toBe(true)
     expect(isMine(task({ assigned_to: 'naoufel' }), 'emir', null)).toBe(false)
     expect(isMine(task({ assigned_to: null, created_by: 'u1' }), 'emir', 'u1')).toBe(true)
+  })
+
+  it('suppression : ce que la base accepte, jamais une tâche automatique', () => {
+    expect(canDeleteTask(task({ created_by: 'u1' }), 'admin_bizdev', 'u1')).toBe(true)
+    expect(canDeleteTask(task({ created_by: null }), 'admin_bizdev', 'u1')).toBe(false) // créée par une fonction edge
+    expect(canDeleteTask(task({ created_by: 'u2' }), 'admin_bizdev', 'u1')).toBe(false)
+    expect(canDeleteTask(task({ created_by: null }), 'admin_full', 'u1')).toBe(true)
+    expect(canDeleteTask(task({ created_by: 'u1', auto_key: 'rdv_prep:R1' }), 'admin_full', 'u1')).toBe(false)
+    expect(canDeleteTask(task({ created_by: null }), 'admin_bizdev', null)).toBe(false)
+  })
+})
+
+describe('modifier une tâche', () => {
+  const planned = task({ status: 'en_cours', due_date: WED, scheduled_at: '2026-09-16T08:00:00Z', lead_id: 'L1' }) // mer. 10:00
+
+  it('n’écrit que ce qui change : une tâche « en cours » renommée reste en cours', () => {
+    expect(taskUpdate(planned, { title: 'Nouveau titre', day: WED, startMin: 600, durMin: 30, leadId: 'L1', done: false }, MON)).toEqual({ title: 'Nouveau titre' })
+  })
+
+  it('cocher termine, décocher ne rouvre que ce qui était terminé', () => {
+    expect(taskUpdate(planned, { done: true }, MON)).toEqual({ status: 'done' })
+    expect(taskUpdate(task({ status: 'done' }), { done: false }, MON)).toEqual({ status: 'todo' })
+    expect(taskUpdate(task({ status: 'todo' }), { done: false }, MON)).toEqual({})
+  })
+
+  it('déplacer écrit le jour et le créneau ensemble, en heure de Paris', () => {
+    expect(taskUpdate(planned, { day: THU, startMin: 14 * 60 }, MON)).toEqual({ due_date: THU, scheduled_at: '2026-09-17T12:00:00.000Z' })
+    // Changer l'heure seule garde le jour ; « journée » retire l'heure.
+    expect(taskUpdate(planned, { startMin: 11 * 60 }, MON)).toEqual({ due_date: WED, scheduled_at: '2026-09-16T09:00:00.000Z' })
+    expect(taskUpdate(planned, { day: FRI, startMin: null }, MON)).toEqual({ due_date: FRI, scheduled_at: null })
+  })
+
+  it('une tâche sans échéance ne reçoit une date que si on lui en donne une', () => {
+    const undated = task({ due_date: null, scheduled_at: null })
+    expect(taskUpdate(undated, { title: 'Ranger le vault' }, MON)).toEqual({ title: 'Ranger le vault' })
+    expect(taskUpdate(undated, { done: true }, MON)).toEqual({ status: 'done' })
+    expect(taskUpdate(undated, { startMin: 600 }, MON)).toEqual({ due_date: MON, scheduled_at: '2026-09-14T08:00:00.000Z' })
+  })
+})
+
+describe('reporter et déplacer une séance', () => {
+  it('reporter part du jour où l’appel s’affiche, jamais avant', () => {
+    // Lundi, fiche d'un appel dû jeudi ouverte en vue jeudi : report au lundi suivant, pas au mardi.
+    expect(postponeTarget(MON, THU, THU, DEFAULT_WINDOW, [])).toBe(NEXT_MON)
+    // Appel en retard montré aujourd'hui : la séance de demain.
+    expect(postponeTarget(TUE, MON, TUE, DEFAULT_WINDOW, [])).toBe(WED)
+    // Dû vendredi, montré lundi suivant : le mardi d'après, pas le même lundi.
+    expect(postponeTarget(THU, FRI, NEXT_MON, DEFAULT_WINDOW, [])).toBe('2026-09-22')
+    // Séance annulée le lendemain : la suivante.
+    const off: SessionOverride = { day: WED, start_min: 540, end_min: 690, cancelled: true }
+    expect(postponeTarget(TUE, TUE, TUE, DEFAULT_WINDOW, [off])).toBe(THU)
+  })
+
+  it('une séance ne va ni sur un jour qui a déjà la sienne, ni le week-end', () => {
+    const on = (d: string) => [MON, TUE, WED, THU].includes(d)
+    expect(sessionMoveRefusal(MON, MON, on)).toBeNull() // même jour, autre heure
+    expect(sessionMoveRefusal(MON, FRI, on)).toBeNull()
+    expect(sessionMoveRefusal(MON, WED, on)).toMatch(/déjà sa séance/)
+    expect(sessionMoveRefusal(MON, '2026-09-19', on)).toMatch(/lundi au vendredi/)
+    expect(sessionMoveRefusal('', WED, on)).toMatch(/déjà sa séance/) // création
+  })
+
+  it('la semaine affichée fait foi pour savoir si un jour a une séance', () => {
+    const week = buildAgenda(input({ overrides: [{ day: TUE, start_min: 540, end_min: 690, cancelled: true }] }))
+    expect(hasSessionOn(TUE, week, DEFAULT_WINDOW)).toBe(false)
+    expect(hasSessionOn(WED, week, DEFAULT_WINDOW)).toBe(true)
+    expect(hasSessionOn('2026-09-24', week, DEFAULT_WINDOW)).toBe(true) // hors semaine : le créneau par défaut
+    expect(hasSessionOn('2026-09-25', week, DEFAULT_WINDOW)).toBe(false)
   })
 })
 

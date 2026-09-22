@@ -2,7 +2,7 @@
 // Rien n'est stocké comme « événement » : l'agenda se CALCULE à partir des brouillons d'appel des
 // campagnes, des relances de leads, des appels passés, des RDV et des tâches.
 
-import type { Lead, CallOutcome } from './leads'
+import type { Lead, CallOutcome, CallResult } from './leads'
 import type { Task, TaskAssignee } from './tasks'
 
 /** Les colonnes de leads que l'agenda lit. Jamais `notes` en écriture, voir le plan § 1. */
@@ -108,6 +108,7 @@ export interface GridBlock {
   startMin: number
   durMin: number
   title: string
+  leadId: string | null
   leadName: string | null
   done: boolean
 }
@@ -162,6 +163,43 @@ export interface LeadCallLite {
   callback_at: string | null
   debriefed_at: string | null
   cr: string | null
+}
+
+/** Ce qu'un formulaire ou un glisser-déposer décrit : un titre, un jour, une heure (ou aucune), une durée, un lead. */
+export interface BlockInput {
+  title: string
+  day: string
+  /** Minutes depuis minuit à Paris ; null = « sans heure » (tâches seulement). */
+  startMin: number | null
+  durMin: number
+  leadId: string | null
+}
+
+/**
+ * Les écritures de l'agenda. Toutes lèvent en cas d'échec (l'écran affiche le toast) et rechargent
+ * ce qu'elles ont touché. Aucune n'écrit leads.notes, leads.maturity, leads.name ni leads.archived.
+ */
+export interface AgendaActions {
+  createTask(input: BlockInput): Promise<void>
+  updateTask(id: string, patch: Partial<BlockInput> & { done?: boolean }): Promise<void>
+  deleteTask(id: string): Promise<void>
+  /** La base n'accepte la suppression que de ses propres tâches (ou tout, pour admin_full) ; jamais une tâche automatique. */
+  canDeleteTask(task: Task): boolean
+  createRdv(input: BlockInput): Promise<void>
+  updateRdv(id: string, patch: Partial<BlockInput>): Promise<void>
+  /** Pose ou déplace la séance d'appels d'un jour. `fromDay` : le jour qu'elle quitte, marqué sans séance. */
+  saveSession(day: string, startMin: number, durMin: number, fromDay?: string): Promise<void>
+  /** Retour au créneau par défaut des réglages pour ce jour. */
+  resetSession(day: string): Promise<void>
+  /**
+   * Enregistre l'issue d'un appel. `followUp`, pour une relance hors campagne seulement : la prochaine
+   * date de relance du lead (null : plus de relance). Une étape de campagne suit la règle de sa séquence.
+   */
+  recordOutcome(call: ClassifiedCall, outcome: CallResult, note: string, followUp?: string | null): Promise<void>
+  /** La prochaine relance proposée pour cette issue (voir suggestFollowUp dans lib/agenda). */
+  suggestFollowUp(outcome: CallResult): string | null
+  /** Reporte l'appel à la séance qui suit le jour où il s'affiche (`shownDay`) ; rend le jour retenu. */
+  postponeCall(call: ClassifiedCall, shownDay: string): Promise<string>
 }
 
 export type { TaskAssignee }
