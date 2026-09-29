@@ -364,19 +364,129 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
-[functions.telegram-webhook]
+# verify_jwt de CHAQUE fonction, repris de la prod le 29/09/2026 (supabase functions list).
+# Déployer une fonction par son nom, SANS --no-verify-jwt : la CLI lit la valeur ici.
+# Une NOUVELLE fonction absente d'ici naît en true (défaut) ; une existante garde sa valeur en ligne.
+# 🔴 Le MCP deploy_edge_function ignore ce fichier (verify_jwt=true par défaut) : ne pas l'utiliser.
+
+[functions.accueil-assistant]
+verify_jwt = true
+
+[functions.calendar-disconnect]
 verify_jwt = false
 
-[functions.notify-new-user]
+[functions.calendar-oauth-callback]
+verify_jwt = false
+
+[functions.calendar-oauth-start]
+verify_jwt = true
+
+[functions.campaign-send]
+verify_jwt = false
+
+[functions.campaign-tick]
+verify_jwt = false
+
+[functions.changelog-collect]
+verify_jwt = true
+
+[functions.copilot-chat]
+verify_jwt = true
+
+[functions.create-google-meet]
+verify_jwt = true
+
+[functions.create-notification]
+verify_jwt = true
+
+[functions.email-get]
+verify_jwt = true
+
+[functions.email-lead-detector]
+verify_jwt = true
+
+[functions.email-list]
+verify_jwt = true
+
+[functions.email-send]
+verify_jwt = true
+
+[functions.get-analytics-supabase]
+verify_jwt = true
+
+[functions.get-api-costs]
+verify_jwt = true
+
+[functions.get-calendar-events]
+verify_jwt = false
+
+[functions.get-github]
+verify_jwt = true
+
+[functions.get-posthog]
+verify_jwt = true
+
+[functions.get-qonto-balance]
+verify_jwt = true
+
+[functions.get-qonto-finance]
+verify_jwt = true
+
+[functions.get-sentry]
+verify_jwt = true
+
+[functions.get-stripe-finance]
+verify_jwt = true
+
+[functions.get-stripe-metrics]
+verify_jwt = true
+
+[functions.lead-hot-trigger]
+verify_jwt = true
+
+[functions.memovia-mcp]
 verify_jwt = false
 
 [functions.notify-new-email]
 verify_jwt = false
 
+[functions.notify-new-user]
+verify_jwt = false
+
 [functions.notify-stripe-payment]
 verify_jwt = false
 
-[functions.memovia-mcp]
+[functions.rdv-transcribe]
+verify_jwt = true
+
+[functions.send-telegram]
+verify_jwt = true
+
+[functions.seo-articles]
+verify_jwt = true
+
+[functions.seo-backlinks]
+verify_jwt = true
+
+[functions.seo-competitor-analysis]
+verify_jwt = true
+
+[functions.seo-generate]
+verify_jwt = true
+
+[functions.seo-keyword-research]
+verify_jwt = true
+
+[functions.seo-suggestions]
+verify_jwt = true
+
+[functions.setup-telegram-webhook]
+verify_jwt = false
+
+[functions.telegram-daily-briefing]
+verify_jwt = true
+
+[functions.telegram-webhook]
 verify_jwt = false
 
 [functions.telegram-weekly-report]

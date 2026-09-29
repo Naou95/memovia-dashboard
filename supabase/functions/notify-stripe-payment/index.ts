@@ -1,7 +1,8 @@
 import { sendTelegramMessage } from '../_shared/telegram.ts'
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
-const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
+// Endpoint Stripe à part (alertes Telegram) : son secret de signature n'est pas celui de stripe-webhook.
+const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET_TELEGRAM') ?? ''
 
 async function verifyStripeSignature(body: string, header: string | null): Promise<boolean> {
   if (!header || !STRIPE_WEBHOOK_SECRET) return false

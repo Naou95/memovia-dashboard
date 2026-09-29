@@ -39,8 +39,14 @@ npm run build               # tsc + vite build
 npx vitest run src/test/CampaignText.test.ts src/test/CampaignCsv.test.ts   # tests du module Campagnes
 # Edge functions : vérifier puis déployer UNE PAR UNE, jamais en parallèle
 deno check --node-modules-dir=none supabase/functions/<nom>/index.ts
-npx supabase functions deploy <nom> --project-ref mzjzwffpqubpruyaaxew --no-verify-jwt
+npx supabase functions deploy <nom> --project-ref mzjzwffpqubpruyaaxew   # verify_jwt lu dans supabase/config.toml
+npx supabase functions list --project-ref mzjzwffpqubpruyaaxew -o json | jq '.[] | select(.slug=="<nom>") | {version, verify_jwt}'
 ```
+
+🔴 **Jamais `--no-verify-jwt`, jamais de déploiement sans nom de fonction.** Le réglage `verify_jwt` de chaque fonction
+est écrit dans `supabase/config.toml` : le drapeau l'écrase (tout passe à false), une nouvelle fonction absente du
+fichier naît en true. Nouvelle fonction = sa ligne dans `config.toml` dans le même commit. **Jamais via le MCP
+`deploy_edge_function`** : il ignore `config.toml` et met true par défaut (les crons x-cron-secret prendraient des 401).
 
 La suite complète (`npm test`) peut contenir des échecs antérieurs à ton changement : relancer la même commande
 sur `main` avant de conclure qu'on a cassé quelque chose.
@@ -74,7 +80,7 @@ Comportements à connaître avant de toucher :
 - `campaign-send` revérifie tout juste avant d'envoyer (inscription arrêtée, étape dépassée, campagne en pause, lead
   plus prospect, réponse arrivée entre-temps) et répond 409 si un envoi n'a plus lieu d'être. Il réserve le message
   avant le SMTP : ne pas retirer cette réservation, c'est elle qui empêche deux onglets d'envoyer le même mail.
-- `campaign-tick` et `campaign-send` sont déployées `--no-verify-jwt` mais valident l'auth elles-mêmes
+- `campaign-tick` et `campaign-send` sont en `verify_jwt = false` (config.toml) mais valident l'auth elles-mêmes
   (`validateAuth`, ou secret cron pour le tick). Test négatif attendu : 401 sans jeton ou avec la clé anon.
 - Gemini tourne avec `thinkingBudget: 0` (sans lui, 500 intermittents). Si Gemini échoue, le brouillon est quand
   même créé avec un avertissement « zones à écrire à la main ».
