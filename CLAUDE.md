@@ -40,12 +40,13 @@ npx vitest run src/test/CampaignText.test.ts src/test/CampaignCsv.test.ts   # te
 # Edge functions : vérifier puis déployer UNE PAR UNE, jamais en parallèle
 deno check --node-modules-dir=none supabase/functions/<nom>/index.ts
 npx supabase functions deploy <nom> --project-ref mzjzwffpqubpruyaaxew   # verify_jwt lu dans supabase/config.toml
-npx supabase functions list --project-ref mzjzwffpqubpruyaaxew               # contrôler verify_jwt après chaque déploiement
+npx supabase functions list --project-ref mzjzwffpqubpruyaaxew -o json | jq '.[] | select(.slug=="<nom>") | {version, verify_jwt}'
 ```
 
 🔴 **Jamais `--no-verify-jwt`, jamais de déploiement sans nom de fonction.** Le réglage `verify_jwt` de chaque fonction
-est écrit dans `supabase/config.toml` : le drapeau l'écrase (tout passe à false), une fonction absente du fichier passe
-à true. Nouvelle fonction = sa ligne dans `config.toml` dans le même commit.
+est écrit dans `supabase/config.toml` : le drapeau l'écrase (tout passe à false), une nouvelle fonction absente du
+fichier naît en true. Nouvelle fonction = sa ligne dans `config.toml` dans le même commit. **Jamais via le MCP
+`deploy_edge_function`** : il ignore `config.toml` et met true par défaut (les crons x-cron-secret prendraient des 401).
 
 La suite complète (`npm test`) peut contenir des échecs antérieurs à ton changement : relancer la même commande
 sur `main` avant de conclure qu'on a cassé quelque chose.

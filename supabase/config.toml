@@ -366,7 +366,8 @@ allow_dynamic_registration = false
 
 # verify_jwt de CHAQUE fonction, repris de la prod le 29/09/2026 (supabase functions list).
 # Déployer une fonction par son nom, SANS --no-verify-jwt : la CLI lit la valeur ici.
-# Une fonction absente d'ici repasse à true (défaut) au déploiement.
+# Une NOUVELLE fonction absente d'ici naît en true (défaut) ; une existante garde sa valeur en ligne.
+# 🔴 Le MCP deploy_edge_function ignore ce fichier (verify_jwt=true par défaut) : ne pas l'utiliser.
 
 [functions.accueil-assistant]
 verify_jwt = true
