@@ -1,4 +1,4 @@
-import Anthropic from 'npm:@anthropic-ai/sdk'
+import Anthropic from 'npm:@anthropic-ai/sdk@0.117.1'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
 import type { CompetitorAnalysisResult, CompetitorPage, ContentGap } from '../../src/types/seo.ts'
 

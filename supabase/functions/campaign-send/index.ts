@@ -7,7 +7,7 @@
  * l'inscription, dépose la copie dans INBOX.Sent, puis avance l'inscription et met à jour le lead.
  */
 
-import nodemailer from 'npm:nodemailer'
+import nodemailer from 'npm:nodemailer@10.0.10'
 import { Buffer } from 'node:buffer'
 import { corsHeaders, errorResponse, validateAuth } from '../_shared/auth.ts'
 import { hasBlockingCheck, runChecks, stripAiMarks } from '../_shared/campaignText.ts'

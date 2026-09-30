@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { ImapFlow } from 'npm:imapflow'
+import { ImapFlow } from 'npm:imapflow@1.7.0'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
