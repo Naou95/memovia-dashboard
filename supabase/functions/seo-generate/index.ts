@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { marked } from 'https://esm.sh/marked@9'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
 import { safeFetch } from '../_shared/safeFetch.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 function mdToHtml(md: string): string {
   if (!md) return ''
@@ -341,7 +342,7 @@ async function generateCoverImage(title: string, slug: string): Promise<string |
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      secretKey(),
     )
 
     const filename = `${slug || 'article'}-${Date.now()}.${ext}`

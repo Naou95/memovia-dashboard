@@ -4,6 +4,8 @@ import { ImapFlow } from 'npm:imapflow'
 import { simpleParser } from 'npm:mailparser'
 import { Buffer } from 'node:buffer'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { secretKey } from '../_shared/keys.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 // Fourni par le runtime edge Supabase (absent des types Deno) : garde le worker vivant
 // jusqu'à la fin de la promesse sans retenir la réponse HTTP.
@@ -521,8 +523,8 @@ Deno.serve(async (req) => {
   // `auth.getUser()`, qui attend un JWT **utilisateur** — une clé de service ne franchit pas
   // cette porte, donc le fallback `isCronCall` ci-dessous était le seul chemin possible.
   const authHeader = req.headers.get('Authorization') ?? ''
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const isCronCall = serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`
+  const serviceRoleKey = secretKey()
+  const isCronCall = timingSafeEqual(authHeader.replace(/^Bearer /, ''), serviceRoleKey)
   if (!isCronCall && !(await isAuthenticatedCronCall(req))) {
     const authResult = await validateAuth(req)
     if (authResult instanceof Response) return authResult
@@ -539,7 +541,7 @@ Deno.serve(async (req) => {
 
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    secretKey(),
   )
 
   // 202 immédiat, batch en fond : la gateway Supabase coupe toute réponse HTTP à ~150 s

@@ -9,6 +9,7 @@
 import Stripe from 'npm:stripe@17'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
+import { secretKey as supabaseSecretKey } from '../_shared/keys.ts'
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ function jsonResponse(body: unknown, status = 200) {
 function getSupabase() {
   return createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    supabaseSecretKey(),
     { auth: { persistSession: false } },
   )
 }

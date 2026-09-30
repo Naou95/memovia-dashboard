@@ -387,8 +387,9 @@ verify_jwt = false
 [functions.campaign-tick]
 verify_jwt = false
 
+# Appelée par un cron, un déclencheur ou une autre fonction (clé secrète) : contrôle fait dans le code.
 [functions.changelog-collect]
-verify_jwt = true
+verify_jwt = false
 
 [functions.copilot-chat]
 verify_jwt = true
@@ -396,14 +397,16 @@ verify_jwt = true
 [functions.create-google-meet]
 verify_jwt = true
 
+# Appelée par un cron, un déclencheur ou une autre fonction (clé secrète) : contrôle fait dans le code.
 [functions.create-notification]
-verify_jwt = true
+verify_jwt = false
 
 [functions.email-get]
 verify_jwt = true
 
+# Appelée par un cron, un déclencheur ou une autre fonction (clé secrète) : contrôle fait dans le code.
 [functions.email-lead-detector]
-verify_jwt = true
+verify_jwt = false
 
 [functions.email-list]
 verify_jwt = true
@@ -441,8 +444,9 @@ verify_jwt = true
 [functions.get-stripe-metrics]
 verify_jwt = true
 
+# Appelée par un cron, un déclencheur ou une autre fonction (clé secrète) : contrôle fait dans le code.
 [functions.lead-hot-trigger]
-verify_jwt = true
+verify_jwt = false
 
 [functions.memovia-mcp]
 verify_jwt = false
@@ -459,8 +463,9 @@ verify_jwt = false
 [functions.rdv-transcribe]
 verify_jwt = true
 
+# Appelée par un cron, un déclencheur ou une autre fonction (clé secrète) : contrôle fait dans le code.
 [functions.send-telegram]
-verify_jwt = true
+verify_jwt = false
 
 [functions.seo-articles]
 verify_jwt = true
@@ -483,8 +488,9 @@ verify_jwt = true
 [functions.setup-telegram-webhook]
 verify_jwt = false
 
+# Appelée par un cron, un déclencheur ou une autre fonction (clé secrète) : contrôle fait dans le code.
 [functions.telegram-daily-briefing]
-verify_jwt = true
+verify_jwt = false
 
 [functions.telegram-webhook]
 verify_jwt = false

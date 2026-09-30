@@ -3,6 +3,7 @@ import Stripe from 'npm:stripe@17'
 import nodemailer from 'npm:nodemailer'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 // verify_jwt: false — configured in supabase/config.toml
 // Security: X-Telegram-Bot-Api-Secret-Token header verification + chat_id allowlist
@@ -88,7 +89,7 @@ interface FeedbackItem {
 async function loadContext() {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    secretKey(),
   )
 
   const todayIso = new Date().toISOString().split('T')[0]
@@ -514,7 +515,7 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 heure
 function getSupabaseAdmin() {
   return createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    secretKey(),
   )
 }
 

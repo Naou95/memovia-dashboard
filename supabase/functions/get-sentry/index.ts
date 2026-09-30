@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 function formatDateFr(isoDate: string): string {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -99,7 +100,7 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const serviceRoleKey = secretKey()
 
     // Tout bug apparu dans les 24 dernières heures → notif Telegram
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)

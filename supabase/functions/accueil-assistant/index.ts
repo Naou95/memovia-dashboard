@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 /**
  * Assistant IA de l'accueil (22/08/2026).
@@ -238,7 +239,7 @@ Deno.serve(async (req) => {
 
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    secretKey(),
   )
 
   try {

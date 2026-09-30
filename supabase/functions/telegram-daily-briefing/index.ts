@@ -2,6 +2,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@17'
 import { echapperMarkdown, sendTelegramMessage } from '../_shared/telegram.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
+import { secretKey } from '../_shared/keys.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 interface QontoBankAccount { balance_cents: number }
 interface QontoResponse { bank_accounts: QontoBankAccount[] }
@@ -16,8 +18,8 @@ Deno.serve(async (req) => {
   //  - la clé service_role en Authorization, conservée pour tout appel manuel existant.
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace('Bearer ', '')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const parServiceRole = !!token && !!serviceRoleKey && token === serviceRoleKey
+  const serviceRoleKey = secretKey()
+  const parServiceRole = !!token && timingSafeEqual(token, serviceRoleKey)
 
   if (!parServiceRole && !(await isAuthenticatedCronCall(req))) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
@@ -31,7 +33,7 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      secretKey(),
     )
 
     const today = new Date().toISOString().split('T')[0]
