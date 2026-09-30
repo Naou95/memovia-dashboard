@@ -5,7 +5,7 @@
  */
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { ImapFlow } from 'npm:imapflow'
+import { ImapFlow } from 'npm:imapflow@2.0.5'
 import {
   assembleBody,
   assembleSubject,

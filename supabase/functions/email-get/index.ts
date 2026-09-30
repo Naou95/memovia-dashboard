@@ -1,6 +1,6 @@
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
-import { ImapFlow } from 'npm:imapflow'
-import { simpleParser } from 'npm:mailparser'
+import { ImapFlow } from 'npm:imapflow@1.7.0'
+import { simpleParser } from 'npm:mailparser@3.9.15'
 import { Buffer } from 'node:buffer'
 
 type EmailItem = {

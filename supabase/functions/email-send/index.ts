@@ -1,5 +1,5 @@
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
-import nodemailer from 'npm:nodemailer'
+import nodemailer from 'npm:nodemailer@9.0.5'
 
 const ALLOWED_FROM = [
   'naoufel@memovia.io',

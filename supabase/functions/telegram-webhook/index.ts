@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@17'
-import nodemailer from 'npm:nodemailer'
+import nodemailer from 'npm:nodemailer@8.0.6'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 import { secretKey } from '../_shared/keys.ts'

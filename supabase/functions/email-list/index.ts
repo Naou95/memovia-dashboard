@@ -1,5 +1,5 @@
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
-import { ImapFlow } from 'npm:imapflow'
+import { ImapFlow } from 'npm:imapflow@1.7.0'
 
 const CRITICAL_KEYWORDS = ['contrat', 'devis', 'résiliation', 'resiliation', 'facturation', 'urgent']
 const ALERT_HOURS = 24
