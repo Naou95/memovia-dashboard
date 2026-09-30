@@ -48,6 +48,10 @@ est écrit dans `supabase/config.toml` : le drapeau l'écrase (tout passe à fal
 fichier naît en true. Nouvelle fonction = sa ligne dans `config.toml` dans le même commit. **Jamais via le MCP
 `deploy_edge_function`** : il ignore `config.toml` et met true par défaut (les crons x-cron-secret prendraient des 401).
 
+Cron ou déclencheur qui appelle une fonction : en-têtes `Content-Type` + `x-cron-secret` (Vault `dashboard_cron_secret`)
+seulement, modèle = `00056`. 🔴 L'entrée Vault `service_role_key` n'existe plus : un bloc recopié d'un ancien cron
+enverrait `Authorization: null` sans la moindre erreur.
+
 La suite complète (`npm test`) peut contenir des échecs antérieurs à ton changement : relancer la même commande
 sur `main` avant de conclure qu'on a cassé quelque chose.
 

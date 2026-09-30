@@ -33,12 +33,8 @@ begin
     raise exception 'Secret Vault « dashboard_cron_secret » absent ou vide. Appliquer 00034 d''abord.';
   end if;
 
-  if not exists (
-    select 1 from vault.decrypted_secrets
-    where name = 'service_role_key' and decrypted_secret is not null and decrypted_secret <> ''
-  ) then
-    raise exception 'Secret Vault « service_role_key » absent ou vide (contient la cle anon, cf. 00034).';
-  end if;
+  -- Garde sur l'entrée Vault `service_role_key` retirée le 30/09/2026 : 00056 supprime cette entrée
+  -- (clé anon legacy) et réécrit ce déclencheur sans elle. La garde faisait échouer le rejeu sur base neuve.
 end $$;
 
 create or replace function public.trigger_lead_hot_webhook()
