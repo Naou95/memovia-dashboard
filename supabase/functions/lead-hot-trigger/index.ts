@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 interface LeadRecord {
   id: string
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
   // La migration 00040 bascule ce trigger sur `x-cron-secret`.
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace('Bearer ', '')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const serviceRoleKey = secretKey()
   const parServiceRole = !!token && !!serviceRoleKey && timingSafeEqual(token, serviceRoleKey)
 
   if (!parServiceRole && !(await isAuthenticatedCronCall(req))) {
@@ -74,7 +75,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      secretKey(),
     )
 
     const personLabel = contact_name?.trim() || name

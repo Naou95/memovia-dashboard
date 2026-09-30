@@ -12,6 +12,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { errorResponse } from '../_shared/auth.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 Deno.serve(async (req) => {
   const url = new URL(req.url)
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    secretKey(),
   )
 
   const { data: stateRow, error: stateError } = await supabase

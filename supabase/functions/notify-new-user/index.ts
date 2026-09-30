@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 interface WebhookPayload {
   type: 'INSERT' | 'UPDATE' | 'DELETE'
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
   // sur le secret de cron dédié (`x-cron-secret`), celui posé par 00034.
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace('Bearer ', '')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const serviceRoleKey = secretKey()
   // timingSafeEqual et pas `===` : c'est le standard de ce dépôt pour comparer un secret
   // (send-telegram, memovia-mcp, telegram-webhook, notify-stripe-payment l'utilisent déjà).
   const parServiceRole = !!token && !!serviceRoleKey && timingSafeEqual(token, serviceRoleKey)
@@ -93,7 +94,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      secretKey(),
     )
 
     const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user_id)

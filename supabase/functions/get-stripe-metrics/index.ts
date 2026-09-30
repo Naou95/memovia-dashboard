@@ -1,6 +1,7 @@
 import Stripe from 'npm:stripe@17'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+import { secretKey as supabaseSecretKey } from '../_shared/keys.ts'
 
 Deno.serve(async (req) => {
   // CORS preflight
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
     // MRR contrats B2B actifs
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      supabaseSecretKey(),
     )
     const { data: contractRows } = await supabase
       .from('contracts')

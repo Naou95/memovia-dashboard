@@ -16,6 +16,7 @@ import {
   type Check,
   type LeadLike,
 } from './campaignText.ts'
+import { secretKey } from './keys.ts';
 
 // ── Lignes des tables (sous-ensemble utile aux edge functions) ─────────────────
 
@@ -94,7 +95,7 @@ export interface EmailDraft {
 }
 
 export function adminClient(): SupabaseClient {
-  return createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  return createClient(Deno.env.get('SUPABASE_URL')!, secretKey())
 }
 
 /** Colonnes de leads lues par tick et send : une seule liste, pas deux qui divergent. */

@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface SeoSuggestion {
@@ -150,7 +151,7 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      secretKey(),
     )
 
     // 1. Read all seeds from seo_seeds table

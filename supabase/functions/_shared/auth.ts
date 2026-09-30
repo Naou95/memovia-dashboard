@@ -1,4 +1,5 @@
 import { createClient, type User } from 'jsr:@supabase/supabase-js@2'
+import { secretKey } from './keys.ts';
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,7 +43,7 @@ export async function validateAuth(req: Request): Promise<{ user: User } | Respo
 
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    secretKey(),
   )
 
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(

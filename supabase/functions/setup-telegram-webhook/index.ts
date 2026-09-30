@@ -30,6 +30,7 @@
  */
 
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
@@ -37,7 +38,7 @@ Deno.serve(async (req) => {
   // Utilitaire d'admin : rien d'autre que le service_role n'a de raison de l'appeler.
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace('Bearer ', '')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const serviceRoleKey = secretKey()
 
   if (!token || !serviceRoleKey || !timingSafeEqual(token, serviceRoleKey)) {
     return Response.json({ error: 'unauthorized' }, { status: 401 })

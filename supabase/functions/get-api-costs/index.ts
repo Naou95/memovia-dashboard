@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth } from '../_shared/auth.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -79,7 +80,7 @@ async function fetchDbCosts(startISO: string): Promise<{
 }> {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    secretKey(),
   )
 
   const { data, error } = await supabase

@@ -2,6 +2,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@17'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
+import { secretKey } from '../_shared/keys.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 })
@@ -15,8 +17,8 @@ Deno.serve(async (req) => {
   // personne ne le lisait. C'était une panne masquée, pas un cron sain.
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace('Bearer ', '')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const parServiceRole = !!token && !!serviceRoleKey && token === serviceRoleKey
+  const serviceRoleKey = secretKey()
+  const parServiceRole = !!token && timingSafeEqual(token, serviceRoleKey)
 
   if (!parServiceRole && !(await isAuthenticatedCronCall(req))) {
     return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401 })
@@ -30,7 +32,7 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      secretKey(),
     )
 
     const now = new Date()

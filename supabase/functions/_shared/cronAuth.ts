@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { secretKey } from './keys.ts';
 
 /**
  * Authentifie un appel venant de pg_cron via le header `x-cron-secret`.
@@ -29,7 +30,7 @@ export async function isAuthenticatedCronCall(req: Request): Promise<boolean> {
   try {
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      secretKey(),
     )
     const { data, error } = await supabaseAdmin.rpc('verify_cron_secret', { p_secret: secret })
 

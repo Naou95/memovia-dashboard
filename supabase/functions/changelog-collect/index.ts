@@ -1,6 +1,8 @@
 import { corsHeaders, errorResponse } from '../_shared/auth.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
+import { secretKey } from '../_shared/keys.ts'
+import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
 
 // Historique produit (mémoire d'entreprise, 21/08/2026) : chaque lundi 05:30 UTC
 // (cron 00048), les PRs mergées de la semaine sur les 5 dépôts MEMOVIA deviennent
@@ -31,8 +33,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   const authHeader = req.headers.get('Authorization') ?? ''
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const isCronCall = serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`
+  const serviceRoleKey = secretKey()
+  const isCronCall = timingSafeEqual(authHeader.replace(/^Bearer /, ''), serviceRoleKey)
   if (!isCronCall && !(await isAuthenticatedCronCall(req))) {
     return errorResponse('unauthorized', 401)
   }
@@ -63,7 +65,7 @@ Deno.serve(async (req) => {
 
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    secretKey(),
   )
 
   let inserted = 0

@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,7 +30,7 @@ Deno.serve(async (req) => {
   // rien : vérifié par balayage, aucun appelant dans `src/` ni ailleurs.
   const authHeader = req.headers.get('Authorization') ?? ''
   const token = authHeader.replace('Bearer ', '')
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  const serviceRoleKey = secretKey()
 
   if (!token || !serviceRoleKey || !timingSafeEqual(token, serviceRoleKey)) {
     return new Response(
@@ -41,7 +42,7 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      secretKey(),
     )
 
     const payload: NotificationPayload = await req.json()

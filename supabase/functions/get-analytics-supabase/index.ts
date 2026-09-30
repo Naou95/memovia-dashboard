@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+import { publishableKey } from '../_shared/keys.ts'
 
 function buildDailySeries(
   rows: { day: string; count: number }[],
@@ -29,7 +30,7 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
+    publishableKey(),
     { global: { headers: { Authorization: req.headers.get('Authorization')! } } },
   )
 

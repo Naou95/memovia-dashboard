@@ -14,6 +14,7 @@
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+import { secretKey } from '../_shared/keys.ts'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -296,7 +297,7 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    secretKey(),
   )
 
   if (includeAllUsers) {

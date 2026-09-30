@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { corsHeaders, validateAuth, errorResponse } from '../_shared/auth.ts'
+import { publishableKey } from '../_shared/keys.ts'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -253,7 +254,7 @@ async function executeTool(
 ): Promise<{ sseEvent: string; toolResultContent: string }> {
   const supabaseUser = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
+    publishableKey(),
     { global: { headers: { Authorization: `Bearer ${token}` } } },
   )
 
