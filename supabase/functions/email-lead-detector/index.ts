@@ -252,7 +252,7 @@ const CLAUDE_SYSTEM_PROMPT =
   '  "is_lead": true,\n' +
   '  "org_name": "nom de l\'organisation ou null",\n' +
   '  "contact_name": "prénom nom ou null",\n' +
-  '  "contact_email": "email principal ou null",\n' +
+  '  "contact_email": "email de l\'interlocuteur externe (jamais une adresse @memovia.io) ou null",\n' +
   '  "contact_role": "poste/fonction si détecté ou null",\n' +
   '  "lead_type": "ecole|cfa|entreprise|autre ou null",\n' +
   '  "status": "nouveau|contacte|en_discussion|proposition|relance",\n' +
@@ -294,7 +294,10 @@ function extractJson(text: string): ClaudeAnalysis | null {
 // (prompt + extractJson) : beaucoup d'entrées de /v1/models répondent 404 sur ce compte
 // (mistral-large, kimi — listé ≠ provisionné), et les llama-70b tournent à 40-125 s/appel,
 // intenable sur 10 conversations dans le wall clock edge.
-const NIM_MODEL = 'deepseek-ai/deepseek-v4-flash-0731'
+// 🔴 01/10/2026 : deepseek-v4-flash-0731 en fin de vie depuis le 21/09 (410), 0 lead pendant 10 jours.
+// Banc du 01/10 (même contrat, conversations inventées) : seul gpt-oss-20b répond (15-25 s) ;
+// deepseek-v4.1-flash, nemotron-3.5-lightning, glm-5.3-flash et gemma-4-31b dépassent 120 s.
+const NIM_MODEL = 'openai/gpt-oss-20b'
 
 async function analyzeConversation(
   apiKey: string,
@@ -346,7 +349,9 @@ async function upsertLead(
   analysis: ClaudeAnalysis,
 ): Promise<'inserted' | 'updated' | 'skipped'> {
   const contactEmail = (analysis.contact_email || '').trim().toLowerCase() || null
-  if (!contactEmail) return 'skipped'
+  // Notre propre adresse n'est jamais un prospect : gpt-oss-20b la rendait sur un envoi sans réponse
+  // (banc du 01/10), et la clé d'upsert étant contact_email, tous ces envois écraseraient le même lead.
+  if (!contactEmail || contactEmail.endsWith('@memovia.io')) return 'skipped'
 
   const leadType =
     analysis.lead_type && ['ecole', 'cfa', 'entreprise', 'autre'].includes(analysis.lead_type)
@@ -501,7 +506,9 @@ async function runDetector(
     // `lead_detector_runs` et sur les stats en base — jamais sur l'absence d'un motif
     // d'erreur. La réponse HTTP (202) ne porte rien.
     console.log('email-lead-detector run terminé:', JSON.stringify(stats))
-    return { ok: true, stats }
+    // Toutes les analyses en échec = run en échec, pas « OK avec 10 erreurs » : du 21/09 au 01/10 le
+    // modèle NIM en fin de vie (410) a tout fait échouer pendant que le briefing affichait « dernier run OK ».
+    return { ok: stats.analyzed === 0 || stats.errors < stats.analyzed, stats }
   } catch (err) {
     try { await client.logout() } catch { /* ignore */ }
     console.error('email-lead-detector error:', err, '— stats partielles:', JSON.stringify(stats))
