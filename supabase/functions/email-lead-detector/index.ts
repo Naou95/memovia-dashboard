@@ -21,7 +21,12 @@ const GENERIC_DOMAINS = new Set([
   'hotmail.fr', 'outlook.com', 'outlook.fr', 'orange.fr', 'wanadoo.fr',
   'free.fr', 'sfr.fr', 'laposte.net', 'live.fr', 'live.com', 'msn.com',
   'icloud.com', 'me.com', 'protonmail.com', 'proton.me',
+  'libero.it', 'yahoo.it', 'gmx.fr', 'gmx.com', 'aol.com', 'aol.fr',
 ])
+// Domaine partagé par des inconnus : on raisonne à l'adresse, pas au domaine. Les académies (ac-*.fr)
+// regroupent des milliers d'établissements : un premier lead ne doit pas en bloquer toute une région.
+const isSharedDomain = (domain: string) =>
+  GENERIC_DOMAINS.has(domain) || /^ac-[a-z-]+\.fr$/.test(domain) || domain === 'education.gouv.fr'
 
 const NEWSLETTER_KEYWORDS = [
   'unsubscribe', 'list-unsubscribe', 'noreply', 'no-reply',
@@ -113,7 +118,7 @@ function getConversationKey(fromAddress: string, toAddresses: string[]): string 
 
   const domain = externalAddress.split('@')[1]?.toLowerCase()
   if (!domain) return null
-  return GENERIC_DOMAINS.has(domain) ? externalAddress : `@${domain}`
+  return isSharedDomain(domain) ? externalAddress : `@${domain}`
 }
 
 function isNewsletter(subject: string, bodyText: string): boolean {
@@ -347,7 +352,9 @@ const STATUS_MAP: Record<string, string> = {
   relance: 'contacte',
 }
 
-// Adresses externes du fil : seule source admise pour contact_email. Le modèle peut rendre notre propre
+const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
+
+// Adresses externes des en-têtes du fil, contre lesquelles on contrôle contact_email. Le modèle peut rendre notre propre
 // adresse (gpt-oss-20b sur un envoi sans réponse, banc du 01/10), une liste, ou une adresse inventée.
 function externalAddresses(conversation: RawEmail[]): string[] {
   return [...new Set(
@@ -369,8 +376,14 @@ async function insertLead(
   conversation: RawEmail[],
 ): Promise<'inserted' | 'skipped'> {
   const known = externalAddresses(conversation)
-  const proposed = (analysis.contact_email || '').trim().toLowerCase()
-  const contactEmail = known.includes(proposed) ? proposed : known.length === 1 ? known[0] : null
+  const proposed = text(analysis.contact_email)?.toLowerCase() ?? ''
+  // Adresse proposée admise si elle est dans les en-têtes OU dans un corps (formulaire ou agenda relayé :
+  // le prospect n'est que dans le texte). Vide ou interne → la seule adresse externe du fil, s'il n'y en a qu'une.
+  const proposedInFil = /^[^\s@,;<>]+@[^\s@,;<>]+\.[a-z]{2,}$/.test(proposed) && !isInternalAddress(proposed) &&
+    (known.includes(proposed) || conversation.some((e) => e.bodyText.toLowerCase().includes(proposed)))
+  const contactEmail = proposedInFil ? proposed
+    : (!proposed || isInternalAddress(proposed)) && known.length === 1 ? known[0]
+    : null
   if (!contactEmail) return 'skipped'
 
   const domain = contactEmail.split('@')[1]
@@ -378,10 +391,23 @@ async function insertLead(
   const { data: existing, error: existingError } = await supabaseAdmin
     .from('leads')
     .select('id')
-    .ilike('contact_email', GENERIC_DOMAINS.has(domain) ? `%${contactEmail}%` : `%@${domain}%`)
+    .ilike('contact_email', isSharedDomain(domain) ? `%${contactEmail}%` : `%@${domain}%`)
     .limit(1)
   if (existingError) throw new Error(`select_failed: ${existingError.message}`)
-  if (existing?.length) return 'skipped'
+  if (existing?.length) {
+    console.log('fil écarté, organisation déjà dans le CRM : lead', (existing[0] as { id: string }).id)
+    return 'skipped'
+  }
+  // 5 leads n'ont pas d'adresse (3 partenaires actifs) : on les reconnaît à leur nom.
+  for (const nom of [text(analysis.org_name), text(analysis.contact_name)]) {
+    if (!nom) continue
+    const { data: sameName, error: nameError } = await supabaseAdmin.from('leads').select('id').ilike('name', nom).limit(1)
+    if (nameError) throw new Error(`select_failed: ${nameError.message}`)
+    if (sameName?.length) {
+      console.log('fil écarté, nom déjà dans le CRM : lead', (sameName[0] as { id: string }).id)
+      return 'skipped'
+    }
+  }
 
   const leadType =
     analysis.lead_type && ['ecole', 'cfa', 'entreprise', 'autre'].includes(analysis.lead_type)
@@ -398,19 +424,21 @@ async function insertLead(
   // specification ». C'est ce qui bloquait toute création depuis le 14/08. Il reste la garantie contre
   // deux runs simultanés : le doublon sort en 23505.
   const { error: insertError } = await supabaseAdmin.from('leads').insert({
-    name: analysis.org_name?.trim() || analysis.contact_name?.trim() || contactEmail,
+    name: text(analysis.org_name) || text(analysis.contact_name) || contactEmail,
     type: leadType,
     canal: 'email',
     status: dbStatus,
     assigned_to: 'naoufel',
-    notes: analysis.notes || null,
+    notes: text(analysis.notes),
     contact_email: contactEmail,
-    contact_name: analysis.contact_name?.trim() || null,
-    contact_role: analysis.contact_role || null,
+    contact_name: text(analysis.contact_name),
+    contact_role: text(analysis.contact_role),
     maturity: dbMaturity,
-    relance_count: analysis.relance_count ?? 0,
-    last_contact_date: analysis.last_contact_date || null,
-    next_action: analysis.next_action || null,
+    // Sortie du modèle non fiable : une date « 30/09/2026 » ou un 1.5 font échouer l'insert, et le même fil
+    // retomberait chaque nuit pendant 14 jours.
+    relance_count: Number.isInteger(analysis.relance_count) ? analysis.relance_count : 0,
+    last_contact_date: /^\d{4}-\d{2}-\d{2}$/.test(String(analysis.last_contact_date)) ? analysis.last_contact_date : null,
+    next_action: text(analysis.next_action),
     timeline: analysis.timeline || null,
     source: 'email_auto',
   })
@@ -494,7 +522,7 @@ async function runDetector(
         if (result === 'inserted') stats.inserted++
         else stats.skipped++
       } catch (err) {
-        console.error('Upsert error:', err)
+        console.error('Insert error:', err)
         stats.errors++
       }
     }
