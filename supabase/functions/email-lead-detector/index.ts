@@ -311,7 +311,10 @@ async function analyzeConversation(
     },
     body: JSON.stringify({
       model: NIM_MODEL,
-      max_tokens: 1024,
+      // gpt-oss raisonne avant de répondre, sur le même budget de tokens : à 1024 un fil de 6 mails sur 2
+      // sortait coupé (JSON illisible). Effort bas + 4096 : fil de 12 mails lisible en 10-34 s (banc 01/10).
+      max_tokens: 4096,
+      reasoning_effort: 'low',
       temperature: 0.1,
       messages: [
         { role: 'system', content: CLAUDE_SYSTEM_PROMPT },
@@ -344,14 +347,41 @@ const STATUS_MAP: Record<string, string> = {
   relance: 'contacte',
 }
 
-async function upsertLead(
+// Adresses externes du fil : seule source admise pour contact_email. Le modèle peut rendre notre propre
+// adresse (gpt-oss-20b sur un envoi sans réponse, banc du 01/10), une liste, ou une adresse inventée.
+function externalAddresses(conversation: RawEmail[]): string[] {
+  return [...new Set(
+    conversation.flatMap((e) => [e.fromAddress, ...e.toAddresses])
+      .map((a) => a.trim().toLowerCase())
+      .filter((a) => a && !isInternalAddress(a)),
+  )]
+}
+
+// 🔴 Création seule, jamais de mise à jour (01/10/2026). Le détecteur n'a rien écrit du 14/08 au 01/10 et
+// le CRM est tenu à la main depuis (statuts, notes, Comminges en « perdu ») : réécrire un lead existant
+// écraserait ce travail, et une maturité qui oscille tiède/chaud d'une nuit à l'autre créerait une tâche
+// de relance pour Emir à chaque passage à chaud (on_lead_becomes_hot ne joue que sur UPDATE).
+// Une organisation déjà présente (même domaine, ou même adresse sur un domaine grand public) est laissée
+// à la main, même avec un nouvel interlocuteur : un « perdu » ne doit pas revenir en « nouveau ».
+async function insertLead(
   supabaseAdmin: ReturnType<typeof createClient>,
   analysis: ClaudeAnalysis,
-): Promise<'inserted' | 'updated' | 'skipped'> {
-  const contactEmail = (analysis.contact_email || '').trim().toLowerCase() || null
-  // Notre propre adresse n'est jamais un prospect : gpt-oss-20b la rendait sur un envoi sans réponse
-  // (banc du 01/10), et la clé d'upsert étant contact_email, tous ces envois écraseraient le même lead.
-  if (!contactEmail || contactEmail.endsWith('@memovia.io')) return 'skipped'
+  conversation: RawEmail[],
+): Promise<'inserted' | 'skipped'> {
+  const known = externalAddresses(conversation)
+  const proposed = (analysis.contact_email || '').trim().toLowerCase()
+  const contactEmail = known.includes(proposed) ? proposed : known.length === 1 ? known[0] : null
+  if (!contactEmail) return 'skipped'
+
+  const domain = contactEmail.split('@')[1]
+  // `%…%` : 2 leads portent une liste d'adresses dans contact_email. Trop large = on s'abstient, jamais l'inverse.
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from('leads')
+    .select('id')
+    .ilike('contact_email', GENERIC_DOMAINS.has(domain) ? `%${contactEmail}%` : `%@${domain}%`)
+    .limit(1)
+  if (existingError) throw new Error(`select_failed: ${existingError.message}`)
+  if (existing?.length) return 'skipped'
 
   const leadType =
     analysis.lead_type && ['ecole', 'cfa', 'entreprise', 'autre'].includes(analysis.lead_type)
@@ -363,44 +393,12 @@ async function upsertLead(
       ? analysis.maturity
       : 'froid'
 
-  const { data: existing } = await supabaseAdmin
-    .from('leads')
-    .select('id')
-    .eq('contact_email', contactEmail)
-    .maybeSingle()
-
-  if (existing) {
-    const { error: updateError } = await supabaseAdmin
-      .from('leads')
-      .update({
-        name: analysis.org_name?.trim() || analysis.contact_name?.trim() || contactEmail,
-        status: dbStatus,
-        maturity: dbMaturity,
-        notes: analysis.notes || null,
-        next_action: analysis.next_action || null,
-        relance_count: analysis.relance_count ?? 0,
-        last_contact_date: analysis.last_contact_date || null,
-        timeline: analysis.timeline || null,
-        contact_role: analysis.contact_role || null,
-      })
-      .eq('id', existing.id)
-    if (updateError) throw new Error(`update_failed: ${updateError.message}`)
-    return 'updated'
-  }
-
-  const name =
-    analysis.org_name?.trim() ||
-    analysis.contact_name?.trim() ||
-    contactEmail
-
-  // `upsert` et non `insert` : le select ci-dessus et cet insert ne sont PAS atomiques, et deux
-  // exécutions peuvent se chevaucher (cron de 23h + déclenchement manuel depuis le dashboard, ou
-  // deux zombies laissés par le `Promise.race` du handler, qui n'annule pas runDetector). Deux
-  // `select` simultanés ne trouvent rien, deux `insert` passent, et le CRM porte deux lignes pour
-  // le même prospect. L'index unique partiel `leads_contact_email_unique` (migration 00037) est la
-  // garantie dure ; `onConflict` évite qu'elle ne se manifeste en erreur 500 côté appelant.
-  const { error: insertError } = await supabaseAdmin.from('leads').upsert({
-    name,
+  // `insert` et pas `upsert onConflict` : l'index unique de 00037 est PARTIEL (where contact_email is not
+  // null), Postgres refuse alors « no unique or exclusion constraint matching the ON CONFLICT
+  // specification ». C'est ce qui bloquait toute création depuis le 14/08. Il reste la garantie contre
+  // deux runs simultanés : le doublon sort en 23505.
+  const { error: insertError } = await supabaseAdmin.from('leads').insert({
+    name: analysis.org_name?.trim() || analysis.contact_name?.trim() || contactEmail,
     type: leadType,
     canal: 'email',
     status: dbStatus,
@@ -415,7 +413,8 @@ async function upsertLead(
     next_action: analysis.next_action || null,
     timeline: analysis.timeline || null,
     source: 'email_auto',
-  }, { onConflict: 'contact_email' })
+  })
+  if (insertError?.code === '23505') return 'skipped'
   if (insertError) throw new Error(`insert_failed: ${insertError.message}`)
   return 'inserted'
 }
@@ -491,9 +490,8 @@ async function runDetector(
       if (!analysis.is_lead) { stats.skipped++; continue }
 
       try {
-        const result = await upsertLead(supabaseAdmin, analysis)
+        const result = await insertLead(supabaseAdmin, analysis, conversation)
         if (result === 'inserted') stats.inserted++
-        else if (result === 'updated') stats.updated++
         else stats.skipped++
       } catch (err) {
         console.error('Upsert error:', err)
