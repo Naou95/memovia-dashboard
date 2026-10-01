@@ -251,7 +251,10 @@ async function fetchFolderEmails(
 
 const CLAUDE_SYSTEM_PROMPT =
   'Tu es un assistant CRM expert pour MEMOVIA AI, plateforme EdTech B2B pour CFAs et écoles ' +
-  "(12€/licence/mois). Analyse ce fil de conversation et détermine s'il s'agit d'un prospect.\n\n" +
+  "(12€/licence/mois). Analyse ce fil de conversation et détermine s'il s'agit d'un prospect.\n" +
+  "Un prospect est une organisation qui pourrait ACHETER MEMOVIA (CFA, école, organisme de formation, " +
+  "entreprise qui forme des apprentis). Un prestataire, une agence, un outil ou un vendeur qui NOUS propose " +
+  'ses services, sa technologie ou une collaboration commerciale n\'est PAS un prospect : "is_lead": false.\n\n' +
   'Réponds UNIQUEMENT en JSON valide :\n' +
   '{\n' +
   '  "is_lead": true,\n' +
