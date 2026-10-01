@@ -21,7 +21,12 @@ const GENERIC_DOMAINS = new Set([
   'hotmail.fr', 'outlook.com', 'outlook.fr', 'orange.fr', 'wanadoo.fr',
   'free.fr', 'sfr.fr', 'laposte.net', 'live.fr', 'live.com', 'msn.com',
   'icloud.com', 'me.com', 'protonmail.com', 'proton.me',
+  'libero.it', 'yahoo.it', 'gmx.fr', 'gmx.com', 'aol.com', 'aol.fr',
 ])
+// Domaine partagé par des inconnus : on raisonne à l'adresse, pas au domaine. Les académies (ac-*.fr)
+// regroupent des milliers d'établissements : un premier lead ne doit pas en bloquer toute une région.
+const isSharedDomain = (domain: string) =>
+  GENERIC_DOMAINS.has(domain) || /^ac-[a-z-]+\.fr$/.test(domain) || domain === 'education.gouv.fr'
 
 const NEWSLETTER_KEYWORDS = [
   'unsubscribe', 'list-unsubscribe', 'noreply', 'no-reply',
@@ -113,7 +118,7 @@ function getConversationKey(fromAddress: string, toAddresses: string[]): string 
 
   const domain = externalAddress.split('@')[1]?.toLowerCase()
   if (!domain) return null
-  return GENERIC_DOMAINS.has(domain) ? externalAddress : `@${domain}`
+  return isSharedDomain(domain) ? externalAddress : `@${domain}`
 }
 
 function isNewsletter(subject: string, bodyText: string): boolean {
@@ -252,7 +257,7 @@ const CLAUDE_SYSTEM_PROMPT =
   '  "is_lead": true,\n' +
   '  "org_name": "nom de l\'organisation ou null",\n' +
   '  "contact_name": "prénom nom ou null",\n' +
-  '  "contact_email": "email principal ou null",\n' +
+  '  "contact_email": "email de l\'interlocuteur externe (jamais une adresse @memovia.io) ou null",\n' +
   '  "contact_role": "poste/fonction si détecté ou null",\n' +
   '  "lead_type": "ecole|cfa|entreprise|autre ou null",\n' +
   '  "status": "nouveau|contacte|en_discussion|proposition|relance",\n' +
@@ -294,7 +299,10 @@ function extractJson(text: string): ClaudeAnalysis | null {
 // (prompt + extractJson) : beaucoup d'entrées de /v1/models répondent 404 sur ce compte
 // (mistral-large, kimi — listé ≠ provisionné), et les llama-70b tournent à 40-125 s/appel,
 // intenable sur 10 conversations dans le wall clock edge.
-const NIM_MODEL = 'deepseek-ai/deepseek-v4-flash-0731'
+// 🔴 01/10/2026 : deepseek-v4-flash-0731 en fin de vie depuis le 21/09 (410), 0 lead pendant 10 jours.
+// Banc du 01/10 (même contrat, conversations inventées) : seul gpt-oss-20b répond (15-25 s) ;
+// deepseek-v4.1-flash, nemotron-3.5-lightning, glm-5.3-flash et gemma-4-31b dépassent 120 s.
+const NIM_MODEL = 'openai/gpt-oss-20b'
 
 async function analyzeConversation(
   apiKey: string,
@@ -308,7 +316,10 @@ async function analyzeConversation(
     },
     body: JSON.stringify({
       model: NIM_MODEL,
-      max_tokens: 1024,
+      // gpt-oss raisonne avant de répondre, sur le même budget de tokens : à 1024 un fil de 6 mails sur 2
+      // sortait coupé (JSON illisible). Effort bas + 4096 : fil de 12 mails lisible en 10-34 s (banc 01/10).
+      max_tokens: 4096,
+      reasoning_effort: 'low',
       temperature: 0.1,
       messages: [
         { role: 'system', content: CLAUDE_SYSTEM_PROMPT },
@@ -341,12 +352,62 @@ const STATUS_MAP: Record<string, string> = {
   relance: 'contacte',
 }
 
-async function upsertLead(
+const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null)
+
+// Adresses externes des en-têtes du fil, contre lesquelles on contrôle contact_email. Le modèle peut rendre notre propre
+// adresse (gpt-oss-20b sur un envoi sans réponse, banc du 01/10), une liste, ou une adresse inventée.
+function externalAddresses(conversation: RawEmail[]): string[] {
+  return [...new Set(
+    conversation.flatMap((e) => [e.fromAddress, ...e.toAddresses])
+      .map((a) => a.trim().toLowerCase())
+      .filter((a) => a && !isInternalAddress(a)),
+  )]
+}
+
+// 🔴 Création seule, jamais de mise à jour (01/10/2026). Le détecteur n'a rien écrit du 14/08 au 01/10 et
+// le CRM est tenu à la main depuis (statuts, notes, Comminges en « perdu ») : réécrire un lead existant
+// écraserait ce travail, et une maturité qui oscille tiède/chaud d'une nuit à l'autre créerait une tâche
+// de relance pour Emir à chaque passage à chaud (on_lead_becomes_hot ne joue que sur UPDATE).
+// Une organisation déjà présente (même domaine, ou même adresse sur un domaine grand public) est laissée
+// à la main, même avec un nouvel interlocuteur : un « perdu » ne doit pas revenir en « nouveau ».
+async function insertLead(
   supabaseAdmin: ReturnType<typeof createClient>,
   analysis: ClaudeAnalysis,
-): Promise<'inserted' | 'updated' | 'skipped'> {
-  const contactEmail = (analysis.contact_email || '').trim().toLowerCase() || null
+  conversation: RawEmail[],
+): Promise<'inserted' | 'skipped'> {
+  const known = externalAddresses(conversation)
+  const proposed = text(analysis.contact_email)?.toLowerCase() ?? ''
+  // Adresse proposée admise si elle est dans les en-têtes OU dans un corps (formulaire ou agenda relayé :
+  // le prospect n'est que dans le texte). Vide ou interne → la seule adresse externe du fil, s'il n'y en a qu'une.
+  const proposedInFil = /^[^\s@,;<>]+@[^\s@,;<>]+\.[a-z]{2,}$/.test(proposed) && !isInternalAddress(proposed) &&
+    (known.includes(proposed) || conversation.some((e) => e.bodyText.toLowerCase().includes(proposed)))
+  const contactEmail = proposedInFil ? proposed
+    : (!proposed || isInternalAddress(proposed)) && known.length === 1 ? known[0]
+    : null
   if (!contactEmail) return 'skipped'
+
+  const domain = contactEmail.split('@')[1]
+  // `%…%` : 2 leads portent une liste d'adresses dans contact_email. Trop large = on s'abstient, jamais l'inverse.
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from('leads')
+    .select('id')
+    .ilike('contact_email', isSharedDomain(domain) ? `%${contactEmail}%` : `%@${domain}%`)
+    .limit(1)
+  if (existingError) throw new Error(`select_failed: ${existingError.message}`)
+  if (existing?.length) {
+    console.log('fil écarté, organisation déjà dans le CRM : lead', (existing[0] as { id: string }).id)
+    return 'skipped'
+  }
+  // 5 leads n'ont pas d'adresse (3 partenaires actifs) : on les reconnaît à leur nom.
+  for (const nom of [text(analysis.org_name), text(analysis.contact_name)]) {
+    if (!nom) continue
+    const { data: sameName, error: nameError } = await supabaseAdmin.from('leads').select('id').ilike('name', nom).limit(1)
+    if (nameError) throw new Error(`select_failed: ${nameError.message}`)
+    if (sameName?.length) {
+      console.log('fil écarté, nom déjà dans le CRM : lead', (sameName[0] as { id: string }).id)
+      return 'skipped'
+    }
+  }
 
   const leadType =
     analysis.lead_type && ['ecole', 'cfa', 'entreprise', 'autre'].includes(analysis.lead_type)
@@ -358,59 +419,30 @@ async function upsertLead(
       ? analysis.maturity
       : 'froid'
 
-  const { data: existing } = await supabaseAdmin
-    .from('leads')
-    .select('id')
-    .eq('contact_email', contactEmail)
-    .maybeSingle()
-
-  if (existing) {
-    const { error: updateError } = await supabaseAdmin
-      .from('leads')
-      .update({
-        name: analysis.org_name?.trim() || analysis.contact_name?.trim() || contactEmail,
-        status: dbStatus,
-        maturity: dbMaturity,
-        notes: analysis.notes || null,
-        next_action: analysis.next_action || null,
-        relance_count: analysis.relance_count ?? 0,
-        last_contact_date: analysis.last_contact_date || null,
-        timeline: analysis.timeline || null,
-        contact_role: analysis.contact_role || null,
-      })
-      .eq('id', existing.id)
-    if (updateError) throw new Error(`update_failed: ${updateError.message}`)
-    return 'updated'
-  }
-
-  const name =
-    analysis.org_name?.trim() ||
-    analysis.contact_name?.trim() ||
-    contactEmail
-
-  // `upsert` et non `insert` : le select ci-dessus et cet insert ne sont PAS atomiques, et deux
-  // exécutions peuvent se chevaucher (cron de 23h + déclenchement manuel depuis le dashboard, ou
-  // deux zombies laissés par le `Promise.race` du handler, qui n'annule pas runDetector). Deux
-  // `select` simultanés ne trouvent rien, deux `insert` passent, et le CRM porte deux lignes pour
-  // le même prospect. L'index unique partiel `leads_contact_email_unique` (migration 00037) est la
-  // garantie dure ; `onConflict` évite qu'elle ne se manifeste en erreur 500 côté appelant.
-  const { error: insertError } = await supabaseAdmin.from('leads').upsert({
-    name,
+  // `insert` et pas `upsert onConflict` : l'index unique de 00037 est PARTIEL (where contact_email is not
+  // null), Postgres refuse alors « no unique or exclusion constraint matching the ON CONFLICT
+  // specification ». C'est ce qui bloquait toute création depuis le 14/08. Il reste la garantie contre
+  // deux runs simultanés : le doublon sort en 23505.
+  const { error: insertError } = await supabaseAdmin.from('leads').insert({
+    name: text(analysis.org_name) || text(analysis.contact_name) || contactEmail,
     type: leadType,
     canal: 'email',
     status: dbStatus,
     assigned_to: 'naoufel',
-    notes: analysis.notes || null,
+    notes: text(analysis.notes),
     contact_email: contactEmail,
-    contact_name: analysis.contact_name?.trim() || null,
-    contact_role: analysis.contact_role || null,
+    contact_name: text(analysis.contact_name),
+    contact_role: text(analysis.contact_role),
     maturity: dbMaturity,
-    relance_count: analysis.relance_count ?? 0,
-    last_contact_date: analysis.last_contact_date || null,
-    next_action: analysis.next_action || null,
+    // Sortie du modèle non fiable : une date « 30/09/2026 » ou un 1.5 font échouer l'insert, et le même fil
+    // retomberait chaque nuit pendant 14 jours.
+    relance_count: Number.isInteger(analysis.relance_count) ? analysis.relance_count : 0,
+    last_contact_date: /^\d{4}-\d{2}-\d{2}$/.test(String(analysis.last_contact_date)) ? analysis.last_contact_date : null,
+    next_action: text(analysis.next_action),
     timeline: analysis.timeline || null,
     source: 'email_auto',
-  }, { onConflict: 'contact_email' })
+  })
+  if (insertError?.code === '23505') return 'skipped'
   if (insertError) throw new Error(`insert_failed: ${insertError.message}`)
   return 'inserted'
 }
@@ -486,12 +518,11 @@ async function runDetector(
       if (!analysis.is_lead) { stats.skipped++; continue }
 
       try {
-        const result = await upsertLead(supabaseAdmin, analysis)
+        const result = await insertLead(supabaseAdmin, analysis, conversation)
         if (result === 'inserted') stats.inserted++
-        else if (result === 'updated') stats.updated++
         else stats.skipped++
       } catch (err) {
-        console.error('Upsert error:', err)
+        console.error('Insert error:', err)
         stats.errors++
       }
     }
@@ -501,7 +532,9 @@ async function runDetector(
     // `lead_detector_runs` et sur les stats en base — jamais sur l'absence d'un motif
     // d'erreur. La réponse HTTP (202) ne porte rien.
     console.log('email-lead-detector run terminé:', JSON.stringify(stats))
-    return { ok: true, stats }
+    // Toutes les analyses en échec = run en échec, pas « OK avec 10 erreurs » : du 21/09 au 01/10 le
+    // modèle NIM en fin de vie (410) a tout fait échouer pendant que le briefing affichait « dernier run OK ».
+    return { ok: stats.analyzed === 0 || stats.errors < stats.analyzed, stats }
   } catch (err) {
     try { await client.logout() } catch { /* ignore */ }
     console.error('email-lead-detector error:', err, '— stats partielles:', JSON.stringify(stats))
