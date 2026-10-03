@@ -86,14 +86,12 @@ Deno.serve(async (req) => {
 
   let amount = 0
   let currency = 'eur'
-  let email = 'inconnu'
   let plan = ''
   let createdTs = Math.floor(Date.now() / 1000)
 
   if (eventType === 'payment_intent.succeeded') {
     amount = (data.amount as number) ?? 0
     currency = (data.currency as string) ?? 'eur'
-    email = ((data.receipt_email as string) ?? (data.customer_email as string)) || 'inconnu'
     createdTs = (data.created as number) ?? createdTs
     const meta = data.metadata as Record<string, string> | undefined
     plan = meta?.plan ?? meta?.product_name ?? ''
@@ -101,18 +99,18 @@ Deno.serve(async (req) => {
     // invoice.payment_succeeded
     amount = (data.amount_paid as number) ?? 0
     currency = (data.currency as string) ?? 'eur'
-    email = (data.customer_email as string) ?? 'inconnu'
     createdTs = (data.created as number) ?? createdTs
 
     const lines = data.lines as { data: Array<{ description?: string }> } | undefined
     plan = lines?.data?.[0]?.description ?? ''
   }
 
+  // Pas d'e-mail du client : Telegram n'a pas de contrat de traitement avec nous (analyse RGPD du
+  // 24/09/2026). Le client se retrouve dans Stripe ou le dashboard à partir du montant et de l'heure.
   const message = [
     '💳 Nouveau paiement MEMOVIA',
     '',
     `💰 Montant : ${formatAmount(amount, currency)}`,
-    `📧 Client : ${email}`,
     plan ? `📦 Plan : ${plan}` : null,
     `📅 Date : ${formatParisDT(createdTs)}`,
   ]

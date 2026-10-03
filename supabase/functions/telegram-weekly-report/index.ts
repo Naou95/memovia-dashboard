@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       // Nouveaux inscrits cette semaine
       supabase
         .from('v_dashboard_users')
-        .select('id, email, first_name, last_name, account_type, plan, created_at')
+        .select('id, account_type, plan, created_at')
         .gte('created_at', mondayISO)
         .order('created_at', { ascending: false }),
     ])
@@ -200,12 +200,15 @@ Deno.serve(async (req) => {
     // Nouveaux inscrits cette semaine
     const newUsers = newUsersResult.status === 'fulfilled' ? (newUsersResult.value.data ?? []) : []
     if (newUsers.length > 0) {
+      // Des effectifs par type, jamais de nom ni d'e-mail : Telegram n'a pas de contrat de traitement
+      // avec nous et les inscrits peuvent être mineurs (analyse RGPD du 24/09/2026).
       lines.push(`🎉 *Nouveaux inscrits (${newUsers.length})*`)
-      for (const u of newUsers.slice(0, 10)) {
-        const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email || 'Anonyme'
-        lines.push(`• ${name} — ${accountTypeLabel(u.account_type)}`)
+      const parType = new Map<string, number>()
+      for (const u of newUsers) {
+        const t = accountTypeLabel(u.account_type)
+        parType.set(t, (parType.get(t) ?? 0) + 1)
       }
-      if (newUsers.length > 10) lines.push(`_…et ${newUsers.length - 10} autres_`)
+      for (const [t, n] of parType) lines.push(`• ${t} : ${n}`)
     } else {
       lines.push('🎉 *Nouveaux inscrits* — aucun cette semaine')
     }
