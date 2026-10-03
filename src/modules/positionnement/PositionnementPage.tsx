@@ -175,7 +175,7 @@ export default function PositionnementPage() {
             {bySection('offre').map((o) => (
               <li key={o.id} className={CARD_STYLE[o.style]}>
                 {o.title && <span className="font-semibold text-[var(--text-primary)]">{o.title}</span>}{' '}
-                <Md className="inline">{o.body}</Md>
+                <Md className="[&_p]:inline">{o.body}</Md>
               </li>
             ))}
           </ul>
