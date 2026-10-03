@@ -103,6 +103,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'failed to fetch user email' }), { status: 502 })
     }
 
+    // Nom et e-mail gardés dans l'alerte À LA DEMANDE de Naoufel (03/10/2026), en connaissance de cause :
+    // Telegram n'a pas de contrat de traitement avec MEMOVIA et des inscrits sont mineurs (analyse RGPD du
+    // 24/09/2026). Ne pas les retirer sans lui en parler.
     const email = authUser.user.email ?? 'email inconnu'
     const fullName = [first_name, last_name].filter(Boolean).join(' ') || 'Utilisateur'
     const dateLabel = formatParisDate(created_at)

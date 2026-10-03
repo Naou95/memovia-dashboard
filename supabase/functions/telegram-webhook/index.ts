@@ -70,7 +70,6 @@ interface Contract {
 interface QontoBankAccount { balance_cents: number }
 
 interface DashboardUser {
-  email: string
   plan: string | null
   account_type: string | null
   created_at: string
@@ -156,7 +155,7 @@ async function loadContext() {
 
     supabase
       .from('v_dashboard_users')
-      .select('email, plan, account_type, created_at')
+      .select('plan, account_type, created_at')
       .order('created_at', { ascending: false }),
 
     supabase
@@ -292,11 +291,15 @@ function buildSystemPrompt(
       .map(([plan, count]) => `${plan}: ${count}`)
     if (planLines.length > 0) lines.push(`- Répartition : ${planLines.join(' | ')}`)
     lines.push(`- Nouvelles inscriptions 24h : ${ctx.users.newLast24h.length}`)
+    // Pas d'adresse des inscrits dans le contexte du bot : elle pouvait ressortir dans une réponse
+    // Telegram (pas de contrat de traitement, inscrits parfois mineurs ; analyse RGPD du 24/09/2026).
     if (ctx.users.newLast24h.length > 0) {
-      for (const u of ctx.users.newLast24h.slice(0, 5)) {
-        lines.push(`  · ${u.email} (${u.plan ?? u.account_type ?? 'inconnu'})`)
+      const parPlan = new Map<string, number>()
+      for (const u of ctx.users.newLast24h) {
+        const k = u.plan ?? u.account_type ?? 'inconnu'
+        parPlan.set(k, (parPlan.get(k) ?? 0) + 1)
       }
-      if (ctx.users.newLast24h.length > 5) lines.push(`  · … et ${ctx.users.newLast24h.length - 5} autres`)
+      lines.push(`  · ${[...parPlan].map(([k, n]) => `${k} : ${n}`).join(' | ')}`)
     }
     lines.push(`- Nouvelles inscriptions 7j : ${ctx.users.newThisWeek.length}`)
   } else {
