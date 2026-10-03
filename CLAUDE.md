@@ -25,6 +25,10 @@ Repo séparé de app.memovia.io. Ne jamais modifier le code de la plateforme pri
 ## Variables d'environnement requises
 Voir `.env.example` pour la liste complète. Créer `.env.local` avec les vraies valeurs.
 Ne jamais committer `.env.local` (déjà dans `.gitignore`).
+- `VITE_SUPABASE_ANON_KEY` garde ce nom (le renommer = page blanche) mais contient la clé publique `sb_publishable_…`.
+  Si ton `.env.local` porte encore une valeur `eyJ…`, remplace-la : elle cessera de marcher quand les clés legacy
+  seront coupées. Valeur à jour : `vercel env pull .env.vercel.local` (fichier ignoré par git, accès Vercel requis) ou demander à Naoufel.
+  La clé est figée au build : après un changement de valeur sur Vercel, il faut un nouveau déploiement.
 
 ## Plan courant
 
