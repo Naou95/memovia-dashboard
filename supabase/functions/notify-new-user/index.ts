@@ -1,3 +1,4 @@
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { sendTelegramMessage } from '../_shared/telegram.ts'
 import { isAuthenticatedCronCall } from '../_shared/cronAuth.ts'
 import { timingSafeEqual } from '../_shared/timingSafeEqual.ts'
@@ -85,20 +86,36 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { plan, account_type, created_at, user_id } = payload.record
+    const { first_name, last_name, plan, account_type, created_at, user_id } = payload.record
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: 'missing user_id in payload' }), { status: 400 })
     }
 
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      secretKey(),
+    )
+
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user_id)
+    if (authError || !authUser?.user) {
+      console.error('Failed to fetch auth user:', authError?.message)
+      return new Response(JSON.stringify({ error: 'failed to fetch user email' }), { status: 502 })
+    }
+
+    // Nom et e-mail gardés dans l'alerte À LA DEMANDE de Naoufel (03/10/2026), en connaissance de cause :
+    // Telegram n'a pas de contrat de traitement avec MEMOVIA et des inscrits sont mineurs (analyse RGPD du
+    // 24/09/2026). Ne pas les retirer sans lui en parler.
+    const email = authUser.user.email ?? 'email inconnu'
+    const fullName = [first_name, last_name].filter(Boolean).join(' ') || 'Utilisateur'
     const dateLabel = formatParisDate(created_at)
     const typeLabel = formatAccountType(account_type)
 
-    // Ni nom ni e-mail : Telegram n'a pas de contrat de traitement avec nous et les inscrits peuvent être
-    // mineurs (analyse RGPD du 24/09/2026). Le détail se lit dans le dashboard, derrière sa connexion.
     const message = [
       '🎉 Nouvel inscrit sur MEMOVIA !',
       '',
+      `👤 Nom : ${fullName}`,
+      `📧 Email : ${email}`,
       `📅 Inscrit le : ${dateLabel}`,
       `🎓 Type : ${typeLabel}`,
       `💳 Plan : ${plan || 'Free'}`,
